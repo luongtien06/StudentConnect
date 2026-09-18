@@ -1,0 +1,283 @@
+@model IEnumerable<StudentConnect.Models.ChatListItemViewModel>
+
+@if (Model != null && Model.Any())
+{
+    foreach (var item in Model)
+    {
+        bool isOnline = item.OtherUser?.LastActivityAt.HasValue == true
+                     && (DateTime.Now - item.OtherUser.LastActivityAt.Value).TotalMinutes < 5;
+
+        string displayName = item.RoomName;
+        string avatarUrl = "";
+        string badgeText = "";
+        string badgeClass = "";
+
+        if (item.RoomType == "1vs1" || item.RoomType == "Anonymous")
+        {
+            if (string.IsNullOrEmpty(displayName))
+            {
+                displayName = item.OtherUser?.Username ?? "Người lạ Ẩn danh";
+            }
+            avatarUrl = "https://ui-avatars.com/api/?name=" + Uri.EscapeDataString(displayName) + "&background=00c8ff&color=050a14&bold=true";
+            badgeText = item.RoomType == "Anonymous" ? "1v1 Ẩn danh" : "1v1 Bạn bè";
+            badgeClass = "badge-cyan";
+        }
+        else
+        {
+            if (string.IsNullOrEmpty(displayName))
+            {
+                displayName = "Nhóm " + (item.RoomType == "RandomGroup" ? "5 Ngẫu nhiên" : "học tập #" + item.RoomID);
+            }
+            avatarUrl = "https://ui-avatars.com/api/?name=" + Uri.EscapeDataString(displayName) + "&background=7b61ff&color=fff&bold=true";
+            badgeText = $"Nhóm ({item.MemberCount})";
+            badgeClass = "badge-purple";
+            isOnline = false;
+        }
+
+        string lastMsg = (item.LastMessage ?? "").Length > 32
+            ? (item.LastMessage ?? "").Substring(0, 32) + "..."
+            : (item.LastMessage ?? "");
+
+        string timeStr = item.LastMsgAt.HasValue
+            ? item.LastMsgAt.Value.ToString("HH:mm · dd/MM")
+            : "";
+
+        string safeNameForJs = (displayName ?? "").Replace("'", "\\'").Replace("\"", "\\\"");
+
+        <div class="chat-list-item @(item.IsCurrent ? "is-active" : "")" 
+             data-room-id="@item.RoomID" 
+             data-name="@displayName.ToLower()"
+             onclick="openRoom(@item.RoomID)">
+            <div class="avatar-container">
+                <img src="@avatarUrl" class="user-avatar" alt="@displayName" />
+                @if (isOnline)
+                {
+                    <span class="online-dot" title="Đang hoạt động"></span>
+                }
+            </div>
+            <div class="chat-info">
+                <div class="chat-header-row">
+                    <div class="chat-title-group">
+                        <strong class="user-name" id="sidebar-room-name-@item.RoomID" title="@displayName">@displayName</strong>
+                        <span class="chat-type-badge @badgeClass">@badgeText</span>
+                    </div>
+                    <span class="time-text">@timeStr</span>
+                </div>
+                <div class="chat-bottom-row">
+                    <p class="last-msg">@(string.IsNullOrEmpty(lastMsg) ? "Bấm để nhắn tin..." : lastMsg)</p>
+                    <div class="item-actions" onclick="event.stopPropagation();">
+                        <button type="button" class="btn-item-opt" title="Đổi tên" onclick="promptRenameRoom(@item.RoomID, '@safeNameForJs')">
+                            <i class="fa-solid fa-pen-to-square"></i>
+                        </button>
+                        <button type="button" class="btn-item-opt opt-delete" title="Xóa cuộc trò chuyện" onclick="confirmDeleteConversation(@item.RoomID, '@safeNameForJs')">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+}
+else
+{
+    <div class="chat-empty-state">
+        <div class="empty-icon"><i class="fa-regular fa-comments"></i></div>
+        <p>Chưa có cuộc trò chuyện nào.</p>
+        <span class="empty-sub">Hãy tạo nhóm hoặc bắt đầu ghép ngẫu nhiên!</span>
+    </div>
+}
+
+<style>
+    .chat-list-item {
+        display: flex;
+        align-items: center;
+        padding: 10px 14px;
+        margin: 4px 6px;
+        cursor: pointer;
+        border-radius: 12px;
+        border: 1px solid transparent;
+        background: rgba(255,255,255,0.02);
+        transition: all 0.2s ease;
+        position: relative;
+    }
+
+    .chat-list-item:hover {
+        background: rgba(255,255,255,0.06);
+        border-color: rgba(255,255,255,0.08);
+    }
+
+    .chat-list-item.is-active {
+        background: rgba(0,200,255,0.09);
+        border-color: rgba(0,200,255,0.28);
+    }
+
+    .avatar-container {
+        position: relative;
+        width: 42px;
+        height: 42px;
+        flex-shrink: 0;
+    }
+
+    .user-avatar {
+        width: 100%;
+        height: 100%;
+        border-radius: 12px;
+        object-fit: cover;
+        border: 1px solid rgba(255,255,255,0.12);
+    }
+
+    .online-dot {
+        position: absolute;
+        bottom: -2px;
+        right: -2px;
+        width: 10px;
+        height: 10px;
+        background: #00c850;
+        border: 2px solid #0d1626;
+        border-radius: 50%;
+        box-shadow: 0 0 6px #00c850;
+    }
+
+    .chat-info {
+        margin-left: 10px;
+        flex: 1;
+        min-width: 0;
+    }
+
+    .chat-header-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .chat-title-group {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        min-width: 0;
+        flex: 1;
+    }
+
+    .user-name {
+        font-size: 13.5px;
+        color: rgba(255,255,255,0.92);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        font-family: 'Space Grotesk', sans-serif;
+        font-weight: 600;
+    }
+
+    .chat-type-badge {
+        font-size: 9px;
+        padding: 2px 6px;
+        border-radius: 100px;
+        font-family: 'JetBrains Mono', monospace;
+        letter-spacing: 0.04em;
+        flex-shrink: 0;
+        font-weight: 500;
+    }
+
+    .badge-cyan {
+        background: rgba(0,200,255,0.12);
+        color: #00c8ff;
+        border: 1px solid rgba(0,200,255,0.25);
+    }
+
+    .badge-purple {
+        background: rgba(123,97,255,0.12);
+        color: #a78bfa;
+        border: 1px solid rgba(123,97,255,0.25);
+    }
+
+    .time-text {
+        font-size: 10px;
+        color: rgba(255,255,255,0.3);
+        font-family: 'JetBrains Mono', monospace;
+        flex-shrink: 0;
+    }
+
+    .chat-bottom-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 3px;
+    }
+
+    .last-msg {
+        margin: 0;
+        font-size: 12px;
+        color: rgba(255,255,255,0.4);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        font-family: 'Space Grotesk', sans-serif;
+        flex: 1;
+        min-width: 0;
+    }
+
+    .chat-list-item.is-active .last-msg {
+        color: rgba(0,200,255,0.7);
+    }
+
+    .item-actions {
+        display: none;
+        align-items: center;
+        gap: 4px;
+        margin-left: 6px;
+        flex-shrink: 0;
+    }
+
+    .chat-list-item:hover .item-actions {
+        display: flex;
+    }
+
+    .btn-item-opt {
+        background: none;
+        border: none;
+        color: rgba(255,255,255,0.35);
+        padding: 4px;
+        font-size: 11px;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.15s;
+    }
+
+    .btn-item-opt:hover {
+        color: #00c8ff;
+        background: rgba(0,200,255,0.1);
+    }
+
+    .btn-item-opt.opt-delete:hover {
+        color: #ff4d4d;
+        background: rgba(255,77,77,0.12);
+    }
+
+    .chat-empty-state {
+        text-align: center;
+        padding: 40px 16px;
+        color: rgba(255,255,255,0.3);
+    }
+
+    .empty-icon {
+        font-size: 28px;
+        margin-bottom: 8px;
+        opacity: 0.4;
+        color: #00c8ff;
+    }
+
+    .chat-empty-state p {
+        margin: 0;
+        font-size: 13px;
+        font-weight: 500;
+        color: rgba(255,255,255,0.6);
+    }
+
+    .empty-sub {
+        font-size: 11px;
+        color: rgba(255,255,255,0.25);
+        display: block;
+        margin-top: 4px;
+    }
+</style>

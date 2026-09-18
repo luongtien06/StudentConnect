@@ -1,0 +1,1173 @@
+﻿@model IEnumerable<StudentConnect.Models.ConnectPost>
+@{
+    ViewBag.Title = "Quản lý Kết nối";
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+}
+
+<style>
+    /* ── Biến màu (đồng bộ toàn admin) ── */
+    :root {
+        --dk-bg0: #0f1117;
+        --dk-bg1: #161b27;
+        --dk-bg2: #1c2333;
+        --dk-bg3: #232a3b;
+        --dk-border: #2e3a52;
+        --dk-border2: #3a4a66;
+        --dk-text: #e2e8f0;
+        --dk-text2: #94a3b8;
+        --dk-text3: #64748b;
+        --dk-blue: #3b82f6;
+        --dk-blue-bg: #1e3a5f;
+        --dk-blue-dim: #1d2d45;
+        --dk-green: #22c55e;
+        --dk-green-bg: #14532d;
+        --dk-amber: #f59e0b;
+        --dk-amber-bg: #451a03;
+        --dk-red: #ef4444;
+        --dk-red-bg: #450a0a;
+        --dk-purple: #a78bfa;
+        --dk-purple-bg: #2e1065;
+        --dk-cyan: #22d3ee;
+        --dk-cyan-bg: #164e63;
+        --dk-cyan-dim: #0c3549;
+    }
+
+    /* ── Toast ── */
+    .dk-toast {
+        display: flex;
+        align-items: center;
+        border-radius: 8px;
+        padding: 10px 14px;
+        gap: 8px;
+        font-size: 13px;
+    }
+
+    .dk-toast-success {
+        background: var(--dk-green-bg);
+        border: 1px solid rgba(34,197,94,.3);
+        color: var(--dk-green);
+    }
+
+    .dk-toast-error {
+        background: var(--dk-red-bg);
+        border: 1px solid rgba(239,68,68,.3);
+        color: var(--dk-red);
+    }
+
+    .dk-toast .btn-close {
+        filter: invert(1) brightness(.8);
+    }
+
+    /* ── Stats ── */
+    .dk-stats {
+        display: grid;
+        grid-template-columns: repeat(4,1fr);
+        gap: 12px;
+        margin-bottom: 16px;
+    }
+
+    @@media (max-width:768px) {
+        .dk-stats {
+            grid-template-columns: repeat(2,1fr);
+        }
+    }
+
+    @@media (max-width:480px) {
+        .dk-stats {
+            grid-template-columns: 1fr 1fr;
+        }
+    }
+
+    .dk-stat {
+        background: var(--dk-bg1);
+        border: 1px solid var(--dk-border);
+        border-radius: 12px;
+        padding: 14px 16px;
+    }
+
+    .dk-stat-label {
+        font-size: 10px;
+        color: var(--dk-text3);
+        text-transform: uppercase;
+        letter-spacing: .1em;
+        margin-bottom: 6px;
+        font-family: 'JetBrains Mono',monospace;
+    }
+
+    .dk-stat-val {
+        font-size: 22px;
+        font-weight: 700;
+        line-height: 1;
+    }
+
+        .dk-stat-val.c-purple {
+            color: var(--dk-purple);
+        }
+
+        .dk-stat-val.c-cyan {
+            color: var(--dk-cyan);
+        }
+
+        .dk-stat-val.c-green {
+            color: var(--dk-green);
+        }
+
+        .dk-stat-val.c-amber {
+            color: var(--dk-amber);
+        }
+
+    .dk-stat-sub {
+        font-size: 11px;
+        color: var(--dk-text3);
+        margin-top: 4px;
+    }
+
+    /* ── Card ── */
+    .dk-card {
+        background: var(--dk-bg1);
+        border: 1px solid var(--dk-border);
+        border-radius: 12px;
+        overflow: hidden;
+        margin-bottom: 16px;
+    }
+
+    .dk-card-header {
+        background: var(--dk-bg2);
+        border-bottom: 1px solid var(--dk-border);
+        padding: 14px 20px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .dk-card-title {
+        font-size: 10px;
+        color: rgba(34,211,238,.6);
+        letter-spacing: .1em;
+        font-family: 'JetBrains Mono',monospace;
+    }
+
+    /* ── Toolbar ── */
+    .dk-toolbar {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .dk-select {
+        background: var(--dk-bg2) !important;
+        border: 1px solid var(--dk-border) !important;
+        border-radius: 8px !important;
+        color: var(--dk-text) !important;
+        font-size: 12px !important;
+        padding: 7px 12px !important;
+        outline: none;
+        cursor: pointer;
+        transition: border-color .2s;
+    }
+
+        .dk-select:focus {
+            border-color: rgba(34,211,238,.35) !important;
+        }
+
+        .dk-select option {
+            background: #0d1626;
+            color: #fff;
+        }
+
+    .dk-search {
+        position: relative;
+    }
+
+        .dk-search input {
+            background: var(--dk-bg2);
+            border: 1px solid var(--dk-border);
+            border-radius: 8px;
+            color: var(--dk-text);
+            font-size: 12px;
+            padding: 7px 12px 7px 30px;
+            outline: none;
+            width: 180px;
+            transition: all .2s;
+        }
+
+            .dk-search input:focus {
+                border-color: rgba(34,211,238,.35);
+                background: rgba(34,211,238,.03);
+            }
+
+            .dk-search input::placeholder {
+                color: var(--dk-text3);
+            }
+
+        .dk-search i {
+            position: absolute;
+            left: 9px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--dk-text3);
+            font-size: 12px;
+        }
+
+    .dk-btn-add {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 7px 14px;
+        border-radius: 8px;
+        border: 1px solid rgba(34,197,94,.3);
+        background: var(--dk-green-bg);
+        color: var(--dk-green);
+        font-size: 12px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background .2s;
+        white-space: nowrap;
+    }
+
+        .dk-btn-add:hover {
+            background: rgba(34,197,94,.2);
+            color: var(--dk-green);
+        }
+
+    /* ── Button styles ── */
+    .dk-btn-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 30px;
+        height: 30px;
+        border-radius: 6px;
+        border: 1px solid var(--dk-border);
+        background: var(--dk-bg2);
+        cursor: pointer;
+        transition: all .15s;
+        padding: 0;
+    }
+
+        .dk-btn-icon.view {
+            color: var(--dk-amber);
+        }
+
+            .dk-btn-icon.view:hover {
+                background: var(--dk-amber-bg);
+                border-color: rgba(245,158,11,.4);
+            }
+
+        .dk-btn-icon.edit {
+            color: var(--dk-cyan);
+        }
+
+            .dk-btn-icon.edit:hover {
+                background: var(--dk-cyan-dim);
+                border-color: rgba(34,211,238,.4);
+            }
+
+        .dk-btn-icon.del {
+            color: var(--dk-red);
+        }
+
+            .dk-btn-icon.del:hover {
+                background: var(--dk-red-bg);
+                border-color: rgba(239,68,68,.4);
+            }
+
+    /* ── Table ── */
+    .dk-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+        .dk-table thead tr {
+            background: var(--dk-bg2);
+            border-bottom: 1px solid var(--dk-border2);
+        }
+
+        .dk-table thead th {
+            font-family: 'JetBrains Mono',monospace;
+            font-size: 10px;
+            letter-spacing: .08em;
+            color: var(--dk-text3);
+            padding: 11px 14px;
+            text-align: left;
+            font-weight: 400;
+            white-space: nowrap;
+        }
+
+            .dk-table thead th:last-child {
+                text-align: center;
+            }
+
+        .dk-table tbody tr {
+            border-bottom: 1px solid var(--dk-border);
+            transition: background .15s;
+        }
+
+            .dk-table tbody tr:hover {
+                background: var(--dk-bg2);
+            }
+
+        .dk-table td {
+            padding: 10px 14px;
+            font-size: 13px;
+            color: var(--dk-text2);
+            vertical-align: middle;
+        }
+
+    .dk-cell-id {
+        font-family: 'JetBrains Mono',monospace;
+        font-size: 11px;
+        color: var(--dk-text3);
+    }
+
+    .dk-cell-date {
+        font-family: 'JetBrains Mono',monospace;
+        font-size: 11px;
+        color: var(--dk-text3);
+    }
+
+    /* FIX: bỏ max-width cứng, để cột tự co giãn */
+    .dk-post-title {
+        color: var(--dk-text);
+        font-weight: 500;
+        font-size: 13px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: block;
+        max-width: min(220px, 30vw);
+    }
+
+    /* FIX: dk-post-meta ẩn mặc định, chỉ hiện khi cột riêng bị ẩn */
+    .dk-post-meta {
+        display: none;
+        font-size: 11px;
+        color: var(--dk-text3);
+        margin-top: 2px;
+    }
+
+    .dk-thumb {
+        width: 50px;
+        height: 50px;
+        border-radius: 8px;
+        object-fit: cover;
+        border: 1px solid var(--dk-border);
+        flex-shrink: 0;
+    }
+
+    .dk-badge-purple {
+        display: inline-flex;
+        align-items: center;
+        padding: 3px 9px;
+        border-radius: 20px;
+        font-size: 11px;
+        font-weight: 500;
+        white-space: nowrap;
+        background: var(--dk-purple-bg);
+        color: var(--dk-purple);
+        border: 1px solid rgba(167,139,250,.25);
+        font-family: 'JetBrains Mono',monospace;
+        letter-spacing: .04em;
+    }
+
+    .dk-user-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 12px;
+        color: var(--dk-text3);
+        white-space: nowrap;
+    }
+
+    /* ── DataTables ── */
+    div.dataTables_wrapper div.dataTables_filter {
+        display: none;
+    }
+
+    .dataTables_wrapper .dataTables_length label,
+    .dataTables_wrapper .dataTables_info {
+        color: var(--dk-text2) !important;
+    }
+
+    .dataTables_wrapper .dataTables_length select {
+        background: var(--dk-bg2) !important;
+        border: 1px solid var(--dk-border) !important;
+        color: var(--dk-text) !important;
+        border-radius: 6px !important;
+    }
+
+    .dataTables_wrapper .dataTables_paginate .paginate_button {
+        background: var(--dk-bg2) !important;
+        border: 1px solid var(--dk-border) !important;
+        border-radius: 6px !important;
+        margin: 0 2px !important;
+        color: var(--dk-text2) !important;
+    }
+
+        .dataTables_wrapper .dataTables_paginate .paginate_button.current,
+        .dataTables_wrapper .dataTables_paginate .paginate_button.current:hover {
+            background: var(--dk-blue) !important;
+            border-color: var(--dk-blue) !important;
+            color: #fff !important;
+        }
+
+        .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+            background: var(--dk-bg3) !important;
+            color: var(--dk-text) !important;
+        }
+    /* FIX: DataTables controls wrap đẹp trên mobile */
+    @@media (max-width:576px) {
+        .dataTables_wrapper .dataTables_length,
+        .dataTables_wrapper .dataTables_info,
+        .dataTables_wrapper .dataTables_paginate {
+            text-align: center;
+            padding: 6px 0;
+        }
+
+            .dataTables_wrapper .dataTables_paginate .paginate_button {
+                padding: 4px 8px !important;
+                font-size: 12px !important;
+            }
+    }
+
+    /* ── Responsive: ẩn cột theo breakpoint ── */
+    @@media (max-width:992px) {
+        .col-hide-lg {
+            display: none !important;
+        }
+    }
+
+    @@media (max-width:768px) {
+        .col-hide-md {
+            display: none !important;
+        }
+    }
+
+    @@media (max-width:576px) {
+        .col-hide-sm {
+            display: none !important;
+        }
+    }
+
+    /* FIX: hiện meta line khi cột người đăng + ngày bị ẩn (<=768px) */
+    @@media (max-width:768px) {
+        .dk-post-meta {
+            display: block;
+        }
+    }
+
+    /* FIX: dk-post-title mở rộng hơn khi ít cột hơn */
+    @@media (max-width:768px) {
+        .dk-post-title {
+            max-width: min(260px, 45vw);
+        }
+    }
+
+    @@media (max-width:576px) {
+        .dk-post-title {
+            max-width: min(180px, 48vw);
+        }
+    }
+
+    /* FIX: toolbar responsive */
+    @@media (max-width:640px) {
+        .dk-card-header {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 8px;
+        }
+
+        .dk-toolbar {
+            width: 100%;
+            justify-content: space-between;
+        }
+
+        .dk-search {
+            flex: 1;
+        }
+
+            .dk-search input {
+                width: 100%;
+            }
+
+        .dk-btn-add {
+            flex-shrink: 0;
+        }
+    }
+
+    @@media (max-width:400px) {
+        .dk-toolbar {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .dk-btn-add {
+            width: 100%;
+            justify-content: center;
+        }
+    }
+
+    /* ── Modals ── */
+    .dk-modal .modal-content {
+        background: var(--dk-bg1) !important;
+        border: 1px solid var(--dk-border2) !important;
+        border-radius: 16px !important;
+        color: var(--dk-text) !important;
+    }
+
+    .dk-modal .modal-header {
+        background: var(--dk-bg2) !important;
+        border-bottom: 1px solid var(--dk-border) !important;
+        padding: 16px 20px !important;
+    }
+
+    .dk-modal .modal-body {
+        padding: 20px !important;
+    }
+
+    .dk-modal .modal-footer {
+        background: var(--dk-bg1) !important;
+        border-top: 1px solid var(--dk-border) !important;
+        padding: 12px 20px !important;
+    }
+
+    .dk-modal .modal-title {
+        color: var(--dk-text) !important;
+        font-size: 15px !important;
+        font-weight: 600 !important;
+    }
+
+    .dk-modal .btn-close {
+        filter: invert(1) brightness(.7);
+    }
+
+    /* form controls */
+    .dk-modal .adm-input, .dk-modal .adm-select, .dk-modal .form-control, .dk-modal .form-select {
+        width: 100%;
+        background: var(--dk-bg2) !important;
+        border: 1px solid var(--dk-border) !important;
+        border-radius: 9px !important;
+        color: var(--dk-text) !important;
+        font-size: 13px !important;
+        padding: 9px 13px !important;
+        outline: none;
+        transition: all .2s;
+    }
+
+        .dk-modal .adm-input:focus, .dk-modal .adm-select:focus {
+            border-color: rgba(34,211,238,.35) !important;
+            box-shadow: 0 0 0 3px rgba(34,211,238,.07) !important;
+        }
+
+        .dk-modal .adm-input::placeholder {
+            color: var(--dk-text3) !important;
+        }
+
+    textarea.adm-input {
+        resize: vertical;
+        min-height: 100px;
+    }
+
+    .adm-form-label {
+        font-family: 'JetBrains Mono',monospace;
+        font-size: 10px;
+        letter-spacing: .1em;
+        color: var(--dk-text3);
+        margin-bottom: 6px;
+        display: block;
+    }
+
+    /* detail modal */
+    .detail-img {
+        width: 100%;
+        border-radius: 12px;
+        object-fit: cover;
+        max-height: 220px;
+        border: 1px solid var(--dk-border);
+        display: block;
+    }
+
+    .dk-detail-table {
+        width: 100%;
+    }
+
+        .dk-detail-table td {
+            padding: 6px 0;
+            border-bottom: 1px solid var(--dk-border);
+            font-size: 13px;
+            vertical-align: top;
+        }
+
+        .dk-detail-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .dk-detail-table td:first-child {
+            color: var(--dk-text3);
+            width: 110px;
+            font-size: 11px;
+            font-family: 'JetBrains Mono',monospace;
+            letter-spacing: .04em;
+        }
+
+    .desc-box {
+        background: var(--dk-bg2);
+        border: 1px solid var(--dk-border);
+        border-radius: 10px;
+        padding: 12px 14px;
+        font-size: 13px;
+        color: var(--dk-text2);
+        white-space: pre-line;
+        line-height: 1.7;
+    }
+
+    .section-label {
+        font-family: 'JetBrains Mono',monospace;
+        font-size: 10px;
+        letter-spacing: .1em;
+        color: rgba(34,211,238,.5);
+        margin-bottom: 8px;
+        margin-top: 16px;
+    }
+
+    /* modal action buttons */
+    .dk-modal .btn-modal-cancel {
+        background: var(--dk-bg2);
+        border: 1px solid var(--dk-border);
+        color: var(--dk-text2);
+        border-radius: 8px;
+        padding: 7px 14px;
+        font-size: 13px;
+        cursor: pointer;
+    }
+
+    .dk-modal .btn-modal-save {
+        background: var(--dk-cyan-dim);
+        border: 1px solid rgba(34,211,238,.3);
+        color: var(--dk-cyan);
+        border-radius: 8px;
+        padding: 7px 16px;
+        font-size: 13px;
+        font-weight: 500;
+        cursor: pointer;
+    }
+
+        .dk-modal .btn-modal-save:hover {
+            background: rgba(34,211,238,.15);
+        }
+
+    .dk-modal .btn-modal-add {
+        background: var(--dk-green-bg);
+        border: 1px solid rgba(34,197,94,.3);
+        color: var(--dk-green);
+        border-radius: 8px;
+        padding: 7px 16px;
+        font-size: 13px;
+        font-weight: 500;
+        cursor: pointer;
+    }
+
+        .dk-modal .btn-modal-add:hover {
+            background: rgba(34,197,94,.2);
+        }
+
+    .dk-modal .btn-modal-del {
+        background: var(--dk-red-bg);
+        border: 1px solid rgba(239,68,68,.3);
+        color: var(--dk-red);
+        border-radius: 8px;
+        padding: 7px 14px;
+        font-size: 13px;
+        cursor: pointer;
+    }
+
+    /* delete modal */
+    .dk-modal-danger .modal-header {
+        background: rgba(239,68,68,.1) !important;
+        border-bottom-color: rgba(239,68,68,.2) !important;
+    }
+
+    .dk-modal-danger .modal-title {
+        color: var(--dk-red) !important;
+    }
+
+    /* FIX: modal footer wrap trên mobile */
+    @@media (max-width:480px) {
+        .dk-modal .modal-footer {
+            flex-wrap: wrap;
+        }
+
+            .dk-modal .modal-footer button,
+            .dk-modal .modal-footer .btn-modal-cancel,
+            .dk-modal .modal-footer .btn-modal-save,
+            .dk-modal .modal-footer .btn-modal-add,
+            .dk-modal .modal-footer .btn-modal-del {
+                width: 100%;
+                justify-content: center;
+                text-align: center;
+            }
+
+        .dk-modal .modal-dialog {
+            margin: 0.5rem;
+        }
+    }
+
+    /* empty state */
+    .dk-empty {
+        text-align: center;
+        padding: 3rem 1rem;
+        font-family: 'JetBrains Mono',monospace;
+        font-size: 11px;
+        color: var(--dk-text3);
+        letter-spacing: .08em;
+    }
+</style>
+
+@* ── Toasts ── *@
+@if (TempData["Success"] != null)
+{
+    <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index:9999">
+        <div class="toast show border-0 dk-toast dk-toast-success" role="alert">
+            <i class="bi bi-check-circle-fill"></i>
+            <div class="flex-grow-1">@TempData["Success"]</div>
+            <button type="button" class="btn-close ms-2" data-bs-dismiss="toast"></button>
+        </div>
+    </div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index:9999">
+        <div class="toast show border-0 dk-toast dk-toast-error" role="alert">
+            <i class="bi bi-x-circle-fill"></i>
+            <div class="flex-grow-1">@TempData["Error"]</div>
+            <button type="button" class="btn-close ms-2" data-bs-dismiss="toast"></button>
+        </div>
+    </div>
+}
+
+@* ── Page header ── *@
+<div style="margin-bottom:1.5rem">
+    <h1 style="font-size:1.3rem;font-weight:700;color:var(--dk-text);margin:0">Quản lý Kết nối</h1>
+    <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(34,211,238,.4);letter-spacing:.1em;margin-top:4px">
+        CONNECT POSTS · CONTENT MANAGEMENT
+    </div>
+</div>
+
+@* ── Stats ── *@
+@{
+    int totalPosts = Model.Count();
+    int totalCats = Model.Select(p => p.CategoryID).Distinct().Count();
+    int thisMonth = Model.Count(p => p.CreatedAt.HasValue
+                            && p.CreatedAt.Value.Month == DateTime.Now.Month
+                            && p.CreatedAt.Value.Year == DateTime.Now.Year);
+    int uniqueAuthors = Model.Select(p => p.UserID).Distinct().Count();
+}
+<div class="dk-stats">
+    <div class="dk-stat">
+        <div class="dk-stat-label">Tổng bài viết</div>
+        <div class="dk-stat-val c-purple">@totalPosts</div>
+    </div>
+    <div class="dk-stat">
+        <div class="dk-stat-label">Danh mục</div>
+        <div class="dk-stat-val c-cyan">@totalCats</div>
+    </div>
+    <div class="dk-stat">
+        <div class="dk-stat-label">Bài tháng này</div>
+        <div class="dk-stat-val c-green">@thisMonth</div>
+    </div>
+    <div class="dk-stat">
+        <div class="dk-stat-label">Người đăng</div>
+        <div class="dk-stat-val c-amber">@uniqueAuthors</div>
+    </div>
+</div>
+
+@* ── Main card ── *@
+<div class="dk-card">
+    <div class="dk-card-header">
+        <span class="dk-card-title">DANH SÁCH BÀI VIẾT</span>
+        <div class="dk-toolbar">
+            <div class="dk-search">
+                <i class="bi bi-search"></i>
+                <input type="text" id="liveSearch" placeholder="Tìm tiêu đề..." />
+            </div>
+            <button class="dk-btn-add" data-bs-toggle="modal" data-bs-target="#createModal">
+                <i class="bi bi-plus-circle"></i> Thêm bài mới
+            </button>
+        </div>
+    </div>
+
+    <div class="table-responsive px-2 pt-2 pb-2">
+        <table id="connectTable" class="dk-table">
+            <thead>
+                <tr>
+                    <th style="width:10%">ID</th>
+                    <th style="width:10%" class="col-hide-sm">ẢNH</th>
+                    <th style="width:25%">TIÊU ĐỀ</th>
+                    <th style="width:15%" class="col-hide-md">DANH MỤC</th>
+                    <th style="width:10%" class="col-hide-lg">NGƯỜI ĐĂNG</th>
+                    <th style="width:15%" class="col-hide-md">NGÀY ĐĂNG</th>
+                    <th style="width:20%;text-align:center">THAO TÁC</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (!Model.Any())
+                {
+                    <tr>
+                        <td colspan="7">
+                            <div class="dk-empty">
+                                <div style="font-size:2rem;margin-bottom:10px;opacity:.3">📭</div>
+                                CHƯA CÓ BÀI VIẾT NÀO
+                            </div>
+                        </td>
+                    </tr>
+                }
+                @foreach (var item in Model)
+                {
+                        var catName = item.ConnectCategory != null ? item.ConnectCategory.CategoryName : "N/A";
+                        var userName = item.User != null ? item.User.Username : "Admin";
+                        var dateStr = item.CreatedAt.HasValue ? item.CreatedAt.Value.ToString("dd/MM/yyyy") : "---";
+                        var dateFullStr = item.CreatedAt.HasValue ? item.CreatedAt.Value.ToString("dd/MM/yyyy HH:mm") : "---";
+                        var desc = item.Description ?? "";
+                    <tr>
+                        <td><span class="dk-cell-id">#@item.PostID</span></td>
+                        <td class="col-hide-sm">
+                            <img src="@(string.IsNullOrEmpty(item.MainImage) ? "/Content/Images/default-image.jpg" : item.MainImage)" class="dk-thumb"
+                                 onerror="this.onerror=null;this.src='/Content/Images/default-image.jpg';" alt="" />
+                        </td>
+                        <td>
+                            <span class="dk-post-title" title="@item.Title">@item.Title</span>
+                            @* FIX: meta line hiện trên <=768px thay thế cho cột bị ẩn *@
+                            <div class="dk-post-meta">@userName · @dateStr</div>
+                        </td>
+                        <td class="col-hide-md">
+                            <span class="dk-badge-purple">@catName</span>
+                        </td>
+                        <td class="col-hide-lg">
+                            <span class="dk-user-chip">
+                                <i class="bi bi-person"></i> @userName
+                            </span>
+                        </td>
+                        <td class="col-hide-md">
+                            <span class="dk-cell-date">@dateStr</span>
+                        </td>
+                        <td style="text-align:center">
+                            <div style="display:flex;gap:5px;justify-content:center">
+                                <button class="dk-btn-icon view btn-view-post"
+                                        title="Xem chi tiết"
+                                        data-id="@item.PostID"
+                                        data-title="@item.Title"
+                                        data-category="@catName"
+                                        data-user="@userName"
+                                        data-date="@dateFullStr"
+                                        data-image="@item.MainImage"
+                                        data-description="@desc">
+                                    <i class="bi bi-eye" style="font-size:13px"></i>
+                                </button>
+                                <button class="dk-btn-icon edit btn-edit-post"
+                                        title="Chỉnh sửa"
+                                        data-id="@item.PostID"
+                                        data-title="@item.Title"
+                                        data-category="@item.CategoryID"
+                                        data-description="@desc">
+                                    <i class="bi bi-pencil" style="font-size:13px"></i>
+                                </button>
+                                <button class="dk-btn-icon del btn-delete-post"
+                                        title="Xóa"
+                                        data-id="@item.PostID"
+                                        data-title="@item.Title">
+                                    <i class="bi bi-trash3" style="font-size:13px"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@* ══ MODAL: Chi tiết (dùng chung) ══ *@
+<div class="modal fade dk-modal" id="detailsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    Chi tiết bài viết
+                    <span id="detail-id" style="font-family:'JetBrains Mono',monospace;color:rgba(34,211,238,.7);font-size:13px;margin-left:6px"></span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-3">
+                    <div class="col-md-5">
+                        <img id="detail-image" src="/Content/Images/default-image.jpg" class="detail-img"
+                             onerror="this.onerror=null;this.src='/Content/Images/default-image.jpg';" alt="" />
+                    </div>
+                    <div class="col-md-7">
+                        <table class="dk-detail-table">
+                            <tr>
+                                <td>TIÊU ĐỀ</td>
+                                <td style="color:var(--dk-text);font-weight:500" id="detail-title"></td>
+                            </tr>
+                            <tr>
+                                <td>DANH MỤC</td>
+                                <td><span class="dk-badge-purple" id="detail-category"></span></td>
+                            </tr>
+                            <tr>
+                                <td>NGƯỜI ĐĂNG</td>
+                                <td id="detail-user"></td>
+                            </tr>
+                            <tr>
+                                <td>NGÀY ĐĂNG</td>
+                                <td style="font-family:'JetBrains Mono',monospace;font-size:12px" id="detail-date"></td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+                <div class="section-label">NỘI DUNG</div>
+                <div class="desc-box" id="detail-description"></div>
+            </div>
+            <div class="modal-footer" style="gap:8px">
+                <button type="button" class="btn-modal-del" id="detail-btn-delete">
+                    <i class="bi bi-trash3 me-1"></i>Xóa bài
+                </button>
+                <button type="button" class="btn-modal-save" id="detail-btn-edit" data-bs-dismiss="modal">
+                    <i class="bi bi-pencil me-1"></i>Chỉnh sửa
+                </button>
+                <button type="button" class="btn-modal-cancel" data-bs-dismiss="modal">Đóng</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* ══ MODAL: Sửa (dùng chung) ══ *@
+<div class="modal fade dk-modal" id="editModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    Chỉnh sửa bài viết
+                    <span id="edit-id-label" style="font-family:'JetBrains Mono',monospace;color:rgba(34,211,238,.7);font-size:13px;margin-left:6px"></span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="@Url.Action("Edit", "AdminConnect", new { area = "Admin" })"
+                  method="post" enctype="multipart/form-data">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="PostID" id="edit-PostID" />
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-md-8">
+                            <label class="adm-form-label">TIÊU ĐỀ</label>
+                            <input type="text" class="adm-input" name="Title" id="edit-Title" required />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="adm-form-label">DANH MỤC</label>
+                            @Html.DropDownList("CategoryID",
+                                (SelectList)ViewBag.Categories,
+                                "Chọn danh mục",
+                                new { @class = "adm-input adm-select", id = "edit-CategoryID", required = "required" })
+                        </div>
+                        <div class="col-12">
+                            <label class="adm-form-label">ẢNH MỚI <span style="opacity:.5">(để trống = giữ nguyên)</span></label>
+                            <input type="file" class="adm-input" name="fileAnh" accept="image/*"
+                                   style="padding:7px 13px;cursor:pointer" />
+                        </div>
+                        <div class="col-12">
+                            <label class="adm-form-label">NỘI DUNG</label>
+                            <textarea class="adm-input" name="Description" id="edit-Description" rows="5" required></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer" style="gap:8px">
+                    <button type="button" class="btn-modal-cancel" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn-modal-save">
+                        <i class="bi bi-floppy me-1"></i>Lưu thay đổi
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@* ══ MODAL: Xóa (dùng chung) ══ *@
+<div class="modal fade dk-modal dk-modal-danger" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-exclamation-triangle me-2"></i>Xác nhận xóa
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" style="font-size:13px;color:var(--dk-text2)">
+                Xóa bài viết <strong style="color:var(--dk-red)" id="delete-title-label"></strong>?
+                <p class="mt-2 mb-0" style="font-size:12px;color:var(--dk-text3)">Hành động này không thể hoàn tác.</p>
+            </div>
+            <div class="modal-footer" style="gap:8px">
+                <form action="@Url.Action("Delete", "AdminConnect", new { area = "Admin" })" method="post" style="display:contents">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="id" id="delete-post-id" />
+                    <button type="button" class="btn-modal-cancel btn-sm" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn-modal-del btn-sm">
+                        <i class="bi bi-trash3 me-1"></i>Xóa
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* ══ MODAL: Thêm mới ══ *@
+<div class="modal fade dk-modal" id="createModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-plus-circle me-2" style="color:var(--dk-green)"></i>Thêm bài viết mới
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="@Url.Action("Create", "AdminConnect", new { area = "Admin" })"
+                  method="post" enctype="multipart/form-data">
+                @Html.AntiForgeryToken()
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-md-8">
+                            <label class="adm-form-label">TIÊU ĐỀ</label>
+                            <input type="text" class="adm-input" name="Title"
+                                   placeholder="Nhập tiêu đề bài viết..." required />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="adm-form-label">DANH MỤC</label>
+                            @Html.DropDownList("CategoryID",
+                                (SelectList)ViewBag.Categories,
+                                "Chọn danh mục",
+                                new { @class = "adm-input adm-select", required = "required" })
+                        </div>
+                        <div class="col-12">
+                            <label class="adm-form-label">HÌNH ẢNH</label>
+                            <input type="file" class="adm-input" name="fileAnh" accept="image/*"
+                                   style="padding:7px 13px;cursor:pointer" required />
+                        </div>
+                        <div class="col-12">
+                            <label class="adm-form-label">NỘI DUNG CHI TIẾT</label>
+                            <textarea class="adm-input" name="Description" rows="5"
+                                      placeholder="Nhập nội dung bài viết..." required></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer" style="gap:8px">
+                    <button type="button" class="btn-modal-cancel" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn-modal-add">
+                        <i class="bi bi-plus-circle me-1"></i>Lưu bài viết
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section scripts {
+    <script>
+        $(function () {
+
+            // ── DataTables ────────────────────────────────────────────────────
+            var table = $('#connectTable').DataTable({
+                order: [[5, 'desc']],
+                columnDefs: [{ orderable: false, targets: [1, 6] }],
+                language: {
+                    lengthMenu: 'Hiển thị _MENU_ bài',
+                    zeroRecords: 'Không tìm thấy bài viết nào',
+                    info: 'Trang _PAGE_ / _PAGES_ · Tổng _TOTAL_ bài',
+                    infoEmpty: 'Không có dữ liệu',
+                    infoFiltered: '(lọc từ _MAX_ bài)',
+                    paginate: { previous: '‹', next: '›' }
+                }
+            });
+
+            // live search
+            $('#liveSearch').on('input', function () {
+                table.search($(this).val()).draw();
+            });
+
+            // category filter (giữ nguyên logic, không có select trong view này)
+            $('#categoryFilter').on('change', function () {
+                var val = $(this).val();
+                if (val === '') {
+                    table.column(3).search('', true, false).draw();
+                } else {
+                    var name = $.fn.dataTable.util.escapeRegex(
+                        $(this).find('option:selected').text()
+                    );
+                    table.column(3).search('^' + name + '$', true, false).draw();
+                }
+            });
+
+            // ── Modal Chi tiết ───────────────────────────────────────────────
+            $(document).on('click', '.btn-view-post', function () {
+                var d = $(this).data();
+                $('#detail-id').text('#' + d.id);
+                $('#detail-title').text(d.title);
+                $('#detail-category').text(d.category);
+                $('#detail-user').text(d.user);
+                $('#detail-date').text(d.date);
+                $('#detail-image').attr('src', d.image || '/Content/Images/default-image.jpg');
+                $('#detail-description').text(d.description || '(Không có nội dung)');
+                $('#detail-btn-delete').data('id', d.id).data('title', d.title);
+                $('#detail-btn-edit').data('id', d.id).data('title', d.title)
+                    .data('category', d.category).data('description', d.description);
+                new bootstrap.Modal(document.getElementById('detailsModal')).show();
+            });
+
+            $(document).on('click', '#detail-btn-edit', function () {
+                var d = $(this).data();
+                openEditModal(d.id, d.title, d.category, d.description);
+            });
+
+            $(document).on('click', '#detail-btn-delete', function () {
+                var d = $(this).data();
+                bootstrap.Modal.getInstance(document.getElementById('detailsModal')).hide();
+                openDeleteModal(d.id, d.title);
+            });
+
+            // ── Modal Sửa ────────────────────────────────────────────────────
+            $(document).on('click', '.btn-edit-post', function () {
+                var d = $(this).data();
+                openEditModal(d.id, d.title, d.category, d.description);
+            });
+
+            function openEditModal(id, title, category, description) {
+                $('#edit-id-label').text('#' + id);
+                $('#edit-PostID').val(id);
+                $('#edit-Title').val(title);
+                $('#edit-CategoryID').val(category);
+                $('#edit-Description').val(description);
+                new bootstrap.Modal(document.getElementById('editModal')).show();
+            }
+
+            // ── Modal Xóa ────────────────────────────────────────────────────
+            $(document).on('click', '.btn-delete-post', function () {
+                var d = $(this).data();
+                openDeleteModal(d.id, d.title);
+            });
+
+            function openDeleteModal(id, title) {
+                $('#delete-post-id').val(id);
+                $('#delete-title-label').text('"' + title + '"');
+                new bootstrap.Modal(document.getElementById('deleteModal')).show();
+            }
+
+            // ── Auto-dismiss toast ────────────────────────────────────────────
+            document.querySelectorAll('.toast.show').forEach(function (el) {
+                setTimeout(function () {
+                    new bootstrap.Toast(el, { delay: 400 }).hide();
+                }, 4000);
+            });
+
+        });
+    </script>
+}

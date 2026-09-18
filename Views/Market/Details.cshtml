@@ -1,0 +1,601 @@
+@model StudentConnect.Models.MarketPost
+@{
+    ViewBag.Title = Model.Title;
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    bool isLoggedIn = Session["UserID"] != null;
+    int currentUserId = isLoggedIn ? (int)Session["UserID"] : 0;
+    bool isOwner = isLoggedIn && currentUserId == Model.UserID;
+
+    // Lấy danh sách bình luận từ ViewBag (Sử dụng model Review)
+    var comments = ViewBag.Comments as IEnumerable<StudentConnect.Models.Review> ?? new List<StudentConnect.Models.Review>();
+}
+
+<style>
+    /* Xóa nền của body để ăn theo nền Dark Theme của Layout */
+
+    .details-wrapper, .comments-wrapper {
+        background: #111424; /* Nền tối đồng bộ với card ngoài Index */
+        border: 1px solid #23273b; /* Viền mờ */
+        border-radius: 16px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        margin-top: 20px;
+        overflow: hidden;
+        color: #fff; /* Chữ trắng */
+    }
+
+    .custom-breadcrumb {
+        padding: 15px 0;
+        font-size: 0.9rem;
+    }
+
+        .custom-breadcrumb a {
+            color: #9ca3af;
+            text-decoration: none;
+            transition: 0.3s;
+        }
+
+            .custom-breadcrumb a:hover {
+                color: #0dcaf0; /* Xanh cyan khi hover */
+            }
+
+    .image-section {
+        background: #0b0d18; /* Nền khu vực ảnh tối hơn một chút */
+        padding: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 450px;
+        border-right: 1px solid #23273b;
+    }
+
+    .main-img {
+        max-width: 100%;
+        max-height: 500px;
+        object-fit: contain;
+        border-radius: 8px;
+    }
+
+    .info-section {
+        padding: 40px;
+    }
+
+    .price-tag {
+        font-size: 2.2rem;
+        font-weight: 800;
+        color: #0dcaf0; /* Chuyển màu giá thành Cyan giống Index */
+        margin: 15px 0;
+    }
+
+    .category-label {
+        background: rgba(255, 255, 255, 0.1);
+        color: #fff;
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+
+    .seller-info {
+        border: 1px solid #23273b;
+        background: #16192b;
+        border-radius: 12px;
+        padding: 20px;
+        margin-top: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .user-avatar {
+        width: 50px;
+        height: 50px;
+        background: #0dcaf0;
+        color: #000;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+        margin-right: 15px;
+        flex-shrink: 0;
+        font-weight: bold;
+    }
+
+    .desc-content {
+        line-height: 1.8;
+        color: #d1d5db; /* Xám nhạt */
+        white-space: pre-line;
+        margin-top: 20px;
+    }
+
+    /* CSS BÌNH LUẬN - DARK THEME */
+    .comment-item {
+        display: flex;
+        padding-bottom: 1.5rem;
+        margin-bottom: 1.5rem;
+        border-bottom: 1px solid #23273b;
+    }
+
+        .comment-item:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+
+    .comment-avatar {
+        width: 48px;
+        height: 48px;
+        background: #3b82f6;
+        color: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 1.2rem;
+        margin-right: 15px;
+        flex-shrink: 0;
+    }
+
+        .comment-avatar.seller {
+            background: #10b981;
+        }
+
+    .comment-content {
+        flex-grow: 1;
+    }
+
+    .comment-header {
+        display: flex;
+        align-items: baseline;
+        margin-bottom: 5px;
+    }
+
+    .comment-author {
+        font-weight: 700;
+        font-size: 1.05rem;
+        color: #fff;
+        margin-right: 10px;
+    }
+
+    .comment-time {
+        font-size: 0.85rem;
+        color: #9ca3af;
+    }
+
+    .comment-text {
+        color: #d1d5db;
+        font-size: 1rem;
+        line-height: 1.5;
+        margin-bottom: 8px;
+    }
+
+    .btn-reply {
+        color: #9ca3af;
+        font-size: 0.85rem;
+        font-weight: 600;
+        text-decoration: none;
+        transition: 0.2s;
+    }
+
+        .btn-reply:hover {
+            color: #0dcaf0;
+            text-decoration: none;
+        }
+
+    .comment-input-area {
+        background: #16192b;
+        padding: 20px;
+        border-radius: 12px;
+        border: 1px solid #23273b;
+    }
+
+    /* Custom Textarea cho Dark Theme */
+    .dark-textarea {
+        background: #0b0d18 !important;
+        color: #fff !important;
+        border: 1px solid #23273b !important;
+        border-radius: 12px;
+        resize: none;
+        padding: 12px;
+    }
+
+        .dark-textarea:focus {
+            border-color: #0dcaf0 !important;
+            box-shadow: 0 0 0 0.2rem rgba(13, 202, 240, 0.25) !important;
+        }
+
+        .dark-textarea::placeholder {
+            color: #6b7280 !important;
+        }
+
+    /* Ghi đè viền của bootstrap */
+    .border-top, .border-bottom {
+        border-color: #23273b !important;
+    }
+
+    .text-muted {
+        color: #9ca3af !important;
+    }
+    /* SweetAlert2 dark override */
+    .swal-dark-popup {
+        border: 1px solid rgba(226,75,74,0.25) !important;
+        border-radius: 16px !important;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.6) !important;
+    }
+
+    .swal-dark-title {
+        font-size: 18px !important;
+        font-weight: 700 !important;
+        color: #fff !important;
+    }
+
+    .swal-dark-icon {
+        border-color: rgba(226,75,74,0.3) !important;
+        color: #e24b4a !important;
+    }
+
+    .swal-confirm-btn {
+        border-radius: 50px !important;
+        padding: 9px 24px !important;
+        font-size: 13px !important;
+        font-weight: 700 !important;
+        border: none !important;
+    }
+
+    .swal-cancel-btn {
+        border-radius: 50px !important;
+        padding: 9px 24px !important;
+        font-size: 13px !important;
+        font-weight: 500 !important;
+        border: 1px solid rgba(255,255,255,0.15) !important;
+        color: #8b94a5 !important;
+    }
+
+        .swal-cancel-btn:hover {
+            background: rgba(255,255,255,0.05) !important;
+            color: #fff !important;
+        }
+</style>
+
+<div class="container pb-5">
+    <nav class="custom-breadcrumb">
+        <a href="@Url.Action("Index", "Home")">Trang chủ</a>
+        <span class="mx-2 text-muted">/</span>
+        <a href="@Url.Action("Index", "Market")">Chợ Sinh Viên</a>
+        <span class="mx-2 text-muted">/</span>
+        <span class="text-white font-weight-bold">@Model.Title</span>
+    </nav>
+
+    <div class="row details-wrapper">
+        <div class="col-lg-7 image-section">
+            @if (!string.IsNullOrEmpty(Model.MainImage))
+            {
+                <img src="@Model.MainImage" class="main-img" alt="@Model.Title" />
+            }
+            else
+            {
+                <div class="text-center text-muted">
+                    <i class="fas fa-box-open fa-4x mb-3"></i>
+                    <p>Chưa có hình ảnh mô tả</p>
+                </div>
+            }
+        </div>
+
+        <div class="col-lg-5 info-section">
+            <span class="category-label">
+                @(Model.MarketCategory?.CategoryName ?? "Khác")
+            </span>
+
+            <h1 class="mt-3 font-weight-bold" style="font-size:1.8rem; color: #fff;">@Model.Title</h1>
+
+            <div class="price-tag">
+                @((Model.Price ?? 0).ToString("N0"))
+                <span style="font-size:1.2rem;">đ</span>
+            </div>
+
+            <div class="mt-4 pt-3 border-top">
+                <p class="mb-2 text-muted">
+                    <i class="fas fa-map-marker-alt mr-2 text-danger"></i>
+                    <strong class="text-light">Khu vực:</strong> @(Model.ExchangeLocation ?? "Thỏa thuận")
+                </p>
+                <p class="text-muted">
+                    <i class="fas fa-history mr-2 text-primary"></i>
+                    <strong class="text-light">Ngày đăng:</strong> @(Model.CreatedAt?.ToString("dd/MM/yyyy") ?? "N/A")
+                </p>
+            </div>
+
+            @if (Model.User != null)
+            {
+                <div class="seller-info">
+                    <div style="display:flex; align-items:center;">
+                        <div class="user-avatar">
+                            @(Model.User.Username?.Substring(0, 1).ToUpper() ?? "U")
+                        </div>
+                        <div>
+                            <div class="small text-muted">Người đăng bài</div>
+                            <div class="font-weight-bold text-white">@Model.User.Username</div>
+                        </div>
+                    </div>
+                    <div class="small text-success">
+                        <i class="fas fa-check-circle"></i> Đã xác thực
+                    </div>
+                </div>
+            }
+
+            <div class="mt-4">
+                @if (isOwner)
+                {
+                    <div class="row gx-2">
+                        <div class="col-6">
+                            <a href="@Url.Action("Edit", "Market", new { id = Model.PostID })"
+                               class="btn btn-warning btn-block font-weight-bold py-2">
+                                <i class="fas fa-edit mr-2"></i> Sửa
+                            </a>
+                        </div>
+                        <div class="col-6">
+                           @using (Html.BeginForm("Delete", "Market",  new { id = Model.PostID },  FormMethod.Post,  new { id = "deleteMarketForm" }))
+                            {
+                                @Html.AntiForgeryToken()
+                            <button type="button" class="btn btn-danger btn-block font-weight-bold py-2"
+                                    onclick="confirmDelete()">
+                                <i class="fas fa-trash-alt mr-2"></i> Xóa
+                            </button>
+                            }
+                        </div>
+                    </div>
+                    <div class="alert mt-3 text-center small" style="background: rgba(255,255,255,0.05); color: #fff; border: 1px solid #23273b;">
+                        Bạn đang xem bài viết của chính mình.
+                    </div>
+                }
+                else
+                {
+                    <div class="mb-3">
+                        <a href="@Url.Action("ChatWithSeller", "Market", new { postId = Model.PostID })"
+                           class="btn btn-info btn-block py-3 font-weight-bold d-flex align-items-center justify-content-center"
+                           style="border-radius: 12px; font-size: 1.05rem; background: linear-gradient(135deg, #0dcaf0, #0099ff); border: none; color: #000; box-shadow: 0 6px 22px rgba(13,202,240,0.35); text-decoration: none; transition: all 0.3s ease;">
+                            <i class="fas fa-comment-dots mr-2" style="font-size: 1.3rem;"></i> Nhắn tin với người bán
+                        </a>
+                    </div>
+                    <div>
+                        <button type="button" class="btn btn-outline-light btn-block py-2" onclick="toggleWishlist(@Model.PostID)" style="border-radius: 10px; border-color: #23273b; font-size:0.9rem;">
+                            <i class="far fa-heart mr-2 text-danger"></i> Lưu tin vào yêu thích
+                        </button>
+                    </div>
+                }
+
+                <p class="text-center mt-3 small text-muted">
+                    Vui lòng không giao dịch ngoài khuôn viên trường để đảm bảo an toàn.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="details-wrapper mt-4 p-4">
+        <h5 class="font-weight-bold border-bottom pb-3">Mô tả chi tiết</h5>
+        <div class="desc-content">@Model.Description</div>
+    </div>
+
+    <div class="comments-wrapper mt-4 p-4">
+        <h5 class="font-weight-bold mb-4 border-bottom pb-3">
+            Bình luận (<span id="commentTotalCount">@comments.Count()</span>)
+        </h5>
+
+        <div class="comment-input-area mb-4">
+            @if (isLoggedIn)
+            {
+                <form id="marketCommentForm" onsubmit="submitMarketComment(event)">
+                    <div class="d-flex">
+                        <div class="comment-avatar" style="width:48px; height:48px; background: #4b5563;">
+                            <i class="fas fa-user" style="font-size: 1.2rem;"></i>
+                        </div>
+                        <div class="flex-grow-1">
+                            <textarea id="commentContent" class="form-control dark-textarea" rows="2" placeholder="Chia sẻ cảm nghĩ hoặc đặt câu hỏi về sản phẩm..." required></textarea>
+                            <div class="text-right mt-2">
+                                <button type="submit" id="btnSubmitComment" class="btn btn-info px-4 py-2" style="border-radius: 20px; font-weight:bold; background-color: #0dcaf0; color: #000; border: none;">
+                                    <i class="fas fa-paper-plane mr-1"></i> Gửi bình luận
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            }
+            else
+            {
+                <div class="alert text-center m-0" style="background: rgba(220, 53, 69, 0.1); border: 1px solid rgba(220, 53, 69, 0.2); color: #fff; border-radius: 12px;">
+                    Vui lòng <a href="@Url.Action("Login", "User")" class="font-weight-bold" style="color: #0dcaf0;">Đăng nhập</a> để tham gia bình luận và trao đổi.
+                </div>
+            }
+        </div>
+
+        <div class="comment-list" id="commentListContainer">
+            @if (comments.Any())
+            {
+                foreach (var c in comments)
+                {
+                    var authorName = c.User?.Username ?? "Ẩn danh";
+                    bool isSeller = (c.UserID == Model.UserID);
+
+                    <div class="comment-item" id="comment-item-@c.ReviewID">
+                        <div class="comment-avatar @(isSeller ? "seller" : "")">
+                            @(authorName.Substring(0, 1).ToUpper())
+                        </div>
+                        <div class="comment-content">
+                            <div class="comment-header">
+                                <span class="comment-author">
+                                    @authorName
+                                    @if (isSeller)
+                                    {
+                                        <span class="badge badge-success ml-1" style="font-size: 0.7rem; vertical-align: middle;">Người bán</span>
+                                    }
+                                </span>
+                                <span class="comment-time">
+                                    <i class="far fa-clock mr-1"></i>
+                                    @(c.CreatedAt.HasValue ? c.CreatedAt.Value.ToString("dd/MM/yyyy HH:mm") : "")
+                                </span>
+                            </div>
+
+                            <p class="comment-text">@c.Comment</p>
+
+                            @if (isLoggedIn)
+                            {
+                                <a href="javascript:void(0);" onclick="replyTo('@authorName')" class="btn-reply">
+                                    <i class="fas fa-reply mr-1"></i>Trả lời
+                                </a>
+                            }
+                        </div>
+                    </div>
+                }
+            }
+            else
+            {
+                <div id="noCommentsPlaceholder" class="text-center py-4">
+                    <img src="https://cdn-icons-png.flaticon.com/512/7486/7486744.png" alt="No Comments" style="width: 80px; opacity: 0.3; filter: grayscale(100%) invert(100%); margin-bottom: 15px;" />
+                    <p class="text-muted">Chưa có bình luận nào. Hãy là người đầu tiên lên tiếng!</p>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<script src="~/Scripts/jquery.signalR-2.4.3.min.js"></script>
+<script src="~/signalr/hubs"></script>
+<script>
+    const postId = @Model.PostID;
+    const isLoggedIn = @(isLoggedIn ? "true" : "false");
+    let chatHub = null;
+
+    // Khởi tạo SignalR Real-time Comments
+    $(function() {
+        if ($.connection && $.connection.chatHub) {
+            chatHub = $.connection.chatHub;
+
+            chatHub.client.onNewMarketComment = function(c) {
+                if (c && c.postId == postId) {
+                    appendCommentRealtime(c);
+                }
+            };
+
+            $.connection.hub.start().done(function() {
+                if (chatHub.server.joinMarketPost) {
+                    chatHub.server.joinMarketPost(postId);
+                }
+            });
+        }
+    });
+
+    function submitMarketComment(e) {
+        e.preventDefault();
+        const content = $('#commentContent').val().trim();
+        if (!content) return;
+
+        $('#btnSubmitComment').prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Đang gửi...');
+
+        $.post('/Market/AddCommentAjax', { postId: postId, content: content }, function(res) {
+            $('#btnSubmitComment').prop('disabled', false).html('<i class="fas fa-paper-plane mr-1"></i> Gửi bình luận');
+            if (res.success) {
+                $('#commentContent').val('');
+                appendCommentRealtime(res.comment);
+            } else {
+                Swal.fire('Thông báo', res.message || 'Không thể gửi bình luận.', 'error');
+            }
+        }).fail(function() {
+            $('#btnSubmitComment').prop('disabled', false).html('<i class="fas fa-paper-plane mr-1"></i> Gửi bình luận');
+            Swal.fire('Lỗi', 'Không thể kết nối máy chủ.', 'error');
+        });
+    }
+
+    function appendCommentRealtime(c) {
+        if ($('#comment-item-' + c.reviewId).length > 0) return; // Tránh trùng
+
+        $('#noCommentsPlaceholder').remove();
+
+        const initial = c.username ? c.username.charAt(0).toUpperCase() : 'U';
+        const sellerBadge = c.isSeller ? '<span class="badge badge-success ml-1" style="font-size: 0.7rem; vertical-align: middle;">Người bán</span>' : '';
+        const replyBtn = isLoggedIn ? `<a href="javascript:void(0);" onclick="replyTo('${c.username}')" class="btn-reply"><i class="fas fa-reply mr-1"></i>Trả lời</a>` : '';
+
+        const html = `
+            <div class="comment-item" id="comment-item-${c.reviewId}" style="animation: fadeIn 0.5s ease;">
+                <div class="comment-avatar ${c.isSeller ? 'seller' : ''}">
+                    ${initial}
+                </div>
+                <div class="comment-content">
+                    <div class="comment-header">
+                        <span class="comment-author">
+                            ${c.username}
+                            ${sellerBadge}
+                        </span>
+                        <span class="comment-time">
+                            <i class="far fa-clock mr-1"></i> ${c.createdAt}
+                        </span>
+                    </div>
+                    <p class="comment-text">${$('<div>').text(c.comment).html()}</p>
+                    ${replyBtn}
+                </div>
+            </div>
+        `;
+
+        $('#commentListContainer').append(html);
+        let count = parseInt($('#commentTotalCount').text()) || 0;
+        $('#commentTotalCount').text(count + 1);
+    }
+
+    function replyTo(username) {
+        var textarea = document.getElementById('commentContent');
+        if (textarea) {
+            textarea.value = '@@' + username + ' ' + textarea.value;
+            textarea.focus();
+            textarea.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    }
+
+    function toggleWishlist(pId) {
+        $.post('/Market/ToggleWishlist', { postId: pId }, function(res) {
+            if (res.success) {
+                Swal.fire({
+                    toast: true,
+                    position: 'top-end',
+                    icon: 'success',
+                    title: res.message,
+                    showConfirmButton: false,
+                    timer: 2500
+                });
+            } else {
+                Swal.fire('Thông báo', res.message, 'warning');
+            }
+        });
+    }
+
+    function confirmDelete() {
+        Swal.fire({
+            title: 'Xóa bài đăng?',
+            html: `<div style="font-size:13px; color:#8b94a5; line-height:1.6;">
+                       Bài <strong style="color:#fff;">@Html.Raw(Model.Title.Replace("'", "\\'"))</strong>
+                       sẽ bị xóa vĩnh viễn.<br/>
+                       <span style="color:rgba(226,75,74,0.8); font-size:12px;">
+                           Hành động này không thể hoàn tác.
+                       </span>
+                   </div>`,
+            icon: 'warning',
+            background: '#0d1626',
+            color: '#fff',
+            showCancelButton: true,
+            confirmButtonText: '<i class="fas fa-trash-alt"></i> Xóa ngay',
+            cancelButtonText: 'Hủy bỏ',
+            confirmButtonColor: '#e24b4a',
+            cancelButtonColor: 'transparent',
+            customClass: {
+                popup:         'swal-dark-popup',
+                confirmButton: 'swal-confirm-btn',
+                cancelButton:  'swal-cancel-btn',
+                title:         'swal-dark-title',
+                icon:          'swal-dark-icon',
+            },
+            reverseButtons: true
+        }).then(result => {
+            if (result.isConfirmed) {
+                document.getElementById('deleteMarketForm').submit();
+            }
+        });
+    }
+</script>

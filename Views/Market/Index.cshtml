@@ -1,0 +1,771 @@
+@model PagedList.IPagedList<StudentConnect.Models.MarketPost>
+@using PagedList.Mvc;
+
+@{
+    ViewBag.Title = "Chợ TDMU";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    bool isLoggedIn = Session["UserID"] != null;
+    int currentUserId = isLoggedIn ? (int)Session["UserID"] : 0;
+}
+
+<style>
+    :root {
+        --c-bg: #050c1a;
+        --c-surface: #0d1626;
+        --c-border: #1a2540;
+        --c-border2: #232840;
+        --c-cyan: #00c8ff;
+        --c-red: #e24b4a;
+        --c-amber: #ef9f27;
+        --c-text: rgba(255,255,255,0.9);
+        --c-muted: #8b94a5;
+        --c-hint: #4a5568;
+        --radius: 14px;
+        --tr: 0.2s ease;
+    }
+
+    /* ── TITLE ── */
+    .market-title {
+        background: linear-gradient(90deg, #fff 30%, var(--c-cyan));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        letter-spacing: -.5px;
+    }
+
+        .market-title i {
+            -webkit-text-fill-color: var(--c-cyan);
+        }
+
+    /* ── BUTTONS ── */
+    .btn-action {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        height: 36px;
+        padding: 0 18px;
+        border-radius: 50px !important;
+        font-size: 13px;
+        font-weight: 500;
+        transition: all var(--tr);
+    }
+
+    .btn-main-gradient {
+        background: linear-gradient(135deg, #00c8ff 0%, #7b61ff 100%) !important;
+        border: none !important;
+        color: #fff !important;
+        font-weight: 600 !important;
+    }
+
+        .btn-main-gradient:hover {
+            box-shadow: 0 4px 18px rgba(0,200,255,0.35) !important;
+            filter: brightness(1.1);
+        }
+
+    .btn-outline-custom {
+        background: rgba(0,200,255,0.05) !important;
+        border: 1px solid rgba(0,200,255,0.25) !important;
+        color: var(--c-cyan) !important;
+    }
+
+        .btn-outline-custom:hover {
+            background: rgba(0,200,255,0.12) !important;
+            border-color: rgba(0,200,255,0.5) !important;
+            color: #fff !important;
+        }
+
+    .btn-info {
+        background: var(--c-cyan) !important;
+        border-color: var(--c-cyan) !important;
+        color: #000 !important;
+        font-weight: 700 !important;
+    }
+
+    .btn-outline-info {
+        border-color: rgba(0,200,255,0.3) !important;
+        color: var(--c-cyan) !important;
+    }
+
+        .btn-outline-info:hover {
+            background: rgba(0,200,255,0.1) !important;
+            border-color: rgba(0,200,255,0.55) !important;
+        }
+
+    /* ── SEARCH ── */
+    .market-search-wrapper {
+        background: var(--c-surface);
+        border: 1px solid var(--c-border2);
+        border-radius: 50px;
+        padding: 5px 5px 5px 8px;
+        transition: border-color var(--tr), box-shadow var(--tr);
+    }
+
+        .market-search-wrapper:focus-within {
+            border-color: rgba(0,200,255,0.4);
+            box-shadow: 0 0 0 3px rgba(0,200,255,0.07);
+        }
+
+    .search-transparent .form-control,
+    .search-transparent .input-group-text {
+        background: transparent !important;
+        border: none !important;
+        color: var(--c-text) !important;
+        box-shadow: none !important;
+        font-size: 14px;
+    }
+
+        .search-transparent .form-control::placeholder {
+            color: var(--c-hint) !important;
+        }
+
+    .search-transparent .input-group-text {
+        color: var(--c-hint) !important;
+    }
+
+    .search-transparent .form-select {
+        background-color: transparent !important;
+        border: none !important;
+        color: var(--c-muted) !important;
+        box-shadow: none !important;
+        font-size: 13px;
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='rgba(255,255,255,0.3)' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e") !important;
+        background-repeat: no-repeat !important;
+        background-position: right 10px center !important;
+        background-size: 12px !important;
+        padding-right: 28px !important;
+    }
+
+    .search-transparent option, .dark-dropdown option {
+        background: #0d1626 !important;
+        color: #fff !important;
+    }
+
+    .search-transparent .btn-info {
+        border-radius: 40px !important;
+        font-size: 13px;
+        font-weight: 700;
+        padding: 8px 22px !important;
+    }
+
+    /* ── PRODUCT CARD ── */
+    .product-card {
+        background: var(--c-surface) !important;
+        border: 1px solid var(--c-border) !important;
+        border-radius: var(--radius) !important;
+        transition: transform var(--tr), border-color var(--tr), box-shadow var(--tr);
+        overflow: hidden;
+    }
+
+        .product-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(0,200,255,0.3) !important;
+            box-shadow: 0 16px 36px rgba(0,0,0,0.45) !important;
+        }
+
+        .product-card .position-relative {
+            overflow: hidden;
+        }
+
+        /* zoom ảnh khi hover */
+        .product-card .card-img-top {
+            height: 170px !important;
+            object-fit: cover;
+            display: block;
+            transition: transform 0.35s ease;
+        }
+
+        .product-card:hover .card-img-top {
+            transform: scale(1.05);
+        }
+
+        /* badge danh mục */
+        .product-card .badge.bg-dark {
+            background: rgba(5,12,26,0.82) !important;
+            color: var(--c-muted) !important;
+            font-size: 10px;
+            font-weight: 500;
+            border: 1px solid var(--c-border2) !important;
+            border-radius: 20px !important;
+            padding: 3px 10px !important;
+            backdrop-filter: blur(6px);
+        }
+
+        /* nút sửa/xóa */
+        .product-card .btn-warning {
+            background: var(--c-amber) !important;
+            border: none !important;
+            color: #412402 !important;
+            transition: all var(--tr);
+        }
+
+            .product-card .btn-warning:hover {
+                background: #fac775 !important;
+            }
+
+        .product-card .btn-danger {
+            background: var(--c-red) !important;
+            border: none !important;
+            transition: all var(--tr);
+        }
+
+            .product-card .btn-danger:hover {
+                background: #f09595 !important;
+            }
+
+        /* card body */
+        .product-card .card-body {
+            background: var(--c-surface);
+            padding: 12px 14px 14px !important;
+        }
+
+        .product-card .card-title {
+            font-size: 13px !important;
+            font-weight: 600 !important;
+            color: #fff !important;
+            margin-bottom: 4px !important;
+        }
+
+        .product-card h6[style*="00c8ff"] {
+            font-size: 15px !important;
+            font-weight: 700 !important;
+            margin-bottom: 6px !important;
+        }
+
+        .product-card .card-text {
+            font-size: 11px !important;
+            color: var(--c-muted) !important;
+            line-height: 1.5 !important;
+            margin-bottom: 10px !important;
+        }
+
+        .product-card .border-top {
+            border-color: var(--c-border) !important;
+            padding-top: 10px !important;
+        }
+
+        .product-card .text-muted {
+            color: var(--c-muted) !important;
+            font-size: 11px !important;
+        }
+
+        /* nút Chi tiết */
+        .product-card .btn-outline-info {
+            font-size: 10px !important;
+            padding: 4px 12px !important;
+            border-radius: 20px !important;
+            border-color: rgba(0,200,255,0.3) !important;
+            color: var(--c-cyan) !important;
+            transition: all var(--tr);
+        }
+
+        .product-card:hover .btn-outline-info {
+            background: var(--c-cyan) !important;
+            color: #000 !important;
+            border-color: var(--c-cyan) !important;
+        }
+
+    /* ── PAGINATION ── */
+    .pagination-dark .pagination {
+        gap: 5px;
+    }
+
+        .pagination-dark .pagination li a,
+        .pagination-dark .pagination li span {
+            background: var(--c-surface);
+            color: var(--c-muted);
+            border: 1px solid var(--c-border2);
+            border-radius: 8px !important;
+            padding: 7px 14px;
+            font-size: 13px;
+            text-decoration: none;
+            transition: all var(--tr);
+        }
+
+            .pagination-dark .pagination li a:hover {
+                background: rgba(0,200,255,0.1);
+                border-color: rgba(0,200,255,0.4);
+                color: var(--c-cyan);
+            }
+
+        .pagination-dark .pagination li.active span {
+            background: var(--c-cyan);
+            border-color: var(--c-cyan);
+            color: #000;
+            font-weight: 700;
+        }
+
+    /* ── CATEGORY PILLS ── */
+    .cat-pills-container {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        overflow-x: auto;
+        padding-bottom: 12px;
+        margin-bottom: 20px;
+        scrollbar-width: thin;
+    }
+
+    .cat-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 18px;
+        border-radius: 50px;
+        background: var(--c-surface);
+        border: 1px solid var(--c-border2);
+        color: var(--c-muted);
+        font-size: 13px;
+        font-weight: 500;
+        text-decoration: none;
+        white-space: nowrap;
+        transition: all var(--tr);
+        cursor: pointer;
+    }
+
+    .cat-pill:hover {
+        border-color: rgba(0,200,255,0.4);
+        color: #fff;
+        background: rgba(0,200,255,0.05);
+    }
+
+    .cat-pill.active {
+        background: rgba(0,200,255,0.15);
+        border-color: var(--c-cyan);
+        color: var(--c-cyan);
+        font-weight: 600;
+        box-shadow: 0 0 15px rgba(0,200,255,0.2);
+    }
+
+    .filter-notice {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: rgba(0,200,255,0.08);
+        border: 1px solid rgba(0,200,255,0.25);
+        border-radius: 12px;
+        padding: 10px 16px;
+        margin-bottom: 20px;
+        font-size: 13px;
+        color: var(--c-text);
+    }
+
+    .btn-xp {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 5px 14px;
+        border: 1px solid rgba(0,200,255,0.3);
+        color: var(--c-cyan);
+        background: none;
+        border-radius: 50px;
+        font-size: 12px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all var(--tr);
+        text-decoration: none;
+    }
+
+    .btn-xp:hover {
+        background: rgba(0,200,255,0.1);
+        border-color: rgba(0,200,255,0.5);
+        color: #fff;
+    }
+
+    #marketPostsContainer {
+        transition: opacity 0.2s ease;
+    }
+
+    /* ── MODAL ── */
+    #createPostModal .modal-content,
+    #deleteConfirmModal .modal-content {
+        background: #0d1626 !important;
+        border: 1px solid var(--c-border2) !important;
+        border-radius: 16px !important;
+        color: #fff;
+    }
+
+    #createPostModal .modal-header,
+    #createPostModal .modal-footer {
+        border-color: var(--c-border2) !important;
+    }
+
+    #deleteConfirmModal .modal-content {
+        border-color: var(--c-red) !important;
+    }
+
+    #createPostModal .form-label {
+        font-size: 10px !important;
+        font-weight: 700 !important;
+        color: var(--c-cyan) !important;
+        letter-spacing: .07em;
+        text-transform: uppercase;
+        margin-bottom: 6px;
+    }
+
+    #createPostModal .form-control,
+    #createPostModal .form-select {
+        background: rgba(5,12,26,0.9) !important;
+        border: 1px solid var(--c-border2) !important;
+        color: #fff !important;
+        border-radius: 8px !important;
+        font-size: 13px !important;
+    }
+
+        #createPostModal .form-control:focus,
+        #createPostModal .form-select:focus {
+            border-color: rgba(0,200,255,0.4) !important;
+            box-shadow: 0 0 0 3px rgba(0,200,255,0.07) !important;
+        }
+
+        #createPostModal .form-control::placeholder {
+            color: var(--c-hint) !important;
+        }
+
+        #createPostModal .form-select option {
+            background: #0d1626;
+            color: #fff;
+        }
+
+    #createPostModal .btn-outline-light {
+        border-color: var(--c-border2) !important;
+        color: var(--c-muted) !important;
+        border-radius: 50px !important;
+    }
+
+        #createPostModal .btn-outline-light:hover {
+            background: rgba(255,255,255,0.05) !important;
+            color: #fff !important;
+        }
+
+    #createPostModal .modal-footer .btn-info {
+        border-radius: 50px !important;
+        font-weight: 700 !important;
+    }
+</style>
+
+<div class="header-market d-flex justify-content-between align-items-center mb-4 mt-3">
+    <h2 class="market-title fw-bold mb-0">
+        <i class="bi bi-shop me-2"></i>Chợ TDMU
+    </h2>
+
+    <div class="d-flex gap-2 align-items-center">
+        @if (isLoggedIn)
+        {
+            <a href="@Url.Action("MyMarketPosts", "Market")" class="btn btn-action btn-outline-custom">
+                <i class="bi bi-person-badge"></i>
+                <span class="d-none d-md-inline ms-2">Bài đăng của tôi</span>
+            </a>
+
+            <button class="btn btn-action btn-main-gradient shadow-sm" data-bs-toggle="modal" data-bs-target="#createPostModal">
+                <i class="bi bi-plus-circle"></i>
+                <span class="ms-2">Đăng bài mới</span>
+            </button>
+        }
+        else
+        {
+            <a href="@Url.Action("Login", "User")" class="btn btn-action btn-outline-custom px-4">
+                <i class="bi bi-box-arrow-in-right me-2"></i>Đăng nhập
+            </a>
+        }
+    </div>
+</div>
+
+@{
+    var catList = ViewBag.CategoriesList as List<StudentConnect.Models.MarketCategory> ?? new List<StudentConnect.Models.MarketCategory>();
+    int? currentCatId = ViewBag.CurrentCategory as int?;
+}
+
+<div class="market-search-wrapper mb-4 search-transparent" id="marketSearchWrapper">
+    <form id="marketSearchForm" onsubmit="handleMarketSearch(event)" class="row g-0 align-items-center">
+        <div class="col-md-6">
+            <div class="input-group">
+                <span class="input-group-text ps-3 pe-2 text-muted">
+                    <i class="bi bi-search"></i>
+                </span>
+                <input type="text" id="marketSearchInput" name="searchString" value="@ViewBag.CurrentFilter"
+                       class="form-control py-2 ps-1"
+                       placeholder="Bạn đang tìm giáo trình, laptop, hay đồ dùng học tập...?">
+            </div>
+        </div>
+        <div class="col-auto d-none d-md-block">
+            <div style="width:1px;height:30px;background:rgba(255,255,255,0.08);"></div>
+        </div>
+        <div class="col-md-3">
+            <select id="marketCategoryIdSelect" name="categoryId" class="form-select py-2 border-0" onchange="onSelectCategoryChange()">
+                <option value="">Tất cả danh mục</option>
+                @foreach (var c in catList)
+                {
+                    <option value="@c.CategoryID" @(currentCatId == c.CategoryID ? "selected" : "")>@c.CategoryName</option>
+                }
+            </select>
+        </div>
+        <div class="col-md-2 text-end pe-2">
+            <button type="submit" class="btn btn-info rounded-pill px-4 w-100 fw-bold text-dark">Tìm kiếm</button>
+        </div>
+    </form>
+</div>
+
+<!-- CATEGORY PILLS BAR (Thiết kế đồng bộ giống Module Kết Nối) -->
+<div class="cat-pills-container">
+    <a href="javascript:void(0);" onclick="selectMarketCategory(null)"
+       class="cat-pill market-cat-pill @(!currentCatId.HasValue || currentCatId.Value <= 0 ? "active" : "")"
+       data-cat-id="">
+        <i class="bi bi-grid-fill me-1"></i> Tất cả
+    </a>
+    @foreach (var c in catList)
+    {
+        string cName = c.CategoryName ?? "";
+        string icon = cName.Contains("Sách") || cName.Contains("Giáo trình") ? "bi-journal-bookmark" :
+                      cName.Contains("Điện tử") || cName.Contains("Laptop") || cName.Contains("Công nghệ") ? "bi-laptop" :
+                      cName.Contains("Gia dụng") || cName.Contains("Phòng trọ") ? "bi-house-heart" :
+                      cName.Contains("Thời trang") || cName.Contains("Quần áo") ? "bi-bag-heart" :
+                      cName.Contains("Xe") ? "bi-bicycle" : "bi-tag";
+
+        <a href="javascript:void(0);" onclick="selectMarketCategory(@c.CategoryID)"
+           class="cat-pill market-cat-pill @(currentCatId == c.CategoryID ? "active" : "")"
+           data-cat-id="@c.CategoryID">
+            <i class="bi @icon me-1"></i> @cName
+        </a>
+    }
+</div>
+
+<!-- FILTER NOTICE BAR -->
+<div id="marketFilterNotice" class="filter-notice" style="@((currentCatId.HasValue || !string.IsNullOrEmpty(ViewBag.CurrentFilter)) ? "display:flex;" : "display:none;")">
+    <div>
+        <i class="bi bi-funnel-fill text-info me-2"></i>
+        <span>Đang hiển thị kết quả cho:</span>
+        <strong id="filterCategoryLabel" class="text-white ms-1 me-2" style="@(currentCatId.HasValue ? "" : "display:none;")">
+            [Danh mục: <span id="filterCategoryName">@(catList.FirstOrDefault(x => x.CategoryID == currentCatId)?.CategoryName)</span>]
+        </strong>
+        <strong id="filterSearchLabel" class="text-white" style="@(!string.IsNullOrEmpty(ViewBag.CurrentFilter) ? "" : "display:none;")">
+            [Từ khóa: "<span id="filterSearchText">@ViewBag.CurrentFilter</span>"]
+        </strong>
+    </div>
+    <button type="button" onclick="resetMarketFilter()" class="btn-xp">
+        <i class="bi bi-x-lg me-1"></i> Xóa lọc
+    </button>
+</div>
+
+<!-- CONTAINER FOR ASYNC CONTENT -->
+<div id="marketPostsContainer">
+    @Html.Partial("_MarketPostsPartial", Model)
+</div>
+
+<script>
+    let currentSearchString = '@(ViewBag.CurrentFilter ?? "")';
+    let currentCategoryId = @(currentCatId.HasValue ? currentCatId.Value.ToString() : "null");
+
+    function selectMarketCategory(catId) {
+        currentCategoryId = catId;
+        $('#marketCategoryIdSelect').val(catId || '');
+        $('.market-cat-pill').removeClass('active');
+        if (catId) {
+            $('.market-cat-pill[data-cat-id="' + catId + '"]').addClass('active');
+        } else {
+            $('.market-cat-pill[data-cat-id=""]').addClass('active');
+        }
+        loadMarketPosts(1);
+    }
+
+    function onSelectCategoryChange() {
+        let val = $('#marketCategoryIdSelect').val();
+        selectMarketCategory(val ? parseInt(val) : null);
+    }
+
+    function handleMarketSearch(e) {
+        if (e) e.preventDefault();
+        currentSearchString = $('#marketSearchInput').val().trim();
+        let val = $('#marketCategoryIdSelect').val();
+        currentCategoryId = val ? parseInt(val) : null;
+        $('.market-cat-pill').removeClass('active');
+        if (currentCategoryId) {
+            $('.market-cat-pill[data-cat-id="' + currentCategoryId + '"]').addClass('active');
+        } else {
+            $('.market-cat-pill[data-cat-id=""]').addClass('active');
+        }
+        loadMarketPosts(1);
+    }
+
+    function resetMarketFilter() {
+        currentSearchString = '';
+        currentCategoryId = null;
+        $('#marketSearchInput').val('');
+        $('#marketCategoryIdSelect').val('');
+        $('.market-cat-pill').removeClass('active');
+        $('.market-cat-pill[data-cat-id=""]').addClass('active');
+        loadMarketPosts(1);
+    }
+
+    function loadMarketPosts(page) {
+        $('#marketPostsContainer').css('opacity', '0.4').css('pointer-events', 'none');
+        updateFilterNotice();
+
+        $.ajax({
+            url: '@Url.Action("GetPostsAjax", "Market")',
+            type: 'GET',
+            data: {
+                searchString: currentSearchString,
+                categoryId: currentCategoryId,
+                page: page
+            },
+            success: function (html) {
+                $('#marketPostsContainer').html(html).css('opacity', '1').css('pointer-events', 'auto');
+
+                // Update URL history without page reload
+                let newUrl = '@Url.Action("Index", "Market")';
+                let params = [];
+                if (currentSearchString) params.push('searchString=' + encodeURIComponent(currentSearchString));
+                if (currentCategoryId) params.push('categoryId=' + currentCategoryId);
+                if (page && page > 1) params.push('page=' + page);
+                if (params.length > 0) newUrl += '?' + params.join('&');
+                window.history.pushState({ path: newUrl }, '', newUrl);
+            },
+            error: function () {
+                $('#marketPostsContainer').css('opacity', '1').css('pointer-events', 'auto');
+            }
+        });
+    }
+
+    function updateFilterNotice() {
+        let hasFilter = false;
+        if (currentCategoryId) {
+            let catText = $('#marketCategoryIdSelect option:selected').text();
+            if (catText && catText !== 'Tất cả danh mục') {
+                $('#filterCategoryName').text(catText);
+                $('#filterCategoryLabel').show();
+                hasFilter = true;
+            } else {
+                $('#filterCategoryLabel').hide();
+            }
+        } else {
+            $('#filterCategoryLabel').hide();
+        }
+
+        if (currentSearchString) {
+            $('#filterSearchText').text(currentSearchString);
+            $('#filterSearchLabel').show();
+            hasFilter = true;
+        } else {
+            $('#filterSearchLabel').hide();
+        }
+
+        if (hasFilter) {
+            $('#marketFilterNotice').css('display', 'flex');
+        } else {
+            $('#marketFilterNotice').hide();
+        }
+    }
+
+    // Ajax pagination
+    $(document).on('click', '#marketPostsContainer .pagination a', function (e) {
+        e.preventDefault();
+        let href = $(this).attr('href');
+        if (href) {
+            let url = new URL(href, window.location.origin);
+            let page = url.searchParams.get('page') || 1;
+            loadMarketPosts(page);
+            let targetOffset = $('#marketSearchWrapper').offset() ? $('#marketSearchWrapper').offset().top - 80 : 0;
+            $('html, body').animate({ scrollTop: targetOffset }, 250);
+        }
+    });
+
+    function openDeleteModal(id, title) {
+        document.getElementById('deleteTargetID').value = id;
+        document.getElementById('deleteTargetName').innerText = title;
+        new bootstrap.Modal(document.getElementById('deleteConfirmModal')).show();
+    }
+</script>
+
+@section Modals {
+    @if (isLoggedIn)
+    {
+        <div class="modal fade" id="createPostModal" tabindex="-1" aria-labelledby="createPostModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header border-bottom">
+                        <h5 class="modal-title fw-bold" id="createPostModalLabel">
+                            <i class="bi bi-pencil-square me-2 text-info"></i>Tạo bài đăng mới
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    @using (Html.BeginForm("Create", "Market", FormMethod.Post, new { enctype = "multipart/form-data" }))
+                    {
+                        @Html.AntiForgeryToken()
+                        <div class="modal-body p-4">
+                            <div class="mb-3">
+                                <label class="form-label">Tiêu đề bài đăng <span class="text-danger">*</span></label>
+                                <input type="text" name="Title" class="form-control" placeholder="Ví dụ: Bán sách giáo trình Tư tưởng Hồ Chí Minh..." required>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Danh mục <span class="text-danger">*</span></label>
+                                    @Html.DropDownList("CategoryID", (SelectList)ViewBag.CategoryID, "-- Chọn danh mục --",
+                                        new { @class = "form-select dark-dropdown", required = "required" })
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Giá bán (VNĐ) <span class="text-danger">*</span></label>
+                                    <input type="number" name="Price" class="form-control" placeholder="VD: 50000" min="0" value="0">
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Nơi giao dịch</label>
+                                <input type="text" name="ExchangeLocation" class="form-control" placeholder="VD: Cổng 1, Thư viện...">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Mô tả chi tiết <span class="text-danger">*</span></label>
+                                <textarea name="Description" class="form-control" rows="4"
+                                          placeholder="Cung cấp tình trạng món đồ, địa điểm giao dịch..." required></textarea>
+                            </div>
+                            <div class="mb-1">
+                                <label class="form-label">Tải ảnh lên</label>
+                                <input class="form-control" type="file" name="hinhAnh" accept="image/*">
+                            </div>
+                        </div>
+                        <div class="modal-footer border-top">
+                            <button type="button" class="btn btn-outline-light px-4" data-bs-dismiss="modal">Đóng</button>
+                            <button type="submit" class="btn btn-info px-4 text-dark fw-bold">Đăng bán ngay</button>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+
+    <div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-body text-center p-4">
+                    <div class="text-danger mb-3" style="font-size:3rem;"><i class="bi bi-exclamation-octagon"></i></div>
+                    <h5 class="text-white fw-bold">Xác nhận xóa?</h5>
+                    <p class="text-muted small">
+                        Bạn muốn xóa bài:<br />
+                        <strong id="deleteTargetName" class="text-info"></strong>
+                    </p>
+                    @using (Html.BeginForm("Delete", "Market", FormMethod.Post, new { id = "formDeleteReal" }))
+                    {
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" id="deleteTargetID" />
+                        <div class="d-grid gap-2 mt-4">
+                            <button type="submit" class="btn btn-danger fw-bold">Xóa</button>
+                            <button type="button" class="btn btn-outline-secondary border-0" data-bs-dismiss="modal">Hủy</button>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (TempData["DeletedPost"] != null)
+{
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Bài viết đã bị xóa',
+                text: 'Bài viết này đã bị xóa hoặc không còn tồn tại.',
+                confirmButtonText: 'Đã hiểu',
+                confirmButtonColor: '#0084ff'
+            });
+        });
+    </script>
+}

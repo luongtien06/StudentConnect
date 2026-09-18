@@ -1,0 +1,374 @@
+﻿@{
+    ViewBag.Title = "Trang chủ";
+}
+
+<style>
+    @@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+    .home-bg {
+        font-family: 'Space Grotesk', sans-serif;
+        background: linear-gradient(270deg, #000, #030031, #1d1531);
+        background-size: 400% 400%;
+        animation: gradientShift 25s ease infinite;
+        min-height: 100vh;
+        padding: 2rem 1.5rem 3rem;
+        position: relative;
+        overflow: hidden;
+        border-radius: 8px;
+    }
+
+    @@keyframes gradientShift {
+        0% {
+            background-position: 0% 50%;
+        }
+
+        50% {
+            background-position: 100% 50%;
+        }
+
+        100% {
+            background-position: 0% 50%;
+        }
+    }
+
+    .home-bg .grid-bg {
+        position: absolute;
+        inset: 0;
+        background-image: linear-gradient(rgba(0,200,255,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(0,200,255,0.04) 1px, transparent 1px);
+        background-size: 48px 48px;
+        pointer-events: none;
+    }
+
+    .home-bg .orb {
+        position: absolute;
+        border-radius: 50%;
+        filter: blur(80px);
+        pointer-events: none;
+    }
+
+    .home-bg .orb1 {
+        width: 400px;
+        height: 400px;
+        top: -100px;
+        left: -100px;
+        background: rgba(0,80,200,0.18);
+    }
+
+    .home-bg .orb2 {
+        width: 300px;
+        height: 300px;
+        bottom: 0;
+        right: -80px;
+        background: rgba(0,200,100,0.12);
+    }
+
+    .home-bg .orb3 {
+        width: 200px;
+        height: 200px;
+        top: 40%;
+        left: 50%;
+        background: rgba(120,0,255,0.10);
+    }
+
+    .home-content {
+        text-align: center;
+        justify-items: center;
+        z-index: 2;
+        max-width: 1060px;
+        margin: 0 auto;
+    }
+
+    /* ── BADGE HỆ THỐNG ── */
+    .sys-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: rgba(0,200,255,0.08);
+        border: 1px solid rgba(0,200,255,0.22);
+        color: #00c8ff;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 11px;
+        letter-spacing: 0.08em;
+        padding: 5px 14px;
+        border-radius: 100px;
+        margin-bottom: 1.5rem;
+    }
+
+        .sys-badge::before {
+            content: '';
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #00c8ff;
+            box-shadow: 0 0 8px #00c8ff;
+            animation: blink 2s infinite;
+        }
+
+    @@keyframes blink {
+        0%, 100% {
+            opacity: 1
+        }
+
+        50% {
+            opacity: 0.3
+        }
+    }
+
+    /* ── HERO ── */
+    .hero-title {
+        font-size: clamp(2rem, 5vw, 3.2rem);
+        font-weight: 700;
+        color: #fff;
+        line-height: 1.15;
+        letter-spacing: -0.02em;
+        margin-bottom: 0.75rem;
+    }
+
+        .hero-title span {
+            background: linear-gradient(135deg, #00c8ff 0%, #7b61ff 50%, #00ff94 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+    .hero-sub p {
+        font-size: 1.2rem;
+        color: #fff;
+        max-width: 600px;
+        line-height: 1.8;
+        margin: 0 auto 3rem;
+        font-weight: 300;
+    }
+
+    .hero-sub {
+        font-size: 1rem;
+        color: rgba(255,255,255,0.45);
+        max-width: 500px;
+        line-height: 1.7;
+        margin-bottom: 3rem;
+        font-weight: 300;
+    }
+
+    /* ── FEATURE CARDS ── */
+    .feature-card {
+        background: rgba(255,255,255,0.03) !important;
+        border: 1px solid rgba(255,255,255,0.08) !important;
+        border-radius: 20px !important;
+        transition: transform 0.3s ease, border-color 0.3s ease, background 0.3s ease !important;
+        overflow: hidden;
+    }
+
+        .feature-card:hover {
+            transform: translateY(-6px) !important;
+        }
+
+        .feature-card.card-chat:hover {
+            border-color: rgba(0,200,80,0.45) !important;
+            background: rgba(0,200,80,0.05) !important;
+        }
+
+        .feature-card.card-market:hover {
+            border-color: rgba(255,160,0,0.45) !important;
+            background: rgba(255,160,0,0.05) !important;
+        }
+
+        .feature-card.card-connect:hover {
+            border-color: rgba(120,80,255,0.45) !important;
+            background: rgba(120,80,255,0.05) !important;
+        }
+
+    h2 {
+        border-radius: 15px;
+    }
+
+    /* ── ICON BOXES ── */
+    .icon-chat {
+        background: rgba(0,200,80,0.15);
+        border: 1px solid rgba(0,200,80,0.25);
+    }
+
+    .icon-market {
+        background: rgba(255,160,0,0.12);
+        border: 1px solid rgba(255,160,0,0.25);
+    }
+
+    .icon-connect {
+        background: rgba(120,80,255,0.15);
+        border: 1px solid rgba(120,80,255,0.25);
+    }
+
+    /* ── MODULE TAGS ── */
+    .mod-tag {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 10px;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        padding: 3px 10px;
+        border-radius: 100px;
+        display: inline-block;
+        margin-bottom: 0.75rem;
+    }
+    /* chat */
+    .tag-chat {
+        background: rgba(0,200,80,0.10);
+        color: #00e070;
+        border: 1px solid rgba(0,200,80,0.22);
+    }
+    /* market */
+    .tag-market {
+        background: rgba(255,160,0,0.10);
+        color: #ffb830;
+        border: 1px solid rgba(255,160,0,0.22);
+    }
+    /* connect */
+    .tag-connect {
+        background: rgba(120,80,255,0.12);
+        color: #a87fff;
+        border: 1px solid rgba(120,80,255,0.22);
+    }
+
+    /* ── CARD TEXT ── */
+    .card-title-tech {
+        font-size: 1.2rem;
+        font-weight: 600;
+        color: #fff;
+        margin-bottom: 0.6rem;
+    }
+
+    .card-desc-tech {
+        font-size: 0.875rem;
+        color: rgba(255,255,255,0.45);
+        line-height: 1.65;
+        margin-bottom: 1.75rem;
+        font-weight: 300;
+    }
+
+    /* ── FEATURE BUTTONS ── */
+    .feature-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.8rem;
+        font-weight: 500;
+        padding: 9px 20px;
+        border-radius: 100px;
+        text-decoration: none;
+        border: 1px solid;
+        transition: all 0.25s ease;
+    }
+
+    /* Chat */
+    .btn-chat {
+        color: #00e070;
+        border-color: rgba(0,200,80,0.35);
+        background: rgba(0,200,80,0.08);
+    }
+
+        .btn-chat:hover {
+            color: #6effa8;
+            border-color: rgba(0,200,80,0.7);
+            background: rgba(0,200,80,0.18);
+        }
+
+    /* Market */
+    .btn-market {
+        color: #ffb830;
+        border-color: rgba(255,160,0,0.35);
+        background: rgba(255,160,0,0.08);
+    }
+
+        .btn-market:hover {
+            color: #ffd475;
+            border-color: rgba(255,160,0,0.7);
+            background: rgba(255,160,0,0.18);
+        }
+
+    /* Connect */
+    .btn-connect {
+        color: #a87fff;
+        border-color: rgba(120,80,255,0.35);
+        background: rgba(120,80,255,0.08);
+    }
+
+        .btn-connect:hover {
+            color: #c8b0ff;
+            border-color: rgba(120,80,255,0.7);
+            background: rgba(120,80,255,0.18);
+        }
+
+    /* ── STATS ── */
+    .stats-bar {
+        display: flex;
+        gap: 2rem;
+        margin-top: 3.5rem;
+        padding-top: 2rem;
+        border-top: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .stat-num {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 1.35rem;
+        font-weight: 600;
+        color: #fff;
+        display: block;
+    }
+
+    .stat-label {
+        font-size: 0.75rem;
+        color: rgba(255,255,255,0.3);
+        letter-spacing: 0.05em;
+    }
+</style>
+
+<div class="home-bg">
+    <div class="grid-bg"></div>
+    <div class="orb orb1"></div>
+    <div class="orb orb2"></div>
+    <div class="orb orb3"></div>
+
+    <div class="home-content">
+        <div class="sys-badge">HỆ SINH THÁI TDMU </div>
+
+        <h1 class="hero-title">
+            Kết nối sinh viên<br><span>Đại học Thủ Dầu Một</span>
+        </h1>
+        <p class="hero-sub">Nền tảng trao đổi, mua bán và kết nối dành riêng cho cộng đồng sinh viên TDMU.</p>
+
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="card feature-card card-chat h-100">
+                    <div class="card-body px-4 pt-4 pb-3">
+                        <h2 class="icon-box icon-chat">💬</h2>
+                        <span class="mod-tag tag-chat">MODULE 01</span>
+                        <h4 class="card-title-tech">Trò Chuyện Ẩn Danh</h4>
+                        <p class="card-desc-tech">Trò chuyện an toàn, giấu kín danh tính. Tìm kiếm người bạn tâm giao hoặc thảo luận tự do.</p>
+                        <a href="@Url.Action("Index", "Chat")" class="feature-btn btn-chat">Bắt đầu thôi →</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card feature-card card-market h-100">
+                    <div class="card-body px-4 pt-4 pb-3">
+                        <h2 class="icon-box icon-market">🛒</h2>
+                        <span class="mod-tag tag-market">MODULE 02</span>
+                        <h4 class="card-title-tech">Chợ Sinh Viên</h4>
+                        <p class="card-desc-tech">Mua bán đồ cũ, chia sẻ thông tin, tìm đồ thất lạc. Đánh giá uy tín người dùng.</p>
+                        <a href="@Url.Action("Index", "Market")" class="feature-btn btn-market">Đi chợ thôi →</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card feature-card card-connect h-100">
+                    <div class="card-body px-4 pt-4 pb-3">
+                        <h2 class="icon-box icon-connect">🤝</h2>
+                        <span class="mod-tag tag-connect">MODULE 03</span>
+                        <h4 class="card-title-tech">Kết Nối TDMU</h4>
+                        <p class="card-desc-tech">Review địa điểm ăn uống, cafe. Cập nhật thông tin tuyển dụng part-time quanh trường.</p>
+                        <a href="@Url.Action("Index", "Connect")" class="feature-btn btn-connect">Khám phá ngay →</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>

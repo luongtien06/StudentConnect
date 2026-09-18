@@ -1,0 +1,41 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<edmx:Edmx Version="3.0" xmlns:edmx="http://schemas.microsoft.com/ado/2009/11/edmx">
+ <!-- EF Designer content (DO NOT EDIT MANUALLY BELOW HERE) -->
+  <edmx:Designer xmlns="http://schemas.microsoft.com/ado/2009/11/edmx">
+    <!-- Diagram content (shape and connector positions) -->
+    <edmx:Diagrams>
+      <Diagram DiagramId="bbd0363c3a664386aa88e27d7fc3f429" Name="Diagram1" ZoomLevel="101">
+        <EntityTypeShape EntityType="TDMUEcoSystemModel.ChatMessage" Width="1.5" PointX="0.5" PointY="33" />
+        <EntityTypeShape EntityType="TDMUEcoSystemModel.ChatParticipant" Width="1.5" PointX="2.375" PointY="33" />
+        <EntityTypeShape EntityType="TDMUEcoSystemModel.ChatRoom" Width="1.5" PointX="4.375" PointY="33" />
+        <EntityTypeShape EntityType="TDMUEcoSystemModel.ConnectCategory" Width="1.5" PointX="0.5" PointY="43.125" />
+        <EntityTypeShape EntityType="TDMUEcoSystemModel.ConnectPost" Width="1.5" PointX="0.5" PointY="39.875" />
+        <EntityTypeShape EntityType="TDMUEcoSystemModel.MarketCategory" Width="1.5" PointX="6.25" PointY="33.625" />
+        <EntityTypeShape EntityType="TDMUEcoSystemModel.MarketChatRoom" Width="1.5" PointX="8.375" PointY="38.5" />
+        <EntityTypeShape EntityType="TDMUEcoSystemModel.MarketImage" Width="1.5" PointX="8.375" PointY="33.5" />
+        <EntityTypeShape EntityType="TDMUEcoSystemModel.MarketPost" Width="1.5" PointX="6.25" PointY="36" />
+        <EntityTypeShape EntityType="TDMUEcoSystemModel.MarketWishlist" Width="1.5" PointX="8.375" PointY="36" />
+        <EntityTypeShape EntityType="TDMUEcoSystemModel.Review" Width="1.5" PointX="0.5" PointY="36.875" />
+        <EntityTypeShape EntityType="TDMUEcoSystemModel.User" Width="1.5" PointX="3.125" PointY="36" />
+        <AssociationConnector Association="TDMUEcoSystemModel.FK__ChatMessa__RoomI__37A5467C" />
+        <AssociationConnector Association="TDMUEcoSystemModel.FK__ChatMessa__Sende__38996AB5" />
+        <AssociationConnector Association="TDMUEcoSystemModel.FK__ChatParti__RoomI__31EC6D26" />
+        <AssociationConnector Association="TDMUEcoSystemModel.FK__ChatParti__UserI__32E0915F" />
+        <AssociationConnector Association="TDMUEcoSystemModel.FK__ConnectPo__Categ__571DF1D5" />
+        <AssociationConnector Association="TDMUEcoSystemModel.FK__ConnectPo__UserI__5629CD9C" />
+        <AssociationConnector Association="TDMUEcoSystemModel.FK__MarketPos__Categ__3F466844" />
+        <AssociationConnector Association="TDMUEcoSystemModel.FK__MarketCha__Buyer__4F7CD00D" />
+        <AssociationConnector Association="TDMUEcoSystemModel.FK__MarketCha__PostI__4E88ABD4" />
+        <AssociationConnector Association="TDMUEcoSystemModel.FK__MarketCha__Selle__5070F446" />
+        <AssociationConnector Association="TDMUEcoSystemModel.FK__MarketIma__PostI__46E78A0C" />
+        <AssociationConnector Association="TDMUEcoSystemModel.FK__MarketPos__UserI__3E52440B" />
+        <AssociationConnector Association="TDMUEcoSystemModel.FK__MarketWis__PostI__4AB81AF0" />
+        <AssociationConnector Association="TDMUEcoSystemModel.FK__MarketWis__UserI__49C3F6B7" />
+        <AssociationConnector Association="TDMUEcoSystemModel.FK__Reviews__UserID__5AEE82B9" />
+        <AssociationConnector Association="TDMUEcoSystemModel.FK_ChatMessages_Reply" />
+        <EntityTypeShape EntityType="TDMUEcoSystemModel.Notification" Width="1.5" PointX="3.125" PointY="41.125" />
+        <AssociationConnector Association="TDMUEcoSystemModel.FK__Notificat__UserI__04E4BC85" />
+      </Diagram>
+    </edmx:Diagrams>
+  </edmx:Designer>
+</edmx:Edmx>

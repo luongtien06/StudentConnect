@@ -1,0 +1,101 @@
+﻿@model StudentConnect.Models.MarketPost
+@{
+    ViewBag.Title = "Chỉnh sửa tin đăng";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+
+    bool isOwner = Session["UserID"] != null && (int)Session["UserID"] == Model.UserID;
+}
+
+@if (!isOwner)
+{
+    <div class="container mt-5">
+        <div class="alert alert-danger text-center">
+            <i class="fas fa-lock mr-2"></i> Bạn không có quyền chỉnh sửa bài đăng này.
+            <br />
+            <a href="@Url.Action("Index", "Market")" class="btn btn-outline-danger mt-3">Quay lại chợ</a>
+        </div>
+    </div>
+    return;
+}
+
+<div class="container mt-5 mb-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-lg" style="border-radius: 15px; border: none;">
+                <div class="card-header bg-warning text-dark text-center" style="border-radius: 15px 15px 0 0;">
+                    <h3 class="mb-0 py-2">✏️ Chỉnh sửa tin đăng</h3>
+                </div>
+                <div class="card-body p-4">
+
+                    @Html.ValidationSummary(true, "", new { @class = "alert alert-danger" })
+
+                    @using (Html.BeginForm("Edit", "Market", FormMethod.Post))
+                    {
+                        @Html.AntiForgeryToken()
+                        @Html.HiddenFor(model => model.PostID)
+                        @Html.HiddenFor(model => model.UserID)
+                        @Html.HiddenFor(model => model.CreatedAt)
+                        @Html.HiddenFor(model => model.MainImage)
+
+                        <div class="form-group mb-3">
+                            <label class="font-weight-bold">Tên món đồ <span class="text-danger">*</span></label>
+                            @Html.EditorFor(model => model.Title, new
+                            {
+                                htmlAttributes = new { @class = "form-control", required = "required" }
+                            })
+                            @Html.ValidationMessageFor(model => model.Title, "", new { @class = "text-danger small" })
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label class="font-weight-bold">Giá bán (VNĐ)</label>
+                                    @Html.EditorFor(model => model.Price, new
+                                    {
+                                        htmlAttributes = new { @class = "form-control", type = "number", min = "0" }
+                                    })
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label class="font-weight-bold">Danh mục <span class="text-danger">*</span></label>
+                                    @Html.DropDownList("CategoryID", null, "-- Chọn danh mục --",
+                                        new { @class = "form-control", required = "required" })
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group mb-3">
+                            <label class="font-weight-bold">Nơi giao dịch</label>
+                            @Html.EditorFor(model => model.ExchangeLocation, new
+                            {
+                                htmlAttributes = new { @class = "form-control", placeholder = "VD: Cổng 1 TDMU, Thư viện..." }
+                            })
+                        </div>
+
+                        <div class="form-group mb-4">
+                            <label class="font-weight-bold">Mô tả chi tiết <span class="text-danger">*</span></label>
+                            @Html.TextAreaFor(model => model.Description, new
+                            {
+                                @class = "form-control",
+                                rows = "5",
+                                required = "required"
+                            })
+                            @Html.ValidationMessageFor(model => model.Description, "", new { @class = "text-danger small" })
+                        </div>
+
+                        <div class="text-center mt-4">
+                            <button type="submit" class="btn btn-warning btn-lg px-5" style="border-radius: 25px; font-weight: bold;">
+                                <i class="fas fa-save mr-2"></i> Lưu thay đổi
+                            </button>
+                            <a href="@Url.Action("MyMarketPosts", "Market", new { id = Model.PostID })"
+                               class="btn btn-outline-secondary btn-lg px-5 ml-2" style="border-radius: 25px;">
+                                Hủy bỏ
+                            </a>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

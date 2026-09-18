@@ -1,0 +1,994 @@
+@model IEnumerable<StudentConnect.Models.MarketPost>
+@{
+    ViewBag.Title = "Quản lý Chợ Sinh Viên";
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+}
+
+<style>
+    .page-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 1.75rem;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .page-title {
+        font-family: 'Space Grotesk',sans-serif;
+        font-size: 1.3rem;
+        font-weight: 600;
+        color: #fff;
+        margin: 0;
+    }
+
+    .page-sub {
+        font-family: 'JetBrains Mono',monospace;
+        font-size: 10px;
+        color: rgba(0,200,255,0.5);
+        letter-spacing: 0.1em;
+        margin-top: 3px;
+    }
+
+    .adm-alert {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 11px 16px;
+        border-radius: 12px;
+        font-size: 13px;
+        font-family: 'Space Grotesk',sans-serif;
+        margin-bottom: 14px;
+        border: 1px solid;
+        animation: fadeSlide .3s ease;
+    }
+
+        .adm-alert.ok {
+            background: rgba(0,200,80,0.07);
+            border-color: rgba(0,200,80,0.2);
+            color: rgba(0,220,100,0.85);
+        }
+
+        .adm-alert.err {
+            background: rgba(255,60,60,0.07);
+            border-color: rgba(255,60,60,0.2);
+            color: rgba(255,110,110,0.9);
+        }
+
+        .adm-alert .close-btn {
+            margin-left: auto;
+            background: none;
+            border: none;
+            color: inherit;
+            cursor: pointer;
+            font-size: 16px;
+            opacity: .6;
+        }
+
+            .adm-alert .close-btn:hover {
+                opacity: 1;
+            }
+
+    @@keyframes fadeSlide {
+        from {
+            opacity: 0;
+            transform: translateY(-6px)
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0)
+        }
+    }
+
+    .stat-mini-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit,minmax(120px,1fr));
+        gap: 10px;
+        margin-bottom: 1.5rem;
+    }
+
+    .stat-mini {
+        background: rgba(255,255,255,0.03);
+        border: 1px solid rgba(255,255,255,0.07);
+        border-radius: 12px;
+        padding: 12px 16px;
+    }
+
+    .stat-mini-label {
+        font-family: 'JetBrains Mono',monospace;
+        font-size: 9px;
+        letter-spacing: 0.12em;
+        color: rgba(255,255,255,0.2);
+        margin-bottom: 5px;
+    }
+
+    .stat-mini-val {
+        font-size: 1.4rem;
+        font-weight: 700;
+        font-family: 'Space Grotesk',sans-serif;
+        line-height: 1;
+    }
+
+    .admin-card {
+        background: rgba(255,255,255,0.02);
+        border: 1px solid rgba(255,255,255,0.07);
+        border-radius: 16px;
+        overflow: hidden;
+    }
+
+    .admin-card-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 16px;
+        border-bottom: 1px solid rgba(255,255,255,0.07);
+        background: rgba(255,255,255,0.02);
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .admin-card-title {
+        font-family: 'JetBrains Mono',monospace;
+        font-size: 11px;
+        letter-spacing: 0.1em;
+        color: rgba(0,200,255,0.6);
+    }
+
+    .toolbar {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .btn-adm {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 6px 12px;
+        border-radius: 8px;
+        font-size: 12px;
+        font-weight: 500;
+        font-family: 'Space Grotesk',sans-serif;
+        border: 1px solid;
+        cursor: pointer;
+        transition: all .2s;
+        background: none;
+        text-decoration: none;
+        white-space: nowrap;
+    }
+
+        .btn-adm.cyan {
+            color: #00c8ff;
+            border-color: rgba(0,200,255,0.25);
+        }
+
+            .btn-adm.cyan:hover {
+                background: rgba(0,200,255,0.1);
+                border-color: rgba(0,200,255,0.5);
+            }
+
+        .btn-adm.green {
+            color: #00c850;
+            border-color: rgba(0,200,80,0.25);
+        }
+
+            .btn-adm.green:hover {
+                background: rgba(0,200,80,0.1);
+                border-color: rgba(0,200,80,0.5);
+            }
+
+        .btn-adm.amber {
+            color: #ffa000;
+            border-color: rgba(255,160,0,0.25);
+        }
+
+            .btn-adm.amber:hover {
+                background: rgba(255,160,0,0.1);
+                border-color: rgba(255,160,0,0.5);
+            }
+
+        .btn-adm.danger {
+            color: rgba(255,100,100,.8);
+            border-color: rgba(255,60,60,0.25);
+        }
+
+            .btn-adm.danger:hover {
+                background: rgba(255,60,60,0.1);
+                border-color: rgba(255,60,60,0.5);
+            }
+
+        .btn-adm.icon-only {
+            padding: 5px 8px;
+        }
+
+    .search-wrap {
+        position: relative;
+    }
+
+        .search-wrap input {
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+            color: #fff;
+            font-size: 12px;
+            padding: 5px 10px 6px 28px;
+            outline: none;
+            width: 160px;
+            font-family: 'Space Grotesk',sans-serif;
+            transition: all .2s;
+        }
+
+            .search-wrap input:focus {
+                border-color: rgba(0,200,255,0.35);
+                background: rgba(0,200,255,0.04);
+                width: 200px;
+            }
+
+            .search-wrap input::placeholder {
+                color: rgba(255,255,255,0.2);
+            }
+
+        .search-wrap i {
+            position: absolute;
+            left: 9px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: rgba(255,255,255,0.2);
+            font-size: 11px;
+        }
+
+    .adm-select {
+        background: rgba(255,255,255,0.04) !important;
+        border: 1px solid rgba(255,255,255,0.1) !important;
+        border-radius: 8px !important;
+        color: #fff !important;
+        font-size: 12px !important;
+        padding: 6px 10px !important;
+        font-family: 'Space Grotesk',sans-serif !important;
+        outline: none;
+        transition: all .2s;
+        cursor: pointer;
+        max-width: 160px;
+    }
+
+        .adm-select:focus {
+            border-color: rgba(0,200,255,0.35) !important;
+        }
+
+        .adm-select option {
+            background: #0d1626;
+            color: #fff;
+        }
+
+    /* ── TABLE RESPONSIVE ── */
+    .table-outer {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .admin-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-family: 'Space Grotesk',sans-serif;
+        table-layout: fixed;
+        min-width: 600px;
+    }
+
+        .admin-table thead tr {
+            border-bottom: 1px solid rgba(255,255,255,0.07);
+            background: rgba(255,255,255,0.02);
+        }
+
+        .admin-table th {
+            font-family: 'JetBrains Mono',monospace;
+            font-size: 10px;
+            letter-spacing: 0.07em;
+            color: rgba(255,255,255,0.25);
+            padding: 10px 12px;
+            text-align: left;
+            font-weight: 400;
+            white-space: nowrap;
+            overflow: hidden;
+        }
+
+        .admin-table tbody tr {
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+            transition: background .15s;
+        }
+
+            .admin-table tbody tr:hover {
+                background: rgba(255,255,255,0.03);
+            }
+
+        .admin-table td {
+            padding: 9px 12px;
+            font-size: 13px;
+            color: rgba(255,255,255,0.7);
+            vertical-align: middle;
+            overflow: hidden;
+        }
+
+    /* column widths — tổng ~100% */
+    .col-id {
+        width: 10%;
+    }
+
+    .col-img {
+        width: 15%;
+    }
+
+    .col-title {
+        width: 20%;
+    }
+    /* flex fill */
+    .col-cat {
+        width: 10%;
+    }
+
+    .col-price {
+        width: 10%;
+    }
+
+    .col-loc {
+        width: 15%;
+    }
+
+    .col-action {
+        width: 20%;
+        text-align: center;
+    }
+
+    /* hide less-important cols on small screens */
+    @@media (max-width: 768px) {
+        .col-loc {
+            display: none;
+        }
+
+        .col-cat {
+            width: 100px;
+        }
+
+        .col-price {
+            width: 90px;
+        }
+    }
+
+    @@media (max-width: 540px) {
+        .col-price {
+            display: none;
+        }
+
+        .col-cat {
+            display: none;
+        }
+
+        .col-id {
+            display: none;
+        }
+    }
+
+    .post-thumb {
+        width: 42px;
+        height: 42px;
+        border-radius: 9px;
+        object-fit: cover;
+        border: 1px solid rgba(255,255,255,0.08);
+        display: block;
+        flex-shrink: 0;
+    }
+
+    .cell-id {
+        font-family: 'JetBrains Mono',monospace;
+        font-size: 11px;
+        color: rgba(255,255,255,0.25);
+    }
+
+    .cell-price {
+        font-family: 'JetBrains Mono',monospace;
+        font-size: 11px;
+        color: #00c850;
+        font-weight: 600;
+    }
+
+        .cell-price.negotiable {
+            color: rgba(255,160,0,0.8);
+        }
+
+    /* title + thumbnail stacked inline */
+    .title-cell {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-width: 0;
+    }
+
+    .title-text {
+        min-width: 0;
+    }
+
+    .title-main {
+        color: rgba(255,255,255,0.88);
+        font-weight: 500;
+        font-size: 13px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: block;
+    }
+
+    .title-sub {
+        font-size: 11px;
+        color: rgba(255,255,255,0.28);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: block;
+        margin-top: 1px;
+        font-family: 'JetBrains Mono',monospace;
+    }
+
+    .adm-badge {
+        display: inline-block;
+        padding: 2px 9px;
+        border-radius: 100px;
+        font-family: 'JetBrains Mono',monospace;
+        font-size: 10px;
+        letter-spacing: 0.05em;
+        border: 1px solid;
+        white-space: nowrap;
+    }
+
+    .badge-cyan {
+        background: rgba(0,200,255,0.1);
+        border-color: rgba(0,200,255,0.25);
+        color: #00c8ff;
+    }
+
+    .loc-text {
+        font-size: 11px;
+        color: rgba(255,255,255,0.4);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: block;
+    }
+
+    .action-btns {
+        display: flex;
+        gap: 4px;
+        justify-content: center;
+    }
+
+    /* ── MODAL ── */
+    .adm-modal .modal-content {
+        background: #0d1626 !important;
+        border: 1px solid rgba(255,255,255,0.1) !important;
+        border-radius: 18px !important;
+        font-family: 'Space Grotesk',sans-serif;
+    }
+
+    .adm-modal .modal-header {
+        border-bottom: 1px solid rgba(255,255,255,0.07) !important;
+        padding: 14px 20px !important;
+    }
+
+    .adm-modal .modal-title {
+        color: #fff !important;
+        font-weight: 600 !important;
+        font-size: 15px !important;
+    }
+
+    .adm-modal .modal-body {
+        padding: 18px 20px !important;
+    }
+
+    .adm-modal .modal-footer {
+        border-top: 1px solid rgba(255,255,255,0.07) !important;
+        padding: 11px 20px !important;
+    }
+
+    .adm-modal .btn-close {
+        filter: invert(1) opacity(.5);
+    }
+
+    .adm-form-label {
+        font-family: 'JetBrains Mono',monospace;
+        font-size: 10px;
+        letter-spacing: 0.1em;
+        color: rgba(255,255,255,0.3);
+        margin-bottom: 6px;
+        display: block;
+    }
+
+    .adm-input {
+        width: 100%;
+        background: rgba(255,255,255,0.04) !important;
+        border: 1px solid rgba(255,255,255,0.1) !important;
+        border-radius: 9px !important;
+        color: #fff !important;
+        font-size: 13px !important;
+        padding: 9px 13px !important;
+        font-family: 'Space Grotesk',sans-serif !important;
+        transition: all .2s;
+        outline: none;
+    }
+
+        .adm-input:focus {
+            border-color: rgba(0,200,255,0.35) !important;
+            background: rgba(0,200,255,0.04) !important;
+            box-shadow: 0 0 0 3px rgba(0,200,255,0.07) !important;
+        }
+
+        .adm-input::placeholder {
+            color: rgba(255,255,255,0.2) !important;
+        }
+
+    textarea.adm-input {
+        resize: vertical;
+    }
+
+    .detail-img {
+        width: 100%;
+        border-radius: 12px;
+        object-fit: cover;
+        max-height: 200px;
+        border: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .detail-row {
+        display: flex;
+        padding: 6px 0;
+        border-bottom: 1px solid rgba(255,255,255,0.05);
+        font-size: 13px;
+    }
+
+        .detail-row:last-child {
+            border-bottom: none;
+        }
+
+    .detail-lbl {
+        font-family: 'JetBrains Mono',monospace;
+        font-size: 10px;
+        letter-spacing: 0.07em;
+        color: rgba(255,255,255,0.25);
+        width: 110px;
+        flex-shrink: 0;
+        padding-top: 1px;
+    }
+
+    .detail-val {
+        color: rgba(255,255,255,0.8);
+    }
+
+    .desc-box {
+        background: rgba(255,255,255,0.03);
+        border: 1px solid rgba(255,255,255,0.07);
+        border-radius: 10px;
+        padding: 12px;
+        font-size: 13px;
+        color: rgba(255,255,255,0.6);
+        white-space: pre-line;
+        line-height: 1.7;
+        margin-top: 8px;
+        max-height: 160px;
+        overflow-y: auto;
+    }
+
+    .section-label {
+        font-family: 'JetBrains Mono',monospace;
+        font-size: 10px;
+        letter-spacing: 0.1em;
+        color: rgba(0,200,255,0.5);
+        margin-bottom: 6px;
+    }
+
+    .del-modal .modal-content {
+        background: #0d1626 !important;
+        border: 1px solid rgba(255,60,60,0.2) !important;
+        border-radius: 16px !important;
+    }
+
+    .del-modal .modal-header {
+        border-bottom: 1px solid rgba(255,60,60,0.15) !important;
+        padding: 13px 18px !important;
+    }
+
+    .del-modal .modal-title {
+        color: rgba(255,100,100,.9) !important;
+        font-weight: 600 !important;
+        font-size: 14px !important;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 2.5rem;
+        font-family: 'JetBrains Mono',monospace;
+        font-size: 11px;
+        color: rgba(255,255,255,0.15);
+        letter-spacing: 0.08em;
+    }
+
+    div.dataTables_wrapper div.dataTables_filter {
+        display: none;
+    }
+
+    div.dataTables_wrapper div.dataTables_length select {
+        background: rgba(255,255,255,0.04) !important;
+        border: 1px solid rgba(255,255,255,0.1) !important;
+        color: #fff !important;
+        border-radius: 7px !important;
+    }
+
+    div.dataTables_wrapper {
+        overflow-x: auto;
+    }
+</style>
+
+@if (TempData["Success"] != null)
+{
+    <div class="adm-alert ok">
+        <i class="bi bi-check-circle"></i><span>@TempData["Success"]</span>
+        <button class="close-btn" onclick="this.closest('.adm-alert').remove()">×</button>
+    </div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="adm-alert err">
+        <i class="bi bi-exclamation-circle"></i><span>@TempData["Error"]</span>
+        <button class="close-btn" onclick="this.closest('.adm-alert').remove()">×</button>
+    </div>
+}
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Quản lý Chợ Sinh Viên</h1>
+        <div class="page-sub">MARKET POSTS · CONTENT MANAGEMENT</div>
+    </div>
+</div>
+
+<div class="stat-mini-row">
+    <div class="stat-mini">
+        <div class="stat-mini-label">TỔNG BÀI</div>
+        <div class="stat-mini-val" style="color:#00c8ff;">@Model.Count()</div>
+    </div>
+    <div class="stat-mini">
+        <div class="stat-mini-label">CÓ GIÁ</div>
+        <div class="stat-mini-val" style="color:#00c850;">@Model.Count(p => p.Price.HasValue && p.Price > 0)</div>
+    </div>
+    <div class="stat-mini">
+        <div class="stat-mini-label">THỎA THUẬN</div>
+        <div class="stat-mini-val" style="color:#ffa000;">@Model.Count(p => !p.Price.HasValue || p.Price == 0)</div>
+    </div>
+    <div class="stat-mini">
+        <div class="stat-mini-label">DANH MỤC</div>
+        <div class="stat-mini-val" style="color:#7b61ff;">@Model.Select(p => p.CategoryID).Distinct().Count()</div>
+    </div>
+    <div class="stat-mini">
+        <div class="stat-mini-label">THÁNG NÀY</div>
+        <div class="stat-mini-val" style="color:#ff6b6b;">@Model.Count(p => p.CreatedAt.HasValue && p.CreatedAt.Value.Month == DateTime.Now.Month && p.CreatedAt.Value.Year == DateTime.Now.Year)</div>
+    </div>
+</div>
+
+<div class="admin-card">
+    <div class="admin-card-header">
+        <span class="admin-card-title">DANH SÁCH BÀI ĐĂNG</span>
+        <div class="toolbar">
+            <div class="search-wrap">
+                <i class="bi bi-search"></i>
+                <input type="text" id="liveSearch" placeholder="Tìm tiêu đề..." />
+            </div>
+            <button class="btn-adm green" data-bs-toggle="modal" data-bs-target="#createModal">
+                <i class="bi bi-plus-circle"></i> Thêm mới
+            </button>
+        </div>
+    </div>
+
+    <div class="table-outer table-responsive">
+        <table id="marketTable" class="admin-table">
+            <thead>
+                <tr>
+                    <th class="col-id">ID</th>
+                    <th class="col-img"></th>
+                    <th class="col-title">TIÊU ĐỀ</th>
+                    <th class="col-cat">DANH MỤC</th>
+                    <th class="col-price">GIÁ</th>
+                    <th class="col-loc">ĐỊA ĐIỂM</th>
+                    <th class="col-action">THAO TÁC</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (!Model.Any())
+                {
+                    <tr><td colspan="7"><div class="empty-state"><div style="font-size:2rem;margin-bottom:8px;opacity:.3">🛒</div>CHƯA CÓ BÀI ĐĂNG NÀO</div></td></tr>
+                }
+                @foreach (var item in Model)
+                {
+                    bool hasPrice = item.Price.HasValue && item.Price > 0;
+                    <tr id="row-@item.PostID">
+                        <td class="col-id"><span class="cell-id">#@item.PostID</span></td>
+                        <td class="col-img">
+                            <img src="@(string.IsNullOrEmpty(item.MainImage) ? "/Content/Images/default-market.jpg" : item.MainImage)" class="post-thumb"
+                                 onerror="this.onerror=null;this.src='/Content/Images/default-market.jpg';" alt="" />
+                        </td>
+                        <td class="col-title">
+                            <div class="title-cell">
+                                <div class="title-text">
+                                    <span class="title-main" title="@item.Title">@item.Title</span>
+                                    <span class="title-sub">@(item.User?.Username ?? "Admin")</span>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="col-cat">
+                            <span class="adm-badge badge-cyan">
+                                @(item.MarketCategory?.CategoryName ?? "Chưa phân loại")
+                            </span>
+                        </td>
+                        <td class="col-price">
+                            <span class="cell-price @(!hasPrice ? "negotiable" : "")">
+                                @(hasPrice ? item.Price.Value.ToString("N0") + "đ" : "Thỏa thuận")
+                            </span>
+                        </td>
+                        <td class="col-loc">
+                            <span class="loc-text" title="@item.ExchangeLocation">@item.ExchangeLocation</span>
+                        </td>
+                        <td class="col-action">
+                            <div class="action-btns">
+                                <button class="btn-adm amber icon-only btn-view-detail" title="Xem"
+                                        data-id="@item.PostID"
+                                        data-title="@item.Title"
+                                        data-category="@(item.MarketCategory?.CategoryName ?? "N/A")"
+                                        data-price="@(hasPrice ? item.Price.Value.ToString("N0") + " đ" : "Thỏa thuận")"
+                                        data-user="@(item.User?.Username ?? "Admin")"
+                                        data-location="@item.ExchangeLocation"
+                                        data-created="@(item.CreatedAt?.ToString("dd/MM/yyyy HH:mm") ?? "---")"
+                                        data-views="@item.ViewCount"
+                                        data-image="@item.MainImage"
+                                        data-description="@item.Description">
+                                    <i class="bi bi-eye" style="font-size:12px;"></i>
+                                </button>
+                                <button class="btn-adm cyan icon-only btn-edit" title="Sửa"
+                                        data-id="@item.PostID"
+                                        data-title="@item.Title"
+                                        data-category="@item.CategoryID"
+                                        data-price="@item.Price"
+                                        data-location="@item.ExchangeLocation"
+                                        data-description="@item.Description">
+                                    <i class="bi bi-pencil" style="font-size:12px;"></i>
+                                </button>
+                                <button class="btn-adm danger icon-only btn-delete" title="Xóa"
+                                        data-id="@item.PostID" data-title="@item.Title">
+                                    <i class="bi bi-trash3" style="font-size:12px;"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- DETAIL MODAL -->
+<div class="modal fade adm-modal" id="detailsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    Chi tiết bài đăng
+                    <span id="detail-id" style="font-family:'JetBrains Mono',monospace;color:rgba(0,200,255,0.7);font-size:13px;"></span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-3">
+                    <div class="col-md-4 col-sm-12">
+                        <img id="detail-image" src="/Content/Images/default-market.jpg" class="detail-img"
+                             onerror="this.onerror=null;this.src='/Content/Images/default-market.jpg';" alt="" />
+                    </div>
+                    <div class="col-md-8 col-sm-12">
+                        <div class="detail-row"><span class="detail-lbl">TIÊU ĐỀ</span><span class="detail-val" id="detail-title" style="color:#fff;font-weight:500;"></span></div>
+                        <div class="detail-row"><span class="detail-lbl">DANH MỤC</span><span class="detail-val" id="detail-category"></span></div>
+                        <div class="detail-row"><span class="detail-lbl">GIÁ BÁN</span><span class="detail-val" id="detail-price" style="color:#00c850;font-family:'JetBrains Mono',monospace;font-weight:600;"></span></div>
+                        <div class="detail-row"><span class="detail-lbl">NGƯỜI ĐĂNG</span><span class="detail-val" id="detail-user"></span></div>
+                        <div class="detail-row"><span class="detail-lbl">ĐỊA ĐIỂM</span><span class="detail-val" id="detail-location"></span></div>
+                        <div class="detail-row"><span class="detail-lbl">NGÀY ĐĂNG</span><span class="detail-val" id="detail-created" style="font-family:'JetBrains Mono',monospace;font-size:12px;"></span></div>
+                        <div class="detail-row"><span class="detail-lbl">LƯỢT XEM</span><span class="detail-val" id="detail-views"></span></div>
+                    </div>
+                </div>
+                <div class="section-label mt-3">MÔ TẢ CHI TIẾT</div>
+                <div class="desc-box" id="detail-description"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-adm" style="color:rgba(255,255,255,0.35);border-color:rgba(255,255,255,0.1);" data-bs-dismiss="modal">Đóng</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- EDIT MODAL -->
+<div class="modal fade adm-modal" id="editModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Chỉnh sửa <span id="edit-id-label" style="font-family:'JetBrains Mono',monospace;color:rgba(0,200,255,0.7);font-size:13px;"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="@Url.Action("Edit", "AdminMarket", new { area = "Admin" })" method="post" enctype="multipart/form-data">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="PostID" id="edit-PostID" />
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-md-8 col-12">
+                            <label class="adm-form-label">TIÊU ĐỀ BÀI ĐĂNG</label>
+                            <input type="text" class="adm-input" name="Title" id="edit-Title" required />
+                        </div>
+                        <div class="col-md-4 col-12">
+                            <label class="adm-form-label">DANH MỤC</label>
+                            @Html.DropDownList("CategoryID", (SelectList)ViewBag.MarketCategories, "Chọn danh mục",
+                                new { @class = "adm-input adm-select", id = "edit-CategoryID", required = "required" })
+                        </div>
+                        <div class="col-md-4 col-sm-6 col-12">
+                            <label class="adm-form-label">MỨC GIÁ (VNĐ)</label>
+                            <input type="number" class="adm-input" name="Price" id="edit-Price" min="0" placeholder="Để trống = Thỏa thuận" />
+                        </div>
+                        <div class="col-md-4 col-sm-6 col-12">
+                            <label class="adm-form-label">NƠI GIAO DỊCH</label>
+                            <input type="text" class="adm-input" name="ExchangeLocation" id="edit-ExchangeLocation" />
+                        </div>
+                        <div class="col-md-4 col-12">
+                            <label class="adm-form-label">ẢNH MỚI <span style="opacity:.4">(tùy chọn)</span></label>
+                            <input type="file" class="adm-input" name="fileAnh" accept="image/*" style="padding:7px 13px;cursor:pointer;" />
+                        </div>
+                        <div class="col-12">
+                            <label class="adm-form-label">MÔ TẢ</label>
+                            <textarea class="adm-input" name="Description" id="edit-Description" rows="3"></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-adm" style="color:rgba(255,255,255,0.35);border-color:rgba(255,255,255,0.1);" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn-adm cyan"><i class="bi bi-floppy"></i> Lưu thay đổi</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- DELETE MODAL -->
+<div class="modal fade del-modal" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-exclamation-triangle me-2"></i>Xác nhận xóa</h5>
+                <button type="button" class="btn-close" style="filter:invert(1) opacity(.5);" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" style="font-size:13px;color:rgba(255,255,255,0.6);padding:16px 18px;">
+                Xóa bài viết <strong id="delete-title-label" style="color:rgba(255,100,100,.85);"></strong>?
+                <p style="font-size:11px;color:rgba(255,255,255,0.2);margin-top:8px;margin-bottom:0;font-family:'JetBrains Mono',monospace;">Hành động này không thể hoàn tác.</p>
+            </div>
+            <div class="modal-footer" style="padding:10px 18px;">
+                <form action="@Url.Action("Delete", "AdminMarket", new { area = "Admin" })" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="id" id="delete-id" />
+                    <div style="display:flex;gap:8px;">
+                        <button type="button" class="btn-adm" style="color:rgba(255,255,255,0.35);border-color:rgba(255,255,255,0.1);" data-bs-dismiss="modal">Hủy</button>
+                        <button type="submit" class="btn-adm danger"><i class="bi bi-trash3"></i> Xóa</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- CREATE MODAL -->
+<div class="modal fade adm-modal" id="createModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Thêm bài đăng mới</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="@Url.Action("Create", "AdminMarket", new { area = "Admin" })" method="post" enctype="multipart/form-data">
+                @Html.AntiForgeryToken()
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-md-8 col-12">
+                            <label class="adm-form-label">TIÊU ĐỀ BÀI ĐĂNG</label>
+                            <input type="text" class="adm-input" name="Title" placeholder="Nhập tiêu đề..." required />
+                        </div>
+                        <div class="col-md-4 col-12">
+                            <label class="adm-form-label">DANH MỤC</label>
+                            @Html.DropDownList("CategoryID", (SelectList)ViewBag.MarketCategories, "Chọn danh mục",
+                                new { @class = "adm-input adm-select", required = "required" })
+                        </div>
+                        <div class="col-md-4 col-sm-6 col-12">
+                            <label class="adm-form-label">MỨC GIÁ (VNĐ)</label>
+                            <input type="number" class="adm-input" name="Price" min="0" placeholder="Để trống = Thỏa thuận" />
+                        </div>
+                        <div class="col-md-4 col-sm-6 col-12">
+                            <label class="adm-form-label">NƠI GIAO DỊCH</label>
+                            <input type="text" class="adm-input" name="ExchangeLocation" placeholder="VD: Cổng 1..." />
+                        </div>
+                        <div class="col-md-4 col-12">
+                            <label class="adm-form-label">HÌNH ẢNH</label>
+                            <input type="file" class="adm-input" name="fileAnh" accept="image/*" style="padding:7px 13px;cursor:pointer;" required />
+                        </div>
+                        <div class="col-12">
+                            <label class="adm-form-label">MÔ TẢ</label>
+                            <textarea class="adm-input" name="Description" rows="3" placeholder="Nhập mô tả sản phẩm..."></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-adm" style="color:rgba(255,255,255,0.35);border-color:rgba(255,255,255,0.1);" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn-adm green"><i class="bi bi-plus-circle"></i> Lưu bài đăng</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section scripts {
+    <script>
+        $(function () {
+            var table = $('#marketTable').DataTable({
+                language: {
+                    lengthMenu: "Hiển thị _MENU_ hàng",
+                    zeroRecords: "Không có dữ liệu",
+                    info: "Trang _PAGE_ / _PAGES_ · _TOTAL_ bài",
+                    infoEmpty: "Không có dữ liệu",
+                    infoFiltered: "(lọc từ _MAX_)",
+                    paginate: { previous: "‹", next: "›" }
+                },
+                order: [[0, 'desc']],
+                columnDefs: [{ orderable: false, targets: [1, 6] }],
+                autoWidth: false   // tắt autoWidth để table-layout:fixed hoạt động đúng
+            });
+
+            $('#liveSearch').on('input', function () { table.search($(this).val()).draw(); });
+
+            $('#categoryFilter').on('change', function () {
+                var val = $(this).val();
+                if (!val) { table.column(3).search('').draw(); return; }
+                var name = $.fn.dataTable.util.escapeRegex($(this).find('option:selected').text());
+                table.column(3).search('^' + name + '$', true, false).draw();
+            });
+
+            $(document).on('click', '.btn-view-detail', function () {
+                var d = $(this).data();
+                $('#detail-id').text('#' + d.id);
+                $('#detail-title').text(d.title);
+                $('#detail-category').text(d.category);
+                $('#detail-price').text(d.price);
+                $('#detail-user').text(d.user);
+                $('#detail-location').text(d.location || '---');
+                $('#detail-created').text(d.created);
+                $('#detail-views').text(d.views || 0);
+                $('#detail-image').attr('src', d.image || '/Content/Images/default-market.jpg');
+                $('#detail-description').text(d.description || 'Chưa có mô tả.');
+                new bootstrap.Modal(document.getElementById('detailsModal')).show();
+            });
+
+            $(document).on('click', '.btn-edit', function () {
+                var d = $(this).data();
+                $('#edit-id-label').text('#' + d.id);
+                $('#edit-PostID').val(d.id);
+                $('#edit-Title').val(d.title);
+                $('#edit-CategoryID').val(d.category);
+                $('#edit-Price').val(d.price || '');
+                $('#edit-ExchangeLocation').val(d.location);
+                $('#edit-Description').val(d.description);
+                new bootstrap.Modal(document.getElementById('editModal')).show();
+            });
+
+            $(document).on('click', '.btn-delete', function () {
+                var d = $(this).data();
+                $('#delete-id').val(d.id);
+                $('#delete-title-label').text('"' + d.title + '"');
+                new bootstrap.Modal(document.getElementById('deleteModal')).show();
+            });
+        });
+    </script>
+}

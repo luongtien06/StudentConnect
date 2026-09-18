@@ -1,0 +1,295 @@
+@model StudentConnect.Models.ConnectPost
+
+@{
+    ViewBag.Title = Model.Title;
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var reviews = ViewBag.Reviews as List<StudentConnect.Models.Review>;
+    double avgRating = ViewBag.AverageRating != null ? (double)ViewBag.AverageRating : 0;
+    int reviewCount = ViewBag.ReviewCount != null ? (int)ViewBag.ReviewCount : 0;
+}
+
+<style>
+    .post-content img {
+        max-width: 100% !important;
+        height: auto !important;
+        border-radius: 8px;
+        margin: 15px 0;
+        display: block;
+    }
+</style>
+
+<div class="container py-5">
+
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <a href="@Url.Action("Index")" class="btn btn-outline-secondary rounded-pill px-4">
+            <i class="fas fa-arrow-left"></i> Quay lại
+        </a>
+
+        <div class="d-flex gap-2 align-items-center flex-wrap">
+            @if (Model.UserID != null && (Session["UserID"] == null || Convert.ToInt32(Session["UserID"]) != Model.UserID))
+            {
+                <a href="@Url.Action("ChatWithAuthor", "Connect", new { postId = Model.PostID })"
+                   class="btn btn-info rounded-pill px-4 shadow-sm text-dark fw-bold">
+                    <i class="fas fa-comment-dots me-1"></i> Nhắn tin với người đăng
+                </a>
+            }
+
+            @if (Session["UserID"] != null && Convert.ToInt32(Session["UserID"]) == Model.UserID)
+            {
+                <a href="@Url.Action("Edit", "Connect", new { id = Model.PostID })"
+                   class="btn btn-warning rounded-pill px-4 shadow-sm">
+                    <i class="fas fa-edit"></i> Sửa bài
+                </a>
+
+                @* Đổi sang form POST thay vì <a href> *@
+                <form action="@Url.Action("Delete", "Connect", new { id = Model.PostID })"
+                      method="post" style="display:inline;">
+                    @Html.AntiForgeryToken()
+                    <button type="button" class="btn btn-danger rounded-pill px-4 shadow-sm"
+                            onclick="confirmDelete(this)">
+                        <i class="fas fa-trash"></i> Xóa bài
+                    </button>
+                </form>
+            }
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8 mb-4">
+            <div class="card shadow-sm border-0 rounded-4 overflow-hidden">
+                @{
+                    string imagePath = Model.MainImage;
+                    if (!string.IsNullOrEmpty(imagePath) && !imagePath.StartsWith("/") && !imagePath.StartsWith("~"))
+                    {
+                        imagePath = "~/Content/Uploads/" + imagePath;
+                    }
+                }
+                <img src="@Url.Content(imagePath)" class="img-fluid" alt="@Model.Title" style="max-height: 450px; object-fit: cover; width: 100%;" onerror="this.src='/Content/Images/default-image.jpg';">
+
+                <div class="card-body p-4 p-md-5">
+                    <div class="d-flex align-items-center mb-3">
+                        <span class="badge bg-primary me-2 px-3 py-2 rounded-pill">
+                            <i class="fas fa-tag"></i> @(Model.ConnectCategory != null ? Model.ConnectCategory.CategoryName : "Chưa phân loại")
+                        </span>
+                        <span class="text-muted small"><i class="far fa-clock"></i> @(Model.CreatedAt.HasValue ? Model.CreatedAt.Value.ToString("dd/MM/yyyy HH:mm") : "")</span>
+                    </div>
+
+                    <h1 class="fw-bold mb-4">@Model.Title</h1>
+
+                    <div class="d-flex align-items-center justify-content-between mb-4 pb-4 border-bottom flex-wrap gap-2">
+                        <div class="d-flex align-items-center">
+                            <div class="bg-light rounded-circle d-flex justify-content-center align-items-center me-3" style="width: 50px; height: 50px;">
+                                <i class="fas fa-user-circle fs-2 text-secondary"></i>
+                            </div>
+                            <div>
+                                <p class="mb-0 fw-bold">@(Model.User != null ? Model.User.Username : "Ẩn danh")</p>
+                                <small class="text-muted">Tác giả bài viết</small>
+                            </div>
+                        </div>
+                        @if (Model.UserID != null && (Session["UserID"] == null || Convert.ToInt32(Session["UserID"]) != Model.UserID))
+                        {
+                            <a href="@Url.Action("ChatWithAuthor", "Connect", new { postId = Model.PostID })"
+                               class="btn btn-outline-info rounded-pill px-3 shadow-sm btn-sm">
+                                <i class="fas fa-comment-dots me-1"></i> Nhắn tin riêng
+                            </a>
+                        }
+                    </div>
+
+                    <div class="post-content" style="font-size: 1.1rem; line-height: 1.8; overflow-wrap: anywhere;">
+                        @Html.Raw(Model.Description != null ? Model.Description.Replace("\n", "<br/>") : "")
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card shadow-sm border-0 rounded-4 sticky-top" style="top: 20px;">
+                <div class="card-body p-4">
+                    <h4 class="fw-bold border-bottom pb-3 mb-4">Đánh giá cộng đồng</h4>
+
+                    <div class="d-flex align-items-center mb-4 bg-light p-3 rounded-3">
+                        <h2 class="fw-bold mb-0 me-3 text-warning" id="avgRatingText">@avgRating/5</h2>
+                        <div>
+                            <div class="text-warning mb-1" id="starRatingContainer">
+                                @for (int i = 1; i <= 5; i++)
+                                {
+                                    if (i <= Math.Round(avgRating))
+                                    {<i class="fas fa-star"></i> }
+                                    else
+                                    { <i class="far fa-star"></i>}
+                                }
+                            </div>
+                            <small class="text-muted" id="reviewCountSummary">Dựa trên <span id="reviewCountNum">@reviewCount</span> lượt đánh giá</small>
+                        </div>
+                    </div>
+
+                    @if (ViewBag.HasReviewed == true)
+                    {
+                        <div class="alert alert-success d-flex align-items-center rounded-3 mb-4 py-2 px-3">
+                            <i class="fas fa-check-circle me-2 text-success fs-5"></i>
+                            <div class="small">
+                                <strong>Bạn đã đánh giá bài viết này!</strong><br />
+                                Mỗi thành viên chỉ đánh giá 1 lần để đảm bảo tính khách quan.
+                            </div>
+                        </div>
+                    }
+                    else if (Session["UserID"] != null)
+                    {
+                        <div id="reviewFormContainer">
+                            <form id="addReviewForm" onsubmit="submitConnectReview(event)" class="mb-4">
+                                <input type="hidden" id="connectPostId" value="@Model.PostID" />
+
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold small">Bạn chấm mấy điểm?</label>
+                                    <select id="connectRatingSelect" class="form-select form-select-sm" required>
+                                        <option value="5">⭐⭐⭐⭐⭐ Tuyệt vời (5/5)</option>
+                                        <option value="4">⭐⭐⭐⭐ Khá tốt (4/5)</option>
+                                        <option value="3">⭐⭐⭐ Bình thường (3/5)</option>
+                                        <option value="2">⭐⭐ Tệ (2/5)</option>
+                                        <option value="1">⭐ Rất tệ (1/5)</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold small">Chia sẻ trải nghiệm của bạn</label>
+                                    <textarea id="connectCommentInput" class="form-control" rows="3" placeholder="Đồ ăn ngon không? View thế nào?..." required></textarea>
+                                </div>
+                                <button type="submit" id="btnSubmitReview" class="btn btn-primary w-100 rounded-pill fw-bold">
+                                    <i class="fas fa-paper-plane me-1"></i> Gửi đánh giá
+                                </button>
+                            </form>
+                        </div>
+                        <div id="alreadyReviewedAlert" class="alert alert-success align-items-center rounded-3 mb-4 py-2 px-3" style="display:none;">
+                            <i class="fas fa-check-circle me-2 text-success fs-5"></i>
+                            <div class="small">
+                                <strong>Bạn đã đánh giá bài viết này!</strong><br />
+                                Cảm ơn bạn đã đóng góp cho cộng đồng sinh viên TDMU.
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="alert alert-warning text-center small rounded-3 mb-4">
+                            Vui lòng <a href="@Url.Action("Login", "User", new { returnUrl = Request.RawUrl })" class="fw-bold alert-link">Đăng nhập</a> để để lại đánh giá.
+                        </div>
+                    }
+
+                    <div class="reviews-list pe-2" id="reviewsListContainer" style="max-height: 400px; overflow-y: auto;">
+                        @if (reviews != null && reviews.Any())
+                        {
+                            foreach (var review in reviews)
+                            {
+                                <div class="mb-3 pb-3 border-bottom review-item">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <strong class="text-bg-warning" style="border-radius: 30px; padding: 3px 7px;">
+                                            <i class="fas fa-user-circle me-1"></i> @(review.User?.Username ?? "Ẩn danh")
+                                        </strong>
+                                        <span class="text-warning small">
+                                            @for (int i = 0; i < (review.RatingStar ?? 5); i++)
+                                            {
+                                                <i class="fas fa-star"></i>
+                                            }
+                                        </span>
+                                    </div>
+                                    <p class="mb-1 small text-secondary">@review.Comment</p>
+                                    <small class="text-muted" style="font-size: 0.75rem;"><i class="far fa-clock"></i> @(review.CreatedAt.HasValue ? review.CreatedAt.Value.ToString("dd/MM/yyyy HH:mm") : "")</small>
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <p id="noReviewsPlaceholder" class="text-muted text-center small my-4">Chưa có đánh giá nào. Hãy là người đầu tiên bóc tem!</p>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function submitConnectReview(e) {
+            e.preventDefault();
+            var postId = $('#connectPostId').val();
+            var rating = $('#connectRatingSelect').val();
+            var comment = $('#connectCommentInput').val().trim();
+
+            if (!comment) return;
+
+            $('#btnSubmitReview').prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Đang gửi...');
+
+            $.post('@Url.Action("AddReviewAjax", "Connect")', { postId: postId, rating: rating, comment: comment }, function(res) {
+                $('#btnSubmitReview').prop('disabled', false).html('<i class="fas fa-paper-plane me-1"></i> Gửi đánh giá');
+                if (res.success) {
+                    $('#noReviewsPlaceholder').remove();
+
+                    // Render new review item
+                    var starsHtml = '';
+                    for (var i = 0; i < res.review.rating; i++) {
+                        starsHtml += '<i class="fas fa-star"></i> ';
+                    }
+
+                    var newReviewHtml = `
+                        <div class="mb-3 pb-3 border-bottom review-item" style="animation: fadeIn 0.4s ease;">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <strong class="text-bg-warning" style="border-radius: 30px; padding: 3px 7px;">
+                                    <i class="fas fa-user-circle me-1"></i> ${escapeHtml(res.review.username)}
+                                </strong>
+                                <span class="text-warning small">
+                                    ${starsHtml}
+                                </span>
+                            </div>
+                            <p class="mb-1 small text-secondary">${escapeHtml(res.review.comment)}</p>
+                            <small class="text-muted" style="font-size: 0.75rem;"><i class="far fa-clock"></i> ${res.review.createdAt}</small>
+                        </div>
+                    `;
+
+                    $('#reviewsListContainer').prepend(newReviewHtml);
+
+                    // Update summary numbers
+                    $('#avgRatingText').text(res.avgRating + '/5');
+                    $('#reviewCountNum').text(res.reviewCount);
+
+                    var avgStarsHtml = '';
+                    for (var s = 1; s <= 5; s++) {
+                        if (s <= Math.round(res.avgRating)) {
+                            avgStarsHtml += '<i class="fas fa-star"></i> ';
+                        } else {
+                            avgStarsHtml += '<i class="far fa-star"></i> ';
+                        }
+                    }
+                    $('#starRatingContainer').html(avgStarsHtml);
+
+                    // Hide form and show alert
+                    $('#reviewFormContainer').slideUp(300);
+                    $('#alreadyReviewedAlert').slideDown(300).css('display', 'flex');
+                } else {
+                    Swal.fire('Thông báo', res.message || 'Không thể gửi đánh giá.', 'warning');
+                }
+            }).fail(function() {
+                $('#btnSubmitReview').prop('disabled', false).html('<i class="fas fa-paper-plane me-1"></i> Gửi đánh giá');
+                Swal.fire('Lỗi', 'Không thể kết nối máy chủ.', 'error');
+            });
+        }
+
+        function escapeHtml(text) {
+            return $('<div>').text(text).html();
+        }
+
+        function confirmDelete(btn) {
+            Swal.fire({
+                title: 'Xóa bài viết?',
+                text: 'Bạn có thực sự muốn xóa bài review này không?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc3545',
+                confirmButtonText: 'Xóa',
+                cancelButtonText: 'Hủy'
+            }).then(result => {
+                if (result.isConfirmed) {
+                    $(btn).closest('form').submit();
+                }
+            });
+        }
+    </script>
+}

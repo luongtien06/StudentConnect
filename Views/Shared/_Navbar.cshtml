@@ -1,0 +1,1088 @@
+@{
+    string controller = ViewContext.RouteData.Values["controller"].ToString();
+    int currentUserId = Session["UserID"] != null ? (int)Session["UserID"] : 0;
+}
+<style>
+    @@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+
+    .tdmu-navbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 1.5rem;
+        height: 62px;
+        background: rgba(5,10,20,0.96);
+        border-bottom: 1px solid rgba(0,200,255,0.12);
+        backdrop-filter: blur(24px);
+        -webkit-backdrop-filter: blur(24px);
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+        font-family: 'Space Grotesk', sans-serif;
+    }
+
+        .tdmu-navbar::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(0,200,255,0.4), rgba(123,97,255,0.3), transparent);
+        }
+
+    .tnav-brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        text-decoration: none !important;
+    }
+
+    .tnav-brand-icon {
+        width: 34px;
+        height: 34px;
+        border-radius: 10px;
+        background: rgba(0,200,255,0.1);
+        border: 1px solid rgba(0,200,255,0.25);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 11px;
+        font-weight: 600;
+        color: #00c8ff;
+        flex-shrink: 0;
+    }
+
+    .tnav-brand-text {
+        display: flex;
+        flex-direction: column;
+        line-height: 1.2;
+    }
+
+    .tnav-brand-name {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 13px;
+        font-weight: 500;
+        color: #fff;
+        letter-spacing: 0.04em;
+    }
+
+    .tnav-links {
+        display: flex;
+        align-items: center;
+        gap: 2px;
+    }
+
+    .tnav-link {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        padding: 7px 14px;
+        border-radius: 9px;
+        font-size: 13px;
+        font-weight: 400;
+        color: rgba(255,255,255,0.45);
+        text-decoration: none !important;
+        border: 1px solid transparent;
+        transition: all 0.2s;
+        white-space: nowrap;
+    }
+
+        .tnav-link:hover {
+            color: rgba(255,255,255,0.85) !important;
+            background: rgba(255,255,255,0.05);
+            border-color: rgba(255,255,255,0.08);
+        }
+
+        .tnav-link.is-active {
+            color: #00c8ff !important;
+            background: rgba(0,200,255,0.08);
+            border-color: rgba(0,200,255,0.2);
+            font-weight: 500;
+        }
+
+    .tnav-icon {
+        font-size: 13px;
+    }
+
+    .tnav-right {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .tnav-divider {
+        width: 1px;
+        height: 20px;
+        background: rgba(255,255,255,0.08);
+    }
+
+    /* ── NOTIFICATION BELL ── */
+    .notif-wrap {
+        position: relative;
+    }
+
+    .tnav-notif {
+        width: 34px;
+        height: 34px;
+        border-radius: 9px;
+        background: rgba(255,255,255,0.04);
+        border: 1px solid rgba(255,255,255,0.08);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        font-size: 14px;
+        color: rgba(255,255,255,0.5);
+        transition: all 0.2s;
+        position: relative;
+        user-select: none;
+    }
+
+        .tnav-notif:hover {
+            background: rgba(255,255,255,0.08);
+            border-color: rgba(255,255,255,0.15);
+            color: rgba(255,255,255,0.85);
+        }
+
+        .tnav-notif.has-notif {
+            color: rgba(0,200,255,0.8);
+            border-color: rgba(0,200,255,0.2);
+        }
+
+    .notif-dot {
+        position: absolute;
+        top: 6px;
+        right: 7px;
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: #ff4466;
+        border: 1.5px solid rgba(5,10,20,0.96);
+        display: none;
+        animation: dotPulse 2s infinite;
+    }
+
+        .notif-dot.show {
+            display: block;
+        }
+
+    @@keyframes dotPulse {
+        0%, 100% {
+            transform: scale(1)
+        }
+
+        50% {
+            transform: scale(1.25)
+        }
+    }
+
+    @@keyframes bellShake {
+        0%, 100% {
+            transform: rotate(0)
+        }
+
+        20% {
+            transform: rotate(-15deg)
+        }
+
+        40% {
+            transform: rotate(14deg)
+        }
+
+        60% {
+            transform: rotate(-10deg)
+        }
+
+        80% {
+            transform: rotate(8deg)
+        }
+    }
+
+    .tnav-notif.shake i {
+        animation: bellShake 0.6s ease;
+    }
+
+    .notif-panel {
+        position: fixed;
+        top: 72px;
+        right: 12px;
+        width: 320px;
+        max-width: calc(100vw - 24px);
+        background: #0d1626;
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 16px;
+        box-shadow: 0 12px 40px rgba(0,0,0,0.6);
+        z-index: 2000;
+        overflow: hidden;
+        opacity: 0;
+        transform: translateY(-8px) scale(0.97);
+        pointer-events: none;
+        transition: all 0.2s cubic-bezier(0.4,0,0.2,1);
+    }
+
+        .notif-panel.open {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+            pointer-events: all;
+        }
+
+        .notif-panel::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(0,200,255,0.5), rgba(123,97,255,0.3), transparent);
+        }
+
+    /* ── Mobile: full-width centered panel ── */
+    @@media (max-width: 991px) {
+        .notif-panel {
+            left: 12px !important;
+            right: 12px !important;
+            top: 68px !important;
+            width: auto !important;
+            max-width: none;
+            transform: translateY(-8px) scale(0.97);
+        }
+
+            .notif-panel.open {
+                transform: translateY(0) scale(1);
+            }
+    }
+
+    @@media (max-width: 480px) {
+        .notif-panel {
+            left: 8px !important;
+            right: 8px !important;
+            top: 66px !important;
+            border-radius: 12px;
+        }
+
+        .notif-header {
+            padding: 10px 12px;
+        }
+
+        .notif-tabs {
+            padding: 0 8px;
+        }
+
+        .notif-tab {
+            font-size: 10px;
+            padding: 8px 6px;
+        }
+
+        .notif-item {
+            padding: 10px 12px;
+            gap: 8px;
+        }
+
+        .notif-item-icon {
+            width: 30px;
+            height: 30px;
+            font-size: 13px;
+        }
+
+        .notif-item-text {
+            font-size: 11px;
+        }
+
+        .notif-footer {
+            padding: 8px 12px;
+        }
+    }
+
+    .notif-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 16px;
+        border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .notif-header-title {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 10px;
+        letter-spacing: 0.12em;
+        color: rgba(0,200,255,0.6);
+    }
+
+    .notif-mark-all {
+        font-size: 15px;
+        cursor: pointer;
+        background: none;
+        border: none;
+        width: 36px;
+        height: 36px;
+        padding: 7px;
+        border-radius: 5px;
+        box-shadow: 1px 1px 2px;
+    }
+
+    .mark-read {
+        color: #198754;
+    }
+
+    .delete-notifs {
+        color: #dc3545;
+    }
+        .mark-read:hover {
+            color: #157347;
+            font-size: 18px;
+            translate: 0 -1px;
+        }
+
+        .delete-notifs:hover {
+            color: #bb2d3b;
+            font-size: 18px;
+            translate: 0 -1px;
+        }
+
+    /* tabs */
+    .notif-tabs {
+        display: flex;
+        border-bottom: 1px solid rgba(255,255,255,0.06);
+        padding: 0 12px;
+        gap: 4px;
+        overflow-x: auto; /* cuộn ngang nếu tab bị tràn */
+        scrollbar-width: none;
+    }
+
+        .notif-tabs::-webkit-scrollbar {
+            display: none;
+        }
+
+    .notif-tab {
+        padding: 8px 12px;
+        font-size: 11px;
+        font-family: 'JetBrains Mono', monospace;
+        letter-spacing: 0.07em;
+        color: rgba(255,255,255,0.3);
+        cursor: pointer;
+        border-bottom: 2px solid transparent;
+        transition: all 0.2s;
+        background: none;
+        border-left: none;
+        border-right: none;
+        border-top: none;
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+
+        .notif-tab.active {
+            color: #00c8ff;
+            border-bottom-color: #00c8ff;
+        }
+
+        .notif-tab:hover:not(.active) {
+            color: rgba(255,255,255,0.6);
+        }
+
+    .notif-tab-count {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        font-size: 9px;
+        background: rgba(255,60,60,0.2);
+        color: rgba(255,100,100,0.9);
+        margin-left: 4px;
+        font-weight: 600;
+    }
+
+    /* list */
+    .notif-list {
+        max-height: 300px;
+        overflow-y: auto;
+    }
+
+        .notif-list::-webkit-scrollbar {
+            width: 3px;
+        }
+
+        .notif-list::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.1);
+            border-radius: 99px;
+        }
+
+    .notif-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        padding: 12px 16px;
+        border-bottom: 1px solid rgba(255,255,255,0.04);
+        cursor: pointer;
+        transition: background 0.15s;
+        text-decoration: none;
+        position: relative;
+    }
+
+        .notif-item:hover {
+            background: rgba(255,255,255,0.03);
+        }
+
+        .notif-item:last-child {
+            border-bottom: none;
+        }
+
+        .notif-item.unread {
+            background: rgba(0,200,255,0.03);
+        }
+
+            .notif-item.unread::before {
+                content: '';
+                position: absolute;
+                left: 0;
+                top: 0;
+                bottom: 0;
+                width: 2px;
+                background: rgba(0,200,255,0.5);
+                border-radius: 0 2px 2px 0;
+            }
+
+    .notif-item-icon {
+        width: 34px;
+        height: 34px;
+        border-radius: 10px;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 15px;
+    }
+
+        .notif-item-icon.market {
+            background: rgba(0,200,80,0.12);
+            border: 1px solid rgba(0,200,80,0.2);
+        }
+
+        .notif-item-icon.connect {
+            background: rgba(123,97,255,0.12);
+            border: 1px solid rgba(123,97,255,0.2);
+        }
+
+        .notif-item-icon.system {
+            background: rgba(0,200,255,0.1);
+            border: 1px solid rgba(0,200,255,0.2);
+        }
+
+        .notif-item-icon.chat {
+            background: rgba(0,200,255,0.12);
+            border: 1px solid rgba(0,200,255,0.25);
+        }
+
+    .notif-item-body {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .notif-item-text {
+        font-size: 12px;
+        color: rgba(255,255,255,0.7);
+        line-height: 1.5;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+        .notif-item-text strong {
+            color: rgba(255,255,255,0.9);
+            font-weight: 500;
+        }
+
+    .notif-item-time {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 10px;
+        color: rgba(255,255,255,0.2);
+        margin-top: 4px;
+        letter-spacing: 0.04em;
+    }
+
+    .notif-unread-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: #00c8ff;
+        flex-shrink: 0;
+        margin-top: 4px;
+    }
+
+    /* empty */
+    .notif-empty {
+        padding: 2.5rem 1rem;
+        text-align: center;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 10px;
+        color: rgba(255,255,255,0.15);
+        letter-spacing: 0.08em;
+    }
+
+    .notif-empty-icon {
+        font-size: 1.8rem;
+        margin-bottom: 10px;
+        opacity: 0.3;
+        display: block;
+    }
+
+    /* footer */
+    .notif-footer {
+        padding: 10px 16px;
+        border-top: 1px solid rgba(255,255,255,0.06);
+        text-align: center;
+    }
+
+        .notif-footer a {
+            font-size: 11px;
+            color: rgba(0,200,255,0.6);
+            text-decoration: none;
+            font-family: 'JetBrains Mono', monospace;
+            letter-spacing: 0.06em;
+            transition: color 0.2s;
+        }
+
+            .notif-footer a:hover {
+                color: #00c8ff;
+            }
+
+    /* loading skeleton */
+    .notif-skeleton {
+        padding: 12px 16px;
+        display: flex;
+        gap: 10px;
+        align-items: center;
+    }
+
+    .skel-icon {
+        width: 34px;
+        height: 34px;
+        border-radius: 10px;
+        background: rgba(255,255,255,0.05);
+        flex-shrink: 0;
+        animation: skel .9s ease infinite alternate;
+    }
+
+    .skel-lines {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .skel-line {
+        height: 10px;
+        border-radius: 6px;
+        background: rgba(255,255,255,0.05);
+        animation: skel .9s ease infinite alternate;
+    }
+
+        .skel-line.short {
+            width: 55%;
+        }
+
+    @@keyframes skel {
+        from {
+            opacity: .4
+        }
+
+        to {
+            opacity: .9
+        }
+    }
+
+    /* ── User pill & buttons ── */
+    .tnav-user {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 4px 12px 4px 4px;
+        border-radius: 10px;
+        background: rgba(255,255,255,0.04);
+        border: 1px solid rgba(255,255,255,0.08);
+        transition: all 0.2s;
+        text-decoration: none !important;
+    }
+
+        .tnav-user:hover {
+            background: rgba(255,255,255,0.07);
+            border-color: rgba(255,255,255,0.14);
+        }
+
+    .tnav-avatar {
+        width: 28px;
+        height: 28px;
+        border-radius: 8px;
+        background: linear-gradient(135deg,#7b61ff 0%,#00c8ff 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+        font-weight: 600;
+        color: #fff;
+        flex-shrink: 0;
+        overflow: hidden;
+    }
+
+        .tnav-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+    .tnav-username {
+        font-size: 12px;
+        color: rgba(255,255,255,0.75);
+        font-weight: 500;
+    }
+
+    .tnav-btn-logout {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        padding: 6px 14px;
+        border-radius: 100px;
+        font-size: 12px;
+        font-weight: 500;
+        color: rgba(255,100,100,0.8);
+        background: rgba(255,60,60,0.07);
+        border: 1px solid rgba(255,60,60,0.2);
+        text-decoration: none !important;
+        transition: all 0.2s;
+    }
+
+        .tnav-btn-logout:hover {
+            background: rgba(255,60,60,0.15) !important;
+            border-color: rgba(255,60,60,0.4) !important;
+            color: #ff6060 !important;
+        }
+
+    .tnav-btn-login {
+        padding: 6px 16px;
+        border-radius: 100px;
+        font-size: 12px;
+        font-weight: 500;
+        color: rgba(0,200,255,0.85);
+        background: rgba(0,200,255,0.08);
+        border: 1px solid rgba(0,200,255,0.25);
+        text-decoration: none !important;
+        transition: all 0.2s;
+    }
+
+        .tnav-btn-login:hover {
+            background: rgba(0,200,255,0.16) !important;
+            border-color: rgba(0,200,255,0.5) !important;
+            color: #00c8ff !important;
+        }
+
+    .tnav-btn-register {
+        padding: 6px 16px;
+        border-radius: 100px;
+        font-size: 12px;
+        font-weight: 600;
+        color: #050a14;
+        background: linear-gradient(135deg,#00c8ff,#7b61ff);
+        border: none;
+        text-decoration: none !important;
+        transition: opacity 0.2s;
+    }
+
+        .tnav-btn-register:hover {
+            opacity: 0.88;
+            color: #050a14 !important;
+        }
+
+    .tnav-toggler {
+        display: none;
+        background: none;
+        border: 1px solid rgba(255,255,255,0.12);
+        border-radius: 8px;
+        padding: 6px 10px;
+        cursor: pointer;
+        color: rgba(255,255,255,0.6);
+    }
+
+    /* ── Mobile nav ── */
+    @@media (max-width: 991px) {
+        .tnav-links, .tnav-right {
+            display: none;
+        }
+
+        .tnav-toggler {
+            display: block;
+        }
+
+        .tdmu-navbar.open .tnav-links,
+        .tdmu-navbar.open .tnav-right {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            position: absolute;
+            top: 62px;
+            left: 0;
+            right: 0;
+            background: rgba(5,10,20,0.98);
+            border-bottom: 1px solid rgba(0,200,255,0.12);
+            padding: 12px 1.5rem;
+            gap: 6px;
+            z-index: 999;
+            animation: navDrop .25s ease;
+        }
+
+        @@keyframes navDrop {
+            from {
+                opacity: 0;
+                transform: translateY(-10px)
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0)
+            }
+        }
+
+        .tdmu-navbar.open .tnav-right {
+            top: auto;
+            border-bottom: none;
+            padding-top: 0;
+            border-top: 1px solid rgba(255,255,255,0.07);
+            flex-direction: row;
+            flex-wrap: wrap;
+        }
+        /* Trên mobile, panel đã dùng fixed nên không cần offset thêm */
+    }
+</style>
+
+<nav class="tdmu-navbar" id="tdmuNav">
+    <a class="tnav-brand" href="@Url.Action("Index", "Home")">
+        <div class="tnav-brand-icon">TDMU</div>
+        <div class="tnav-brand-text">
+            <span class="tnav-brand-name">TDMU_ECOSYSTEM</span>
+        </div>
+    </a>
+
+    <button class="tnav-toggler" id="navToggle">
+        <i class="bi bi-list" style="font-size:18px;"></i>
+    </button>
+
+    <div class="tnav-links">
+        <a class="tnav-link @(controller == "Home"    ? "is-active" : "")" href="@Url.Action("Index", "Home")"><span class="tnav-icon">⌂</span> Trang chủ</a>
+        <a class="tnav-link @(controller == "Chat"    ? "is-active" : "")" href="@Url.Action("Index", "Chat")"><span class="tnav-icon">💬</span> Chat Ẩn Danh</a>
+        <a class="tnav-link @(controller == "Market"  ? "is-active" : "")" href="@Url.Action("Index", "Market")"><span class="tnav-icon">🛒</span> Chợ Sinh Viên</a>
+        <a class="tnav-link @(controller == "Connect" ? "is-active" : "")" href="@Url.Action("Index", "Connect")"><span class="tnav-icon">🤝</span> Kết Nối TDMU</a>
+    </div>
+
+    <div class="tnav-right">
+        @if (Session["Username"] != null)
+        {
+            <!-- NOTIFICATION BELL -->
+            <div class="notif-wrap" id="notifWrap">
+                <div class="tnav-notif" id="notifBtn" title="Thông báo">
+                    <i class="bi bi-bell"></i>
+                    <span class="notif-dot" id="notifDot"></span>
+                </div>
+
+                <div class="notif-panel" id="notifPanel">
+                    <div class="notif-header">
+                        <span class="notif-header-title">THÔNG BÁO</span>
+                        <div style="display:flex; gap:6px;">
+                            <button class="notif-mark-all mark-read" id="markAllRead" title="Đánh dấu tất cả đã đọc"> ✔ </button>
+                            <button class="notif-mark-all delete-notifs" id="deleteAllNotifs" title="Xóa tất cả thông báo"> 🗑️ </button>
+                        </div>
+                    </div>
+                    <div class="notif-tabs">
+                        <button class="notif-tab active" data-tab="all">
+                            TẤT CẢ <span class="notif-tab-count" id="tabCountAll" style="display:none;"></span>
+                        </button>
+                        <button class="notif-tab" data-tab="market">
+                            🛒 CHỢ <span class="notif-tab-count" id="tabCountMarket" style="display:none;"></span>
+                        </button>
+                        <button class="notif-tab" data-tab="connect">
+                            🤝 KẾT NỐI <span class="notif-tab-count" id="tabCountConnect" style="display:none;"></span>
+                        </button>
+                    </div>
+                    <div class="notif-list" id="notifList">
+                        <div class="notif-skeleton" id="notifSkeleton">
+                            <div class="skel-icon"></div>
+                            <div class="skel-lines">
+                                <div class="skel-line"></div>
+                                <div class="skel-line short"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="notif-footer">
+                        <a href="@Url.Action("Index", "Notification")">Tất cả thông báo →</a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tnav-divider"></div>
+            <a class="tnav-user" href="@Url.Action("Profile", "User")">
+                <div class="tnav-avatar">
+                    <img src="https://ui-avatars.com/api/?name=@Session["Username"]&background=7b61ff&color=fff&size=56" alt="@Session["Username"]" />
+                </div>
+                <span class="tnav-username">@Session["Username"]</span>
+            </a>
+            <a class="tnav-btn-logout" href="@Url.Action("Logout", "User")">
+                <i class="bi bi-box-arrow-right" style="font-size:12px;"></i> Đăng xuất
+            </a>
+        }
+        else
+        {
+            <a class="tnav-btn-login" href="@Url.Action("Login",    "User")">Đăng nhập</a>
+            <a class="tnav-btn-register" href="@Url.Action("Register", "User")">Đăng ký</a>
+        }
+    </div>
+</nav>
+
+<script>
+(function () {
+    // ── Mobile toggle
+    var nav    = document.getElementById('tdmuNav');
+    var toggle = document.getElementById('navToggle');
+    if (toggle) {
+        toggle.addEventListener('click', function (e) {
+            e.stopPropagation();
+            nav.classList.toggle('open');
+        });
+        document.addEventListener('click', function (e) {
+            if (!nav.contains(e.target)) nav.classList.remove('open');
+        });
+    }
+
+    // ── Notification logic
+    var currentUserId = @(Session["UserID"] != null ? (int)Session["UserID"] : 0);
+    if (currentUserId <= 0) return;
+
+    var notifBtn   = document.getElementById('notifBtn');
+    var notifPanel = document.getElementById('notifPanel');
+    var notifDot   = document.getElementById('notifDot');
+    var notifList  = document.getElementById('notifList');
+    var skeleton   = document.getElementById('notifSkeleton');
+    if (!notifBtn) return;
+
+    var allNotifs  = [];
+    var currentTab = 'all';
+    var panelOpen  = false;
+    var loaded     = false;
+
+    function positionPanel() {
+        // On mobile (≤991px), let CSS media queries handle positioning
+        if (window.innerWidth <= 991) {
+            notifPanel.style.left  = '';
+            notifPanel.style.right = '';
+            notifPanel.style.top   = '';
+            notifPanel.style.width = '';
+            return;
+        }
+        // Desktop: position relative to bell button
+        var rect = notifBtn.getBoundingClientRect();
+        var panelW = Math.min(320, window.innerWidth - 24);
+        var leftPos = rect.right - panelW;
+        if (leftPos < 12) leftPos = 12;
+        notifPanel.style.left  = leftPos + 'px';
+        notifPanel.style.right = 'auto';
+        notifPanel.style.top   = (rect.bottom + 10) + 'px';
+        notifPanel.style.width = panelW + 'px';
+    }
+
+    notifBtn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        panelOpen = !panelOpen;
+        if (panelOpen) positionPanel();
+        notifPanel.classList.toggle('open', panelOpen);
+        if (panelOpen && !loaded) fetchNotifs();
+    });
+
+    window.addEventListener('resize', function () {
+        if (panelOpen) positionPanel();
+    });
+
+    document.addEventListener('click', function (e) {
+        if (!document.getElementById('notifWrap').contains(e.target)) {
+            panelOpen = false;
+            notifPanel.classList.remove('open');
+        }
+    });
+
+    document.querySelectorAll('.notif-tab').forEach(function (tab) {
+        tab.addEventListener('click', function () {
+            document.querySelectorAll('.notif-tab').forEach(function (t) { t.classList.remove('active'); });
+            this.classList.add('active');
+            currentTab = this.getAttribute('data-tab');
+            renderList();
+        });
+    });
+
+    var markBtn = document.getElementById('markAllRead');
+    if (markBtn) {
+        markBtn.addEventListener('click', function () {
+            allNotifs.forEach(function (n) { n.IsRead = true; });
+            updateBadge();
+            renderList();
+            postForm('@Url.Action("MarkAllRead", "Notification")');
+        });
+    }
+
+    var deleteAllBtn = document.getElementById('deleteAllNotifs');
+    if (deleteAllBtn) {
+        deleteAllBtn.addEventListener('click', function () {
+            allNotifs = [];
+            updateBadge();
+            renderList();
+            postForm('@Url.Action("DeleteAll", "Notification")');
+        });
+    }
+
+    function fetchNotifs() {
+        skeleton.style.display = 'flex';
+        fetch('@Url.Action("GetNotifications", "Notification")')
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                allNotifs = data || [];
+                loaded    = true;
+                skeleton.style.display = 'none';
+                updateBadge();
+                renderList();
+            })
+            .catch(function () {
+                skeleton.style.display = 'none';
+                notifList.innerHTML = '<div class="notif-empty"><span class="notif-empty-icon">⚠️</span>KHÔNG THỂ TẢI THÔNG BÁO</div>';
+            });
+    }
+
+    function renderList() {
+        var filtered = allNotifs.filter(function (n) {
+            if (currentTab === 'all')     return true;
+            if (currentTab === 'market')  return n.Type === 'market';
+            if (currentTab === 'connect') return n.Type === 'connect';
+            return true;
+        });
+
+        updateTabCount('tabCountAll',     allNotifs.filter(function(n){ return !n.IsRead; }).length);
+        updateTabCount('tabCountMarket',  allNotifs.filter(function(n){ return n.Type === 'market'  && !n.IsRead; }).length);
+        updateTabCount('tabCountConnect', allNotifs.filter(function(n){ return n.Type === 'connect' && !n.IsRead; }).length);
+
+        if (!filtered.length) {
+            notifList.innerHTML = '<div class="notif-empty"><span class="notif-empty-icon">🔔</span>CHƯA CÓ THÔNG BÁO</div>';
+            return;
+        }
+
+        var html = '';
+        filtered.slice(0, 20).forEach(function (n) {
+            var iconClass = n.Type === 'market' ? 'market' : n.Type === 'connect' ? 'connect' : n.Type === 'chat' ? 'chat' : 'system';
+            var iconEmoji = n.Type === 'market' ? '🛒'     : n.Type === 'connect' ? '🤝'     : n.Type === 'chat' ? '💬'   : '🔔';
+            var link      = n.Url || '#';
+            html += '<div class="notif-item-wrap" style="position:relative; display:flex; align-items:center; border-bottom:1px solid rgba(255,255,255,0.04);">'
+                  + '<a class="notif-item ' + (n.IsRead ? '' : 'unread') + '" href="' + link + '" data-id="' + n.NotificationID + '" style="flex:1; border-bottom:none;">'
+                  + '<div class="notif-item-icon ' + iconClass + '">' + iconEmoji + '</div>'
+                  + '<div class="notif-item-body">'
+                  + '<div class="notif-item-text">' + escapeHtml(n.Message) + '</div>'
+                  + '<div class="notif-item-time">' + formatTime(n.CreatedAt) + '</div>'
+                  + '</div>'
+                  + (n.IsRead ? '' : '<div class="notif-unread-dot"></div>')
+                  + '</a>'
+                  + '<button type="button" class="notif-delete-btn" data-id="' + n.NotificationID + '" title="Xóa thông báo" style="background:none; border:none; color:rgba(255,255,255,0.3); padding:8px 12px; cursor:pointer; font-size:12px; transition:color 0.2s;" onmouseover="this.style.color=\'#ff4d4d\'" onmouseout="this.style.color=\'rgba(255,255,255,0.3)\'"><i class="bi bi-trash"></i></button>'
+                  + '</div>';
+        });
+        notifList.innerHTML = html;
+
+        notifList.querySelectorAll('.notif-item').forEach(function (el) {
+            el.addEventListener('click', function () {
+                var id    = parseInt(this.getAttribute('data-id'));
+                var found = allNotifs.find(function(n){ return n.NotificationID === id; });
+                if (found && !found.IsRead) {
+                    found.IsRead = true;
+                    updateBadge();
+                    postForm('@Url.Action("MarkRead", "Notification")', { id: id });
+                }
+            });
+        });
+
+        notifList.querySelectorAll('.notif-delete-btn').forEach(function (btn) {
+            btn.addEventListener('click', function (e) {
+                e.stopPropagation();
+                e.preventDefault();
+                var id = parseInt(this.getAttribute('data-id'));
+                allNotifs = allNotifs.filter(function(n){ return n.NotificationID !== id; });
+                updateBadge();
+                renderList();
+                postForm('@Url.Action("Delete", "Notification")', { id: id });
+            });
+        });
+    }
+
+    function updateBadge() {
+        var unread = allNotifs.filter(function (n) { return !n.IsRead; }).length;
+        if (unread > 0) {
+            notifDot.classList.add('show');
+            notifBtn.classList.add('has-notif');
+        } else {
+            notifDot.classList.remove('show');
+            notifBtn.classList.remove('has-notif');
+        }
+    }
+
+    function updateTabCount(elId, count) {
+        var el = document.getElementById(elId);
+        if (!el) return;
+        if (count > 0) { el.textContent = count > 9 ? '9+' : count; el.style.display = 'inline-flex'; }
+        else { el.style.display = 'none'; }
+    }
+
+    function formatTime(dateStr) {
+        var d;
+        if (typeof dateStr === 'string' && dateStr.indexOf('/Date(') === 0) {
+            var ms = parseInt(dateStr.replace('/Date(', '').replace(')/', ''));
+            d = new Date(ms);
+        } else {
+            d = new Date(dateStr);
+        }
+        if (isNaN(d.getTime())) return '';
+        var diff = Math.floor((Date.now() - d.getTime()) / 1000);
+        if (diff < 60) return 'Vừa xong';
+        if (diff < 3600) return Math.floor(diff / 60) + ' phút trước';
+        return Math.floor(diff / 86400) + ' ngày trước';
+    }
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    // Gửi POST với AntiForgeryToken qua form body (đúng chuẩn ASP.NET MVC 5)
+    function postForm(url, extraData) {
+        var token = document.querySelector('input[name="__RequestVerificationToken"]');
+        var body = '__RequestVerificationToken=' + encodeURIComponent(token ? token.value : '');
+        if (extraData) {
+            Object.keys(extraData).forEach(function(k) {
+                body += '&' + encodeURIComponent(k) + '=' + encodeURIComponent(extraData[k]);
+            });
+        }
+        fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: body
+        }).catch(function(){});
+    }
+
+    // ✅ Global handler cho Real-time SignalR push thông báo (Pure JS, không phụ thuộc jQuery)
+    window.onReceiveNotification = function (notif) {
+        if (!notif) return;
+        if (notifDot) notifDot.classList.add('show');
+        if (notifBtn) {
+            notifBtn.classList.add('has-notif');
+            notifBtn.classList.add('shake');
+            setTimeout(function () { notifBtn.classList.remove('shake'); }, 700);
+        }
+        loaded = false;
+        if (panelOpen) {
+            fetchNotifs();
+        }
+    };
+})();
+</script>

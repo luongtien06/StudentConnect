@@ -1,0 +1,437 @@
+﻿@model StudentConnect.Models.User
+
+@{
+    ViewBag.Title = "Đăng ký tài khoản";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<style>
+    .reg-wrap {
+        min-height: 80vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem 1rem;
+    }
+
+    .reg-card {
+        width: 100%;
+        max-width: 440px;
+        background: rgba(255,255,255,0.03);
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 20px;
+        padding: 2.5rem;
+        position: relative;
+        overflow: hidden;
+    }
+
+        .reg-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(0,200,80,0.5), rgba(0,200,255,0.4), transparent);
+        }
+
+    .reg-icon-wrap {
+        width: 56px;
+        height: 56px;
+        border-radius: 16px;
+        margin: 0 auto 1.5rem;
+        background: rgba(0,200,80,0.08);
+        border: 1px solid rgba(0,200,80,0.2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 22px;
+    }
+
+    .reg-title {
+        font-family: 'Space Grotesk', sans-serif;
+        font-size: 1.4rem;
+        font-weight: 600;
+        color: #fff;
+        text-align: center;
+        margin-bottom: 6px;
+    }
+
+    .reg-sub {
+        font-size: 13px;
+        color: rgba(255,255,255,0.3);
+        text-align: center;
+        margin-bottom: 2rem;
+        font-weight: 300;
+    }
+
+    .rn-label {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 10px;
+        letter-spacing: 0.1em;
+        color: rgba(0,200,80,0.55);
+        text-transform: uppercase;
+        margin-bottom: 8px;
+        display: block;
+    }
+
+    .rn-input {
+        width: 100%;
+        background: rgba(255,255,255,0.04) !important;
+        border: 1px solid rgba(255,255,255,0.1) !important;
+        border-radius: 10px !important;
+        color: #fff !important;
+        padding: 11px 14px;
+        font-size: 13px;
+        font-family: 'Space Grotesk', sans-serif;
+        transition: all 0.2s;
+        outline: none;
+    }
+
+        .rn-input:focus {
+            border-color: rgba(0,200,80,0.4) !important;
+            background: rgba(0,200,80,0.04) !important;
+            box-shadow: 0 0 0 3px rgba(0,200,80,0.08) !important;
+        }
+
+        .rn-input::placeholder {
+            color: rgba(255,255,255,0.2) !important;
+        }
+
+        .rn-input.is-invalid {
+            border-color: rgba(255,60,60,0.45) !important;
+            box-shadow: 0 0 0 3px rgba(255,60,60,0.07) !important;
+        }
+
+        .rn-input.is-valid {
+            border-color: rgba(0,200,80,0.45) !important;
+            box-shadow: 0 0 0 3px rgba(0,200,80,0.07) !important;
+        }
+
+    .rn-pass-wrap {
+        position: relative;
+    }
+
+        .rn-pass-wrap .rn-input {
+            padding-right: 44px;
+        }
+
+    .rn-eye {
+        position: absolute;
+        right: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: none;
+        border: none;
+        color: rgba(255,255,255,0.22);
+        cursor: pointer;
+        padding: 4px;
+        transition: color 0.2s;
+        font-size: 15px;
+    }
+
+        .rn-eye:hover {
+            color: rgba(255,255,255,0.55);
+        }
+
+    /* password strength bar */
+    .pw-strength {
+        margin-top: 8px;
+    }
+
+    .pw-bar-track {
+        height: 3px;
+        border-radius: 10px;
+        background: rgba(255,255,255,0.07);
+        overflow: hidden;
+    }
+
+    .pw-bar-fill {
+        height: 100%;
+        border-radius: 10px;
+        width: 0%;
+        transition: width 0.35s ease, background 0.35s ease;
+    }
+
+    .pw-label {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 10px;
+        color: rgba(255,255,255,0.25);
+        margin-top: 5px;
+        letter-spacing: 0.06em;
+    }
+
+    /* match indicator */
+    .pw-match {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 10px;
+        margin-top: 6px;
+        letter-spacing: 0.06em;
+        min-height: 16px;
+    }
+
+        .pw-match.ok {
+            color: rgba(0,200,80,0.7);
+        }
+
+        .pw-match.bad {
+            color: rgba(255,80,80,0.7);
+        }
+
+    .rn-hint {
+        font-size: 11px;
+        color: rgba(255,255,255,0.2);
+        margin-top: 6px;
+        line-height: 1.5;
+    }
+
+    .rn-btn {
+        width: 100%;
+        padding: 12px;
+        border-radius: 100px;
+        border: none;
+        background: linear-gradient(135deg, rgba(0,200,80,0.85), rgba(0,200,255,0.75));
+        color: #fff;
+        font-size: 13px;
+        font-weight: 600;
+        font-family: 'Space Grotesk', sans-serif;
+        cursor: pointer;
+        transition: opacity 0.2s, transform 0.15s;
+        letter-spacing: 0.02em;
+        margin-top: 1.5rem;
+    }
+
+        .rn-btn:hover {
+            opacity: 0.88;
+            transform: translateY(-1px);
+        }
+
+        .rn-btn:active {
+            transform: scale(0.98);
+        }
+
+    .rn-alert-err {
+        border-radius: 10px;
+        padding: 11px 14px;
+        font-size: 13px;
+        margin-bottom: 1.25rem;
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        background: rgba(255,60,60,0.08);
+        border: 1px solid rgba(255,60,60,0.2);
+        color: rgba(255,120,120,0.9);
+    }
+
+    .rn-divider {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin: 1.5rem 0;
+    }
+
+    .rn-divider-line {
+        flex: 1;
+        height: 1px;
+        background: rgba(255,255,255,0.07);
+    }
+
+    .rn-divider-text {
+        font-size: 11px;
+        color: rgba(255,255,255,0.2);
+        font-family: 'JetBrains Mono', monospace;
+        letter-spacing: 0.06em;
+    }
+
+    .rn-login {
+        text-align: center;
+        font-size: 13px;
+        color: rgba(255,255,255,0.3);
+    }
+
+        .rn-login a {
+            color: #00c8ff;
+            font-weight: 500;
+            text-decoration: none;
+            transition: opacity 0.2s;
+        }
+
+            .rn-login a:hover {
+                opacity: 0.75;
+            }
+</style>
+
+<div class="reg-wrap">
+    <div class="reg-card">
+
+        <div class="reg-icon-wrap">🚀</div>
+        <h2 class="reg-title">Tạo tài khoản mới</h2>
+        <p class="reg-sub">Tham gia cộng đồng sinh viên TDMU</p>
+
+        @if (ViewBag.ErrorRegister != null)
+        {
+            <div class="rn-alert-err">
+                <i class="bi bi-exclamation-circle"></i>
+                <span>@ViewBag.ErrorRegister</span>
+            </div>
+        }
+
+        @using (Html.BeginForm())
+        {
+            @Html.AntiForgeryToken()
+
+            <div class="mb-3">
+                <label class="rn-label">Tên hiển thị</label>
+                @Html.EditorFor(model => model.Username, new
+                {
+                    htmlAttributes = new
+                    {
+                        @class = "rn-input",
+                        placeholder = "VD: Nam Thần TDMU",
+                        required = "required",
+                        autocomplete = "username"
+                    }
+                })
+            </div>
+
+            <div class="mb-3">
+                <label class="rn-label">Email</label>
+                @Html.EditorFor(model => model.Email, new
+                {
+                    htmlAttributes = new
+                    {
+                        @class = "rn-input",
+                        type = "email",
+                        placeholder = "namthan@student.tdmu.edu.vn",
+                        required = "required",
+                        autocomplete = "email"
+                    }
+                })
+            </div>
+
+            <div class="mb-3">
+                <label class="rn-label">Mật khẩu</label>
+                <div class="rn-pass-wrap">
+                    @Html.EditorFor(model => model.PasswordHash, new
+                    {
+                        htmlAttributes = new
+                        {
+                            @class = "rn-input",
+                            type = "password",
+                            placeholder = "Ít nhất 8 ký tự, có số, ký tự đặc biệt",
+                            id = "pass1",
+                            required = "required",
+                            autocomplete = "new-password"
+                        }
+                    })
+                    <button type="button" class="rn-eye" data-target="pass1">
+                        <i class="bi bi-eye"></i>
+                    </button>
+                </div>
+                <div class="pw-strength">
+                    <div class="pw-bar-track"><div class="pw-bar-fill" id="pwBar"></div></div>
+                    <div class="pw-label" id="pwLabel">Nhập mật khẩu để kiểm tra độ mạnh</div>
+                </div>
+            </div>
+
+            <div class="mb-1">
+                <label class="rn-label">Xác nhận mật khẩu</label>
+                <div class="rn-pass-wrap">
+                    <input type="password" name="confirmPassword" id="pass2"
+                           class="rn-input" placeholder="Nhập lại mật khẩu"
+                           required autocomplete="new-password" />
+                    <button type="button" class="rn-eye" data-target="pass2">
+                        <i class="bi bi-eye"></i>
+                    </button>
+                </div>
+                <div class="pw-match" id="pwMatch"></div>
+            </div>
+
+            <button type="submit" class="rn-btn" id="regBtn">
+                <i class="bi bi-person-plus me-2"></i>Đăng ký ngay
+            </button>
+        }
+
+        <div class="rn-divider">
+            <div class="rn-divider-line"></div>
+            <span class="rn-divider-text">ĐÃ CÓ TÀI KHOẢN</span>
+            <div class="rn-divider-line"></div>
+        </div>
+
+        <div class="rn-login">
+            <a href="@Url.Action("Login", "User")">Đăng nhập tại đây →</a>
+        </div>
+
+    </div>
+</div>
+
+@section scripts {
+    <script>
+        (function () {
+            // toggle eye
+            document.querySelectorAll('.rn-eye').forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    var id = this.getAttribute('data-target');
+                    var inp = document.getElementById(id);
+                    var icon = this.querySelector('i');
+                    var isPass = inp.type === 'password';
+                    inp.type = isPass ? 'text' : 'password';
+                    icon.classList.toggle('bi-eye', !isPass);
+                    icon.classList.toggle('bi-eye-slash', isPass);
+                });
+            });
+
+            // password strength
+            var pass1 = document.getElementById('pass1');
+            var pass2 = document.getElementById('pass2');
+            var bar = document.getElementById('pwBar');
+            var lbl = document.getElementById('pwLabel');
+            var match = document.getElementById('pwMatch');
+
+            function getStrength(pw) {
+                var score = 0;
+                if (pw.length >= 8) score++;
+                if (pw.length >= 12) score++;
+                if (/[0-9]/.test(pw)) score++;
+                if (/[^A-Za-z0-9]/.test(pw)) score++;
+                if (/[A-Z]/.test(pw) && /[a-z]/.test(pw)) score++;
+                return score;
+            }
+
+            var levels = [
+                { w: '0%', color: 'transparent', text: 'Nhập mật khẩu để kiểm tra độ mạnh' },
+                { w: '25%', color: 'rgba(255,60,60,0.7)', text: 'YẾU — quá ngắn hoặc đơn giản' },
+                { w: '50%', color: 'rgba(255,160,0,0.7)', text: 'TRUNG BÌNH — thêm số & ký tự đặc biệt' },
+                { w: '75%', color: 'rgba(0,200,255,0.7)', text: 'KHÁ — gần đủ mạnh rồi' },
+                { w: '88%', color: 'rgba(0,200,80,0.75)', text: 'MẠNH — tốt lắm!' },
+                { w: '100%', color: 'rgba(0,200,80,1)', text: 'RẤT MẠNH ✓' }
+            ];
+
+            pass1.addEventListener('input', function () {
+                var s = Math.min(getStrength(this.value), 5);
+                if (!this.value) s = 0;
+                bar.style.width = levels[s].w;
+                bar.style.background = levels[s].color;
+                lbl.textContent = levels[s].text;
+                checkMatch();
+            });
+
+            pass2.addEventListener('input', checkMatch);
+
+            function checkMatch() {
+                if (!pass2.value) { match.textContent = ''; match.className = 'pw-match'; return; }
+                if (pass1.value === pass2.value) {
+                    match.textContent = '✓ MẬT KHẨU KHỚP';
+                    match.className = 'pw-match ok';
+                    pass2.classList.add('is-valid');
+                    pass2.classList.remove('is-invalid');
+                } else {
+                    match.textContent = '✗ CHƯA KHỚP';
+                    match.className = 'pw-match bad';
+                    pass2.classList.add('is-invalid');
+                    pass2.classList.remove('is-valid');
+                }
+            }
+        })();
+    </script>
+}

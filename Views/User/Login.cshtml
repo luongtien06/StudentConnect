@@ -1,0 +1,299 @@
+﻿@{
+    ViewBag.Title = "Đăng nhập hệ thống";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<style>
+    .login-wrap {
+        min-height: 80vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem 1rem;
+    }
+
+    .login-card {
+        width: 100%;
+        max-width: 420px;
+        background: rgba(255,255,255,0.03);
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 20px;
+        padding: 2.5rem;
+        position: relative;
+        overflow: hidden;
+    }
+
+        .login-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(0,200,255,0.5), rgba(123,97,255,0.4), transparent);
+        }
+
+    .login-icon-wrap {
+        width: 56px;
+        height: 56px;
+        border-radius: 16px;
+        margin: 0 auto 1.5rem;
+        background: rgba(0,200,255,0.08);
+        border: 1px solid rgba(0,200,255,0.2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 22px;
+    }
+
+    .login-title {
+        font-family: 'Space Grotesk', sans-serif;
+        font-size: 1.4rem;
+        font-weight: 600;
+        color: #fff;
+        text-align: center;
+        margin-bottom: 6px;
+    }
+
+    .login-sub {
+        font-size: 13px;
+        color: rgba(255,255,255,0.3);
+        text-align: center;
+        margin-bottom: 2rem;
+        font-weight: 300;
+    }
+
+    .ln-label {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 10px;
+        letter-spacing: 0.1em;
+        color: rgba(0,200,255,0.55);
+        text-transform: uppercase;
+        margin-bottom: 8px;
+        display: block;
+    }
+
+    .ln-input {
+        width: 100%;
+        background: rgba(255,255,255,0.04) !important;
+        border: 1px solid rgba(255,255,255,0.1) !important;
+        border-radius: 10px !important;
+        color: #fff !important;
+        padding: 11px 14px;
+        font-size: 13px;
+        font-family: 'Space Grotesk', sans-serif;
+        transition: all 0.2s;
+        outline: none;
+    }
+
+        .ln-input:focus {
+            border-color: rgba(0,200,255,0.4) !important;
+            background: rgba(0,200,255,0.04) !important;
+            box-shadow: 0 0 0 3px rgba(0,200,255,0.08) !important;
+        }
+
+        .ln-input::placeholder {
+            color: rgba(255,255,255,0.2) !important;
+        }
+
+    .ln-pass-wrap {
+        position: relative;
+    }
+
+        .ln-pass-wrap .ln-input {
+            padding-right: 44px;
+        }
+
+    .ln-eye {
+        position: absolute;
+        right: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: none;
+        border: none;
+        color: rgba(255,255,255,0.25);
+        cursor: pointer;
+        padding: 4px;
+        transition: color 0.2s;
+        font-size: 15px;
+    }
+
+        .ln-eye:hover {
+            color: rgba(255,255,255,0.6);
+        }
+
+    .ln-forgot {
+        font-size: 11px;
+        color: rgba(255,255,255,0.25);
+        text-decoration: none;
+        transition: color 0.2s;
+        font-family: 'JetBrains Mono', monospace;
+        letter-spacing: 0.04em;
+    }
+
+        .ln-forgot:hover {
+            color: rgba(0,200,255,0.6);
+        }
+
+    .ln-btn {
+        width: 100%;
+        padding: 12px;
+        border-radius: 100px;
+        border: none;
+        background: linear-gradient(135deg, rgba(0,200,255,0.85), rgba(123,97,255,0.8));
+        color: #fff;
+        font-size: 13px;
+        font-weight: 600;
+        font-family: 'Space Grotesk', sans-serif;
+        cursor: pointer;
+        transition: opacity 0.2s, transform 0.15s;
+        letter-spacing: 0.02em;
+        margin-top: 1.5rem;
+    }
+
+        .ln-btn:hover {
+            opacity: 0.88;
+            transform: translateY(-1px);
+        }
+
+        .ln-btn:active {
+            transform: scale(0.98);
+        }
+
+    .ln-alert {
+        border-radius: 10px;
+        padding: 11px 14px;
+        font-size: 13px;
+        margin-bottom: 1.25rem;
+        display: flex;
+        align-items: center;
+        gap: 9px;
+    }
+
+    .ln-alert-err {
+        background: rgba(255,60,60,0.08);
+        border: 1px solid rgba(255,60,60,0.2);
+        color: rgba(255,120,120,0.9);
+    }
+
+    .ln-alert-ok {
+        background: rgba(0,200,80,0.08);
+        border: 1px solid rgba(0,200,80,0.2);
+        color: rgba(0,220,100,0.9);
+    }
+
+    .ln-divider {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin: 1.5rem 0;
+    }
+
+    .ln-divider-line {
+        flex: 1;
+        height: 1px;
+        background: rgba(255,255,255,0.07);
+    }
+
+    .ln-divider-text {
+        font-size: 11px;
+        color: rgba(255,255,255,0.2);
+        white-space: nowrap;
+        font-family: 'JetBrains Mono', monospace;
+    }
+
+    .ln-register {
+        text-align: center;
+        font-size: 13px;
+        color: rgba(255,255,255,0.3);
+    }
+
+        .ln-register a {
+            color: #00c8ff;
+            font-weight: 500;
+            text-decoration: none;
+            transition: opacity 0.2s;
+        }
+
+            .ln-register a:hover {
+                opacity: 0.75;
+            }
+</style>
+
+<div class="login-wrap">
+    <div class="login-card">
+
+        <div class="login-icon-wrap">🔐</div>
+        <h2 class="login-title">Chào mừng trở lại</h2>
+        <p class="login-sub">Đăng nhập vào TDMU EcoSystem</p>
+
+        @if (ViewBag.ErrorLogin != null)
+        {
+            <div class="ln-alert ln-alert-err">
+                <i class="bi bi-exclamation-circle"></i>
+                <span>@ViewBag.ErrorLogin</span>
+            </div>
+        }
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div class="ln-alert ln-alert-ok">
+                <i class="bi bi-check-circle"></i>
+                <span>@TempData["SuccessMessage"]</span>
+            </div>
+        }
+
+        @using (Html.BeginForm("Login", "User", FormMethod.Post))
+        {
+            @Html.AntiForgeryToken()
+
+            <div class="mb-3">
+                <label class="ln-label">Email</label>
+                <input type="email" name="email" class="ln-input"
+                       placeholder="namthan@student.tdmu.edu.vn" required />
+            </div>
+
+            <div class="mb-1">
+                <label class="ln-label">Mật khẩu</label>
+                <div class="ln-pass-wrap">
+                    <input type="password" name="password" id="loginPass"
+                           class="ln-input" placeholder="Nhập mật khẩu" required />
+                    <button type="button" class="ln-eye" id="togglePass">
+                        <i class="bi bi-eye" id="eyeIcon"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="text-end mb-1">
+                <a href="@Url.Action("ForgotPassword", "User")" class="ln-forgot">Quên mật khẩu?</a>
+            </div>
+
+            <button type="submit" class="ln-btn">
+                <i class="bi bi-box-arrow-in-right me-2"></i>Đăng nhập
+            </button>
+        }
+
+        <div class="ln-divider">
+            <div class="ln-divider-line"></div>
+            <span class="ln-divider-text">CHƯA CÓ TÀI KHOẢN</span>
+            <div class="ln-divider-line"></div>
+        </div>
+
+        <div class="ln-register">
+            <a href="@Url.Action("Register", "User")">Đăng ký ngay →</a>
+        </div>
+
+    </div>
+</div>
+
+@section scripts {
+    <script>
+        document.getElementById('togglePass').addEventListener('click', function () {
+            var inp = document.getElementById('loginPass');
+            var icon = document.getElementById('eyeIcon');
+            var isPass = inp.type === 'password';
+            inp.type = isPass ? 'text' : 'password';
+            icon.classList.toggle('bi-eye', !isPass);
+            icon.classList.toggle('bi-eye-slash', isPass);
+        });
+    </script>
+}

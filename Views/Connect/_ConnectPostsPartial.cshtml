@@ -1,0 +1,115 @@
+@model Dictionary<string, List<StudentConnect.Models.ConnectPost>>
+<!-- FILTER NOTICE BAR -->
+<div id="connectFilterNotice" class="filter-notice" style="@((!string.IsNullOrEmpty(ViewBag.CurrentCategory) || !string.IsNullOrEmpty(ViewBag.CurrentSearch)) ? "display:flex;" : "display:none;")">
+    <div>
+        <i class="fas fa-filter text-info mr-2"></i>
+        <span>Đang hiển thị kết quả cho:</span>
+        <strong id="filterCategoryLabel" class="text-white ml-1 mr-2" style="@((!string.IsNullOrEmpty(ViewBag.CurrentCategory)) ? "" : "display:none;")">
+            [Danh mục: <span id="filterCategoryName">@ViewBag.CurrentCategory</span>]
+        </strong>
+        <strong id="filterSearchLabel" class="text-white" style="@((!string.IsNullOrEmpty(ViewBag.CurrentSearch)) ? "" : "display:none;")">
+            [Từ khóa: "<span id="filterSearchText">@ViewBag.CurrentSearch</span>"]
+        </strong>
+    </div>
+    <button type="button" onclick="resetConnectFilter()" class="btn-xp" style="padding:4px 12px; font-size:11px;">
+        <i class="fas fa-times"></i> Xóa lọc
+    </button>
+</div>
+
+@if (Model != null && Model.Any())
+{
+    foreach (var category in Model)
+    {
+        var catName = category.Key;
+        var posts = category.Value;
+        string catIcon = catName.Contains("Ẩm thực") ? "fa-utensils" :
+                          catName.Contains("Nước uống") ? "fa-mug-hot" :
+                          catName.Contains("Địa điểm") || catName.Contains("vui chơi") ? "fa-gamepad" :
+                          catName.Contains("Hỗ trợ") ? "fa-hands-helping" : "fa-layer-group";
+
+        string catColor = catName.Contains("Ẩm thực") ? "#ef9f27" :
+                          catName.Contains("Nước uống") ? "#00c8ff" :
+                          catName.Contains("Hỗ trợ") ? "#22c55e" :
+                          catName.Contains("Địa điểm") || catName.Contains("vui chơi") ? "#e24b4a" : "#a855f7";
+
+        <div class="section-head">
+            <h4>
+                <i class="fas @catIcon" style="color:@catColor; font-size:15px;"></i>
+                @catName
+                <span class="section-count">@posts.Count bài viết</span>
+            </h4>
+        </div>
+
+        if (posts != null && posts.Any())
+        {
+            <div class="cards-grid">
+                @foreach (var item in posts)
+                {
+                    bool isNew = item.CreatedAt.HasValue && (DateTime.Now - item.CreatedAt.Value).TotalDays <= 7;
+                    string initial = (item.User?.Username?.Length > 0)
+                        ? item.User.Username.Substring(0, 1).ToUpper() : "?";
+
+                    <a href="@Url.Action("Details", "Connect", new { id = item.PostID })" class="xp-card">
+                        <div class="xp-card-img-wrap">
+                            @if (!string.IsNullOrEmpty(item.MainImage))
+                            {
+                                <img src="@item.MainImage" alt="@item.Title" loading="lazy" onerror="this.onerror=null;this.src='/Content/Images/default-image.jpg';" />
+                            }
+                            else
+                            {
+                                <div class="xp-card-placeholder">
+                                    <i class="fas @catIcon"></i>
+                                </div>
+                            }
+                            @if (isNew)
+                            {<span class="badge-new">MỚI</span> }
+                            else
+                            { <span class="badge-hot-card">HOT</span>}
+                        </div>
+                        <div class="xp-card-body">
+                            <div class="card-loc">
+                                <i class="fas fa-map-marker-alt" style="color:var(--c-red);font-size:9px;"></i>
+                                Thủ Dầu Một
+                            </div>
+                            <div class="card-title-xp">@item.Title</div>
+                            <div class="card-desc-xp">@item.Description</div>
+                            <div class="card-foot-xp">
+                                <div class="card-author-xp">
+                                    <div class="avatar-xs">@initial</div>
+                                    <div>
+                                        <div class="author-name">@(item.User ?.Username ?? "Ẩn danh")</div>
+                                        <div class="author-date">
+                                            <i class="far fa-clock" style="font-size:9px;"></i>
+                                            @(item.CreatedAt.HasValue ? item.CreatedAt.Value.ToString("dd/MM/yyyy") : "")
+                                        </div>
+                                    </div>
+                                </div>
+                                <span class="btn-detail-xp">Chi tiết</span>
+                            </div>
+                        </div>
+                    </a>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="empty-cat">
+                <i class="fas fa-inbox"></i>
+                <p>Chưa có bài review nào trong mục <strong style="color:#fff;">@catName</strong>.</p>
+                <a href="@Url.Action("Create","Connect")" class="btn-xp" style="display:inline-flex; margin:0 auto;">
+                    <i class="fas fa-pen" style="font-size:11px;"></i> Hãy là người đầu tiên!
+                </a>
+            </div>
+        }
+    }
+}
+else
+{
+    <div class="empty-cat" style="margin-top: 40px;">
+        <i class="fas fa-map-location-dot"></i>
+        <p>Không tìm thấy bài viết nào phù hợp.</p>
+        <button type="button" onclick="resetConnectFilter()" class="btn-xp" style="display:inline-flex; margin:0 auto;">
+            <i class="fas fa-rotate-left" style="font-size:11px;"></i> Xóa bộ lọc tìm kiếm
+        </button>
+    </div>
+}

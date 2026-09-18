@@ -1,0 +1,565 @@
+@{
+    ViewBag.Title = "Tổng quan hệ thống";
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+
+    string adminRole = Session["AdminRole"] as string ?? "SuperAdmin";
+    bool isSuperAdmin = adminRole == "SuperAdmin";
+    bool canUser = isSuperAdmin || adminRole == "AdminUser";
+    bool canMarket = isSuperAdmin || adminRole == "AdminMarket";
+    bool canConnect = isSuperAdmin || adminRole == "AdminConnect";
+    bool canChat = isSuperAdmin;
+
+    string homeRoleTitle = "ADMIN TỐI CAO";
+    string homeRoleBadgeClass = "role-superadmin";
+    string homeRoleDotColor = "#7b61ff";
+    if (adminRole == "SuperAdmin")
+    {
+        homeRoleTitle = "ADMIN TỐI CAO";
+        homeRoleBadgeClass = "role-superadmin";
+        homeRoleDotColor = "#a78bfa";
+    }
+    else if (adminRole == "AdminUser")
+    {
+        homeRoleTitle = "ADMIN QUẢN LÝ NGƯỜI DÙNG";
+        homeRoleBadgeClass = "role-adminuser";
+        homeRoleDotColor = "#22d3ee";
+    }
+    else if (adminRole == "AdminMarket")
+    {
+        homeRoleTitle = "ADMIN QUẢN LÝ CHỢ";
+        homeRoleBadgeClass = "role-adminmarket";
+        homeRoleDotColor = "#22c55e";
+    }
+    else if (adminRole == "AdminConnect")
+    {
+        homeRoleTitle = "ADMIN QUẢN LÝ KẾT NỐI";
+        homeRoleBadgeClass = "role-adminconnect";
+        homeRoleDotColor = "#f59e0b";
+    }
+}
+
+<style>
+    .page-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 1.75rem;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .page-title {
+        font-family: 'Space Grotesk', sans-serif;
+        font-size: 1.3rem;
+        font-weight: 600;
+        color: #fff;
+        margin: 0;
+    }
+
+    .page-sub {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 10px;
+        color: rgba(0,200,255,0.5);
+        letter-spacing: 0.1em;
+        margin-top: 3px;
+    }
+
+    .date-badge {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        padding: 7px 14px;
+        border-radius: 100px;
+        background: rgba(255,255,255,0.04);
+        border: 1px solid rgba(255,255,255,0.08);
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 11px;
+        color: rgba(255,255,255,0.35);
+        letter-spacing: 0.05em;
+    }
+
+        .date-badge span {
+            color: rgba(0,200,255,0.7);
+        }
+
+    /* STAT CARDS */
+    .stat-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 14px;
+        margin-bottom: 1.5rem;
+    }
+
+    .stat-card {
+        background: rgba(255,255,255,0.03);
+        border: 1px solid rgba(255,255,255,0.07);
+        border-radius: 16px;
+        padding: 20px 22px;
+        position: relative;
+        overflow: hidden;
+        transition: border-color 0.2s, background 0.2s;
+    }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+        }
+
+        .stat-card:hover {
+            background: rgba(255,255,255,0.045);
+        }
+
+        .stat-card.c-cyan::before {
+            background: linear-gradient(90deg, transparent, #00c8ff, transparent);
+        }
+
+        .stat-card.c-green::before {
+            background: linear-gradient(90deg, transparent, #00c850, transparent);
+        }
+
+        .stat-card.c-purple::before {
+            background: linear-gradient(90deg, transparent, #7b61ff, transparent);
+        }
+
+        .stat-card.c-amber::before {
+            background: linear-gradient(90deg, transparent, #ffa000, transparent);
+        }
+
+        .stat-card:hover.c-cyan {
+            border-color: rgba(0,200,255,0.2);
+        }
+
+        .stat-card:hover.c-green {
+            border-color: rgba(0,200,80,0.2);
+        }
+
+        .stat-card:hover.c-purple {
+            border-color: rgba(123,97,255,0.2);
+        }
+
+        .stat-card:hover.c-amber {
+            border-color: rgba(255,160,0,0.2);
+        }
+
+    .stat-top {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        margin-bottom: 14px;
+    }
+
+    .stat-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 11px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 17px;
+        flex-shrink: 0;
+    }
+
+    .stat-card.c-cyan .stat-icon {
+        background: rgba(0,200,255,0.1);
+        border: 1px solid rgba(0,200,255,0.2);
+        color: #00c8ff;
+    }
+
+    .stat-card.c-green .stat-icon {
+        background: rgba(0,200,80,0.1);
+        border: 1px solid rgba(0,200,80,0.2);
+        color: #00c850;
+    }
+
+    .stat-card.c-purple .stat-icon {
+        background: rgba(123,97,255,0.1);
+        border: 1px solid rgba(123,97,255,0.2);
+        color: #7b61ff;
+    }
+
+    .stat-card.c-amber .stat-icon {
+        background: rgba(255,160,0,0.1);
+        border: 1px solid rgba(255,160,0,0.2);
+        color: #ffa000;
+    }
+
+    .stat-label {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 9px;
+        letter-spacing: 0.12em;
+        color: rgba(255,255,255,0.25);
+        text-transform: uppercase;
+        margin-bottom: 6px;
+    }
+
+    .stat-value {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #fff;
+        line-height: 1;
+        font-family: 'Space Grotesk', sans-serif;
+    }
+
+    .stat-card.c-cyan .stat-value {
+        color: #00c8ff;
+    }
+
+    .stat-card.c-green .stat-value {
+        color: #00c850;
+    }
+
+    .stat-card.c-purple .stat-value {
+        color: #7b61ff;
+    }
+
+    .stat-card.c-amber .stat-value {
+        color: #ffa000;
+    }
+
+    .stat-footer {
+        margin-top: 12px;
+        padding-top: 10px;
+        border-top: 1px solid rgba(255,255,255,0.05);
+        font-size: 11px;
+        color: rgba(255,255,255,0.2);
+        font-family: 'JetBrains Mono', monospace;
+        letter-spacing: 0.04em;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    /* SESSION CARD */
+    .session-card {
+        background: rgba(255,255,255,0.02);
+        border: 1px solid rgba(255,255,255,0.07);
+        border-radius: 16px;
+        overflow: hidden;
+        margin-bottom: 1.5rem;
+    }
+
+    .session-card-header {
+        padding: 13px 20px;
+        border-bottom: 1px solid rgba(255,255,255,0.06);
+        background: rgba(255,255,255,0.02);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 11px;
+        letter-spacing: 0.1em;
+        color: rgba(0,200,255,0.6);
+    }
+
+    .session-card-body {
+        padding: 20px;
+    }
+
+    .admin-greeting {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 16px;
+    }
+
+    .admin-avatar {
+        width: 46px;
+        height: 46px;
+        border-radius: 13px;
+        flex-shrink: 0;
+        background: linear-gradient(135deg, rgba(0,200,255,0.3), rgba(123,97,255,0.3));
+        border: 1px solid rgba(0,200,255,0.2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+    }
+
+    .admin-greeting-text h6 {
+        color: #fff !important;
+        font-weight: 600 !important;
+        font-size: 15px !important;
+        margin-bottom: 3px !important;
+    }
+
+    .admin-email {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 11px;
+        color: rgba(0,200,255,0.65);
+        letter-spacing: 0.04em;
+    }
+
+    .role-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 3px 10px;
+        border-radius: 100px;
+        background: rgba(123,97,255,0.12);
+        border: 1px solid rgba(123,97,255,0.25);
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 10px;
+        color: #7b61ff;
+        letter-spacing: 0.06em;
+    }
+
+    .role-badge.role-superadmin {
+        background: rgba(123,97,255,0.15);
+        border: 1px solid rgba(123,97,255,0.35);
+        color: #c4b5fd;
+    }
+
+    .role-badge.role-adminuser {
+        background: rgba(34,211,238,0.15);
+        border: 1px solid rgba(34,211,238,0.35);
+        color: #22d3ee;
+    }
+
+    .role-badge.role-adminmarket {
+        background: rgba(34,197,94,0.15);
+        border: 1px solid rgba(34,197,94,0.35);
+        color: #4ade80;
+    }
+
+    .role-badge.role-adminconnect {
+        background: rgba(245,158,11,0.15);
+        border: 1px solid rgba(245,158,11,0.35);
+        color: #fbbf24;
+    }
+
+    .role-dot {
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: #7b61ff;
+        animation: pulse 2s infinite;
+    }
+
+    @@keyframes pulse {
+        0%, 100% {
+            opacity: 1
+        }
+
+        50% {
+            opacity: 0.3
+        }
+    }
+
+    .info-divider {
+        height: 1px;
+        background: rgba(255,255,255,0.06);
+        margin: 16px 0;
+    }
+
+    .quick-links {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-top: 14px;
+    }
+
+    .quick-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 7px 14px;
+        border-radius: 9px;
+        font-size: 12px;
+        font-family: 'Space Grotesk', sans-serif;
+        font-weight: 500;
+        text-decoration: none;
+        border: 1px solid;
+        transition: all 0.2s;
+    }
+
+        .quick-link.cyan {
+            color: #00c8ff;
+            border-color: rgba(0,200,255,0.25);
+        }
+
+            .quick-link.cyan:hover {
+                background: rgba(0,200,255,0.1);
+            }
+
+        .quick-link.green {
+            color: #00c850;
+            border-color: rgba(0,200,80,0.25);
+        }
+
+            .quick-link.green:hover {
+                background: rgba(0,200,80,0.1);
+            }
+
+        .quick-link.purple {
+            color: #7b61ff;
+            border-color: rgba(123,97,255,0.25);
+        }
+
+            .quick-link.purple:hover {
+                background: rgba(123,97,255,0.1);
+            }
+
+        .quick-link.amber {
+            color: #ffa000;
+            border-color: rgba(255,160,0,0.25);
+        }
+
+            .quick-link.amber:hover {
+                background: rgba(255,160,0,0.1);
+            }
+
+    .tip-box {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        padding: 10px 14px;
+        border-radius: 10px;
+        background: rgba(0,200,255,0.04);
+        border: 1px solid rgba(0,200,255,0.1);
+        font-size: 12px;
+        color: rgba(255,255,255,0.3);
+        font-family: 'Space Grotesk', sans-serif;
+        line-height: 1.6;
+    }
+
+        .tip-box i {
+            color: rgba(0,200,255,0.4);
+            font-size: 14px;
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+</style>
+
+<!-- PAGE HEADER -->
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Tổng quan hệ thống</h1>
+        <div class="page-sub">SYSTEM DASHBOARD</div>
+    </div>
+    <div class="date-badge">
+        <i class="bi bi-calendar3"></i>
+        <span>@DateTime.Now.ToString("dd/MM/yyyy")</span>
+        &nbsp;·&nbsp;
+        <span id="liveClock"></span>
+    </div>
+</div>
+
+<!-- STAT CARDS -->
+<div class="stat-grid">
+    <div class="stat-card c-cyan">
+        <div class="stat-top">
+            <div>
+                <div class="stat-label">Người dùng</div>
+                <div class="stat-value">@ViewBag.TotalUsers</div>
+            </div>
+            <div class="stat-icon"><i class="bi bi-people"></i></div>
+        </div>
+        <div class="stat-footer"><i class="bi bi-arrow-up-right"></i> Tài khoản đã đăng ký</div>
+    </div>
+
+    <div class="stat-card c-green">
+        <div class="stat-top">
+            <div>
+                <div class="stat-label">Bài đăng Chợ</div>
+                <div class="stat-value">@ViewBag.TotalMarketPosts</div>
+            </div>
+            <div class="stat-icon"><i class="bi bi-shop"></i></div>
+        </div>
+        <div class="stat-footer"><i class="bi bi-tag"></i> Chợ sinh viên TDMU</div>
+    </div>
+
+    <div class="stat-card c-purple">
+        <div class="stat-top">
+            <div>
+                <div class="stat-label">Bài viết Kết nối</div>
+                <div class="stat-value">@ViewBag.TotalConnectPosts</div>
+            </div>
+            <div class="stat-icon"><i class="bi bi-globe-americas"></i></div>
+        </div>
+        <div class="stat-footer"><i class="bi bi-compass"></i> Kết nối TDMU</div>
+    </div>
+
+    <div class="stat-card c-amber">
+        <div class="stat-top">
+            <div>
+                <div class="stat-label">Phiên</div>
+                <div class="stat-value" style="font-size:1.4rem;">@DateTime.Now.ToString("HH:mm")</div>
+            </div>
+            <div class="stat-icon"><i class="bi bi-clock"></i></div>
+        </div>
+        <div class="stat-footer"><i class="bi bi-calendar-check"></i> @DateTime.Now.ToString("dddd, dd/MM/yyyy")</div>
+    </div>
+</div>
+
+<!-- SESSION INFO -->
+<div class="session-card">
+    <div class="session-card-header">
+        <i class="bi bi-terminal"></i> THÔNG TIN PHIÊN
+    </div>
+    <div class="session-card-body">
+        <div class="admin-greeting">
+            <div class="admin-avatar">🛡️</div>
+            <div class="admin-greeting-text">
+                <h6>Xin chào, @(Session["AdminUsername"] ?? "Admin")</h6>
+                <div class="admin-email">@Session["AdminEmail"]</div>
+            </div>
+            <div class="ms-auto">
+                <span class="role-badge @homeRoleBadgeClass"><div class="role-dot" style="background:@homeRoleDotColor"></div> @homeRoleTitle</span>
+            </div>
+        </div>
+
+        <div class="quick-links">
+            @if (canUser)
+            {
+                <a href="@Url.Action("Index", "AdminUser", new { area = "Admin" })" class="quick-link cyan">
+                    <i class="bi bi-people"></i> Quản lý Người dùng
+                </a>
+            }
+            @if (canChat)
+            {
+                <a href="@Url.Action("Index", "AdminChat", new { area = "Admin" })" class="quick-link purple">
+                    <i class="bi bi-chat-dots"></i> Quản lý Chat
+                </a>
+            }
+            @if (canMarket)
+            {
+                <a href="@Url.Action("Index", "AdminMarket", new { area = "Admin" })" class="quick-link green">
+                    <i class="bi bi-shop"></i> Quản lý Chợ
+                </a>
+            }
+            @if (canConnect)
+            {
+                <a href="@Url.Action("Index", "AdminConnect", new { area = "Admin" })" class="quick-link amber">
+                    <i class="bi bi-globe-americas"></i> Quản lý Kết nối
+                </a>
+            }
+        </div>
+
+        <div class="info-divider"></div>
+
+        <div class="tip-box">
+            <i class="bi bi-lightbulb"></i>
+            Số liệu phản ánh trạng thái của cơ sở dữ liệu.
+            Làm mới để cập nhật số liệu mới nhất.
+        </div>
+    </div>
+</div>
+
+@section scripts {
+    <script>
+(function () {
+    function pad(n) { return String(n).padStart(2, '0'); }
+    function tick() {
+        var d = new Date();
+        var el = document.getElementById('liveClock');
+        if (el) el.textContent = pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds());
+    }
+    tick();
+    setInterval(tick, 1000);
+})();
+    </script>
+}

@@ -1,0 +1,1711 @@
+@model IEnumerable<StudentConnect.Models.ChatMessage>
+@{
+    ViewBag.Title = "Trò chuyện ẩn danh";
+    int myId = Session["UserID"] != null ? (int)Session["UserID"] : 0;
+    bool isPrivate = ViewBag.IsPrivate != null && (bool)ViewBag.IsPrivate;
+    string roomType = ViewBag.RoomType as string ?? "Public";
+    ViewBag.IsChatPage = true;
+    ViewBag.HideFooter = true;
+    var replyMessages = ViewBag.ReplyMessages as Dictionary<int, string>;
+}
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+<style>
+    :root {
+        --c-bg: #050a14;
+        --c-surface: #0d1626;
+        --c-surface2: rgba(255,255,255,0.04);
+        --c-border: rgba(255,255,255,0.08);
+        --c-border2: rgba(255,255,255,0.13);
+        --c-cyan: #00c8ff;
+        --c-purple: #7b61ff;
+        --c-green: #00c850;
+        --c-red: rgba(255,60,60,0.85);
+        --c-amber: #ffa000;
+        --c-text: rgba(255,255,255,0.88);
+        --c-muted: rgba(255,255,255,0.35);
+        --c-hint: rgba(255,255,255,0.18);
+        --c-me-bg: rgba(0,200,255,0.15);
+        --c-me-border: rgba(0,200,255,0.3);
+        --c-other-bg: rgba(255,255,255,0.05);
+        --radius-msg: 16px;
+        --radius-card: 18px;
+        --transition: 0.18s ease;
+    }
+
+    /* ── 2-COLUMN MAIN LAYOUT ── */
+    .chat-main-layout {
+        max-width: 1280px;
+        margin: 12px auto;
+        padding: 0 12px;
+        display: flex;
+        gap: 14px;
+        height: calc(100vh - 90px);
+        position: relative;
+    }
+
+    /* ── LEFT SIDEBAR ── */
+    .chat-sidebar {
+        width: 320px;
+        background: var(--c-surface);
+        border-radius: var(--radius-card);
+        border: 1px solid var(--c-border);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        flex-shrink: 0;
+        position: relative;
+        box-shadow: 0 12px 36px rgba(0,0,0,0.4);
+    }
+
+    .chat-sidebar::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0; height: 1px;
+        background: linear-gradient(90deg, transparent, rgba(0,200,255,0.4), rgba(123,97,255,0.4), transparent);
+        z-index: 10;
+    }
+
+    .sidebar-header {
+        padding: 14px 16px;
+        border-bottom: 1px solid var(--c-border);
+        background: rgba(5,10,20,0.95);
+        backdrop-filter: blur(12px);
+    }
+
+    .sidebar-title-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+    }
+
+    .sidebar-title {
+        font-family: 'Space Grotesk', sans-serif;
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--c-text);
+        letter-spacing: 0.04em;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 0;
+    }
+
+    .sidebar-search-box {
+        position: relative;
+        margin-bottom: 10px;
+    }
+
+    .sidebar-search-box input {
+        width: 100%;
+        background: rgba(255,255,255,0.04);
+        border: 1px solid var(--c-border);
+        border-radius: 10px;
+        padding: 7px 12px 7px 32px;
+        font-size: 12.5px;
+        color: var(--c-text);
+        outline: none;
+        font-family: 'Space Grotesk', sans-serif;
+        transition: all 0.2s;
+    }
+
+    .sidebar-search-box input:focus {
+        border-color: rgba(0,200,255,0.4);
+        background: rgba(0,200,255,0.03);
+    }
+
+    .sidebar-search-box i {
+        position: absolute;
+        left: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 12px;
+        color: var(--c-muted);
+    }
+
+    .sidebar-quick-actions {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+    }
+
+    .quick-btn {
+        flex: 1;
+        padding: 6px 8px;
+        border-radius: 8px;
+        font-size: 11px;
+        font-family: 'Space Grotesk', sans-serif;
+        font-weight: 600;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 5px;
+        border: 1px solid var(--c-border);
+        background: rgba(255,255,255,0.03);
+        color: var(--c-text);
+        transition: all 0.15s;
+        text-decoration: none !important;
+        white-space: nowrap;
+    }
+
+    .quick-btn:hover {
+        background: rgba(0,200,255,0.1);
+        border-color: rgba(0,200,255,0.3);
+        color: #00c8ff;
+    }
+
+    .quick-btn.public-btn {
+        background: rgba(0,200,255,0.08);
+        border-color: rgba(0,200,255,0.25);
+        color: #00c8ff;
+    }
+
+    .quick-btn.public-btn.active {
+        background: rgba(0,200,255,0.18);
+        border-color: #00c8ff;
+        color: #fff;
+    }
+
+    .sidebar-list-wrap {
+        flex: 1;
+        overflow-y: auto;
+        padding: 6px 0;
+    }
+
+    .sidebar-list-wrap::-webkit-scrollbar {
+        width: 3px;
+    }
+    .sidebar-list-wrap::-webkit-scrollbar-thumb {
+        background: rgba(255,255,255,0.1);
+        border-radius: 99px;
+    }
+
+    /* ── RIGHT CHAT CONTAINER ── */
+    .messenger-container {
+        flex: 1;
+        background: var(--c-surface);
+        border-radius: var(--radius-card);
+        display: flex;
+        flex-direction: column;
+        border: 1px solid var(--c-border);
+        overflow: hidden;
+        position: relative;
+        box-shadow: 0 12px 36px rgba(0,0,0,0.4);
+    }
+
+    .messenger-container::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0; height: 1px;
+        background: linear-gradient(90deg, transparent, rgba(0,200,255,0.5), rgba(123,97,255,0.4), transparent);
+        z-index: 10;
+    }
+
+    /* ── HEADER ── */
+    .chat-header {
+        padding: 12px 18px;
+        border-bottom: 1px solid var(--c-border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: rgba(5,10,20,0.95);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        flex-shrink: 0;
+        z-index: 5;
+    }
+
+    .header-avatar {
+        width: 42px;
+        height: 42px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+        color: #fff;
+        flex-shrink: 0;
+        border: 1px solid var(--c-border2);
+    }
+
+    .header-avatar.private {
+        background: rgba(0,200,255,0.12);
+        border-color: rgba(0,200,255,0.25);
+        color: var(--c-cyan);
+    }
+
+    .header-avatar.group {
+        background: rgba(123,97,255,0.12);
+        border-color: rgba(123,97,255,0.25);
+        color: var(--c-purple);
+    }
+
+    .status-dot {
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        border: 2px solid var(--c-surface);
+        position: absolute;
+        bottom: -1px;
+        right: -1px;
+        background: rgba(255,255,255,0.2);
+    }
+
+    .status-dot.online {
+        background: var(--c-green);
+        box-shadow: 0 0 6px var(--c-green);
+    }
+
+    .header-name {
+        font-family: 'Space Grotesk', sans-serif;
+        font-size: 15px;
+        font-weight: 600;
+        color: var(--c-text);
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .header-sub {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 10px;
+        color: var(--c-muted);
+        letter-spacing: 0.06em;
+        margin-top: 2px;
+    }
+
+    .header-sub.secure {
+        color: rgba(0,200,80,0.7);
+    }
+
+    /* header action buttons */
+    .btn-action {
+        border: 1px solid;
+        padding: 6px 13px;
+        border-radius: 100px;
+        font-size: 12px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all var(--transition);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-family: 'Space Grotesk', sans-serif;
+        white-space: nowrap;
+        background: none;
+    }
+
+    .btn-action:active {
+        transform: scale(0.96);
+    }
+
+    .btn-cyan {
+        color: var(--c-cyan);
+        border-color: rgba(0,200,255,0.3);
+    }
+    .btn-cyan:hover {
+        background: rgba(0,200,255,0.1);
+        border-color: rgba(0,200,255,0.5);
+    }
+
+    .btn-purple {
+        color: var(--c-purple);
+        border-color: rgba(123,97,255,0.3);
+    }
+    .btn-purple:hover {
+        background: rgba(123,97,255,0.1);
+        border-color: rgba(123,97,255,0.5);
+    }
+
+    .btn-amber {
+        color: var(--c-amber);
+        border-color: rgba(255,160,0,0.3);
+    }
+    .btn-amber:hover {
+        background: rgba(255,160,0,0.1);
+        border-color: rgba(255,160,0,0.5);
+    }
+
+    .btn-red {
+        color: rgba(255,100,100,0.85);
+        border-color: rgba(255,60,60,0.25);
+    }
+    .btn-red:hover {
+        background: rgba(255,60,60,0.1);
+        border-color: rgba(255,60,60,0.5);
+    }
+
+    .btn-green {
+        color: var(--c-green);
+        border-color: rgba(0,200,80,0.3);
+    }
+    .btn-green:hover {
+        background: rgba(0,200,80,0.1);
+        border-color: rgba(0,200,80,0.5);
+    }
+
+    .btn-toggle-sidebar {
+        display: none;
+        background: none;
+        border: 1px solid var(--c-border);
+        color: var(--c-text);
+        border-radius: 8px;
+        padding: 6px 10px;
+        cursor: pointer;
+        font-size: 14px;
+    }
+
+    /* ── CHAT BODY ── */
+    .chat-body {
+        flex: 1;
+        overflow-y: auto;
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        background: var(--c-bg);
+        background-image: linear-gradient(rgba(0,200,255,0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(0,200,255,0.025) 1px, transparent 1px);
+        background-size: 40px 40px;
+        scroll-behavior: smooth;
+    }
+    .chat-body::-webkit-scrollbar {
+        width: 4px;
+    }
+    .chat-body::-webkit-scrollbar-thumb {
+        background: rgba(255,255,255,0.1);
+        border-radius: 99px;
+    }
+    .chat-body::-webkit-scrollbar-thumb:hover {
+        background: rgba(255,255,255,0.2);
+    }
+
+    /* ── MESSAGES ── */
+    .msg-wrapper {
+        display: flex;
+        flex-direction: column;
+        max-width: 68%;
+        margin-bottom: 4px;
+    }
+    .msg-wrapper.me {
+        align-self: flex-end;
+        align-items: flex-end;
+    }
+    .msg-wrapper.other {
+        align-self: flex-start;
+        align-items: flex-start;
+    }
+
+    .msg-row {
+        display: flex;
+        align-items: flex-end;
+        gap: 8px;
+        position: relative;
+    }
+    .me .msg-row {
+        justify-content: flex-end;
+    }
+
+    .avatar {
+        width: 30px;
+        height: 30px;
+        border-radius: 9px;
+        flex-shrink: 0;
+        background: rgba(123,97,255,0.12);
+        border: 1px solid rgba(123,97,255,0.2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        font-size: 12px;
+        color: var(--c-purple);
+        transition: transform var(--transition), box-shadow var(--transition);
+    }
+    .avatar:hover {
+        transform: scale(1.08);
+        box-shadow: 0 0 10px rgba(123,97,255,0.3);
+    }
+
+    .msg-container {
+        position: relative;
+        display: flex;
+        align-items: flex-end;
+        gap: 4px;
+    }
+    .me .msg-container {
+        flex-direction: row-reverse;
+    }
+
+    .msg-actions {
+        opacity: 0;
+        transition: opacity var(--transition);
+        flex-shrink: 0;
+    }
+    .msg-wrapper:hover .msg-actions {
+        opacity: 1;
+    }
+    .msg-content {
+        position: relative;
+    }
+
+    .msg {
+        padding: 9px 14px;
+        border-radius: var(--radius-msg);
+        font-size: 14px;
+        line-height: 1.5;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+        word-break: break-word;
+        max-width: 100%;
+        font-family: 'Space Grotesk', sans-serif;
+        transition: filter var(--transition);
+    }
+
+    .me .msg-text {
+        background: rgba(0,200,255,0.12);
+        border: 1px solid rgba(0,200,255,0.25);
+        color: var(--c-text);
+        border-bottom-right-radius: 4px;
+    }
+
+    .me .msg-dropdown {
+        right: auto;
+        left: 0;
+    }
+
+    .other .msg-dropdown {
+        right: 0;
+        left: auto;
+    }
+
+    .other .msg-text {
+        background: rgba(255,255,255,0.05);
+        border: 1px solid rgba(255,255,255,0.09);
+        color: var(--c-text);
+        border-bottom-left-radius: 4px;
+    }
+
+    .revoked-style {
+        background: rgba(255,255,255,0.03) !important;
+        border: 1px dashed rgba(255,255,255,0.12) !important;
+        color: var(--c-hint) !important;
+        font-style: italic;
+        font-size: 13px;
+        box-shadow: none !important;
+    }
+
+    .msg-image {
+        background: none !important;
+        padding: 0 !important;
+        border: none !important;
+    }
+
+    .chat-img {
+        max-width: 240px;
+        border-radius: 12px;
+        border: 1px solid var(--c-border);
+        cursor: pointer;
+        transition: filter var(--transition), transform var(--transition);
+        display: block;
+    }
+    .chat-img:hover {
+        filter: brightness(0.8);
+        transform: scale(1.01);
+    }
+
+    .reply-preview-msg {
+        background: rgba(0,200,255,0.06);
+        border-left: 2px solid rgba(0,200,255,0.4);
+        border-radius: 8px;
+        padding: 5px 10px;
+        margin-bottom: 4px;
+        font-size: 12px;
+        color: var(--c-muted);
+        cursor: pointer;
+        transition: background 0.2s;
+        font-family: 'Space Grotesk', sans-serif;
+    }
+    .reply-preview-msg:hover {
+        background: rgba(0,200,255,0.1);
+    }
+
+    .timestamp {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 10px;
+        color: var(--c-hint);
+        margin-top: 4px;
+        padding: 0 4px;
+        letter-spacing: 0.04em;
+    }
+
+    .reaction-badge {
+        position: absolute;
+        bottom: -10px;
+        background: var(--c-surface);
+        border-radius: 100px;
+        padding: 1px 6px;
+        font-size: 13px;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.4);
+        z-index: 5;
+        border: 1px solid var(--c-border2);
+        display: none;
+        animation: popIn 0.15s ease;
+    }
+    .me .reaction-badge { left: 4px; }
+    .other .reaction-badge { right: 4px; }
+
+    .msg-option-btn {
+        background: none;
+        border: none;
+        width: 26px;
+        height: 26px;
+        border-radius: 7px;
+        cursor: pointer;
+        color: var(--c-hint);
+        font-size: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all var(--transition);
+    }
+    .msg-option-btn:hover {
+        background: rgba(255,255,255,0.07);
+        color: var(--c-muted);
+    }
+
+    .msg-dropdown {
+        position: absolute;
+        right: 0;
+        top: calc(100% + 4px);
+        background: #0d1626;
+        border: 1px solid var(--c-border2);
+        border-radius: 12px;
+        padding: 5px;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+        z-index: 200;
+        min-width: 100px;
+        display: none;
+        animation: popIn 0.15s ease;
+    }
+
+    .msg-dropdown a {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        font-size: 13px;
+        text-decoration: none;
+        color: var(--c-muted);
+        border-radius: 8px;
+        transition: all var(--transition);
+        font-family: 'Space Grotesk', sans-serif;
+    }
+    .msg-dropdown a:hover {
+        background: rgba(255,255,255,0.05);
+        color: var(--c-text);
+    }
+
+    .reaction-picker {
+        position: absolute;
+        bottom: calc(100% + 6px);
+        left: 0;
+        background: #0d1626;
+        border-radius: 100px;
+        padding: 6px 10px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+        display: none;
+        gap: 6px;
+        z-index: 100;
+        border: 1px solid var(--c-border2);
+        animation: popIn 0.15s ease;
+    }
+    .reaction-picker span {
+        cursor: pointer;
+        font-size: 20px;
+        transition: transform var(--transition);
+        display: inline-block;
+    }
+    .reaction-picker span:hover {
+        transform: scale(1.35) translateY(-2px);
+    }
+
+    @@keyframes popIn {
+        from { transform: scale(0.75) translateY(4px); opacity: 0; }
+        to { transform: scale(1) translateY(0); opacity: 1; }
+    }
+
+    /* ── FOOTER ── */
+    .chat-footer {
+        padding: 10px 14px;
+        border-top: 1px solid var(--c-border);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        background: rgba(5,10,20,0.97);
+        flex-shrink: 0;
+        position: relative;
+    }
+
+    #txtMessage {
+        flex: 1;
+        border: 1px solid var(--c-border);
+        background: rgba(255,255,255,0.04);
+        padding: 10px 16px;
+        border-radius: 100px;
+        font-size: 14px;
+        outline: none;
+        color: var(--c-text);
+        font-family: 'Space Grotesk', sans-serif;
+        transition: all var(--transition);
+    }
+    #txtMessage:focus {
+        border-color: rgba(0,200,255,0.35);
+        background: rgba(0,200,255,0.04);
+        box-shadow: 0 0 0 3px rgba(0,200,255,0.07);
+    }
+    #txtMessage::placeholder {
+        color: var(--c-hint);
+    }
+
+    .icon-btn {
+        font-size: 18px;
+        color: var(--c-muted);
+        cursor: pointer;
+        flex-shrink: 0;
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all var(--transition);
+    }
+    .icon-btn:hover {
+        color: var(--c-cyan);
+        background: rgba(0,200,255,0.08);
+    }
+    .icon-btn:active { transform: scale(0.92); }
+    .icon-btn.send {
+        color: var(--c-cyan);
+        background: rgba(0,200,255,0.1);
+        border: 1px solid rgba(0,200,255,0.25);
+    }
+    .icon-btn.send:hover {
+        background: rgba(0,200,255,0.2);
+    }
+
+    #replyPreview {
+        display: none;
+        position: absolute;
+        bottom: 100%;
+        left: 0; right: 0;
+        background: rgba(5,10,20,0.96);
+        border-top: 1px solid rgba(0,200,255,0.15);
+        border-left: 3px solid var(--c-cyan);
+        padding: 8px 14px;
+        font-size: 13px;
+        color: var(--c-muted);
+        font-family: 'Space Grotesk', sans-serif;
+    }
+
+    #emojiPicker {
+        display: none;
+        position: absolute;
+        bottom: calc(100% + 8px);
+        left: 14px;
+        background: #0d1626;
+        border-radius: 16px;
+        padding: 12px;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+        border: 1px solid var(--c-border2);
+        z-index: 1000;
+        width: 264px;
+        grid-template-columns: repeat(6, 1fr);
+        gap: 4px;
+        animation: popIn 0.15s ease;
+    }
+
+    .emoji-item {
+        cursor: pointer;
+        font-size: 22px;
+        text-align: center;
+        border-radius: 8px;
+        padding: 4px 0;
+        transition: transform var(--transition), background var(--transition);
+        display: block;
+    }
+    .emoji-item:hover {
+        transform: scale(1.25);
+        background: rgba(255,255,255,0.06);
+    }
+
+    #imageModal {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.95);
+        z-index: 9999;
+        align-items: center;
+        justify-content: center;
+        backdrop-filter: blur(12px);
+        animation: fadeIn 0.2s ease;
+    }
+    #imageModal img {
+        max-width: 92%;
+        max-height: 88vh;
+        border-radius: 10px;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+    }
+
+    @@keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+
+    #closeModal {
+        position: absolute;
+        top: 18px;
+        right: 24px;
+        color: rgba(255,255,255,0.6);
+        font-size: 30px;
+        cursor: pointer;
+        transition: all var(--transition);
+        line-height: 1;
+    }
+    #closeModal:hover {
+        color: #fff;
+        transform: scale(1.15) rotate(90deg);
+    }
+
+    .user-context-menu {
+        position: fixed;
+        display: none;
+        background: #0d1626;
+        border: 1px solid var(--c-border2);
+        box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+        border-radius: 12px;
+        z-index: 10000;
+        width: 175px;
+        padding: 5px;
+        animation: popIn 0.15s ease;
+    }
+    .user-context-menu ul {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+    }
+    .user-context-menu li {
+        padding: 9px 13px;
+        cursor: pointer;
+        font-size: 13px;
+        transition: background var(--transition);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        border-radius: 8px;
+        color: var(--c-muted);
+        font-family: 'Space Grotesk', sans-serif;
+    }
+    .user-context-menu li:hover {
+        background: rgba(255,255,255,0.05);
+        color: var(--c-cyan);
+    }
+
+    .sys-msg {
+        text-align: center;
+        margin: 6px 0;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 11px;
+        color: var(--c-hint);
+        letter-spacing: 0.06em;
+    }
+
+    .btn-action.btn-red-outline {
+        border-color: rgba(255, 60, 60, 0.45);
+        color: rgba(255, 120, 120, 0.95);
+        background: rgba(255, 60, 60, 0.08);
+    }
+    .btn-action.btn-red-outline:hover {
+        background: rgba(255, 60, 60, 0.22);
+        border-color: rgba(255, 60, 60, 0.8);
+        color: #fff;
+    }
+
+    /* ── RESPONSIVE DRAWER & STYLING ── */
+    .sidebar-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.65);
+        backdrop-filter: blur(4px);
+        z-index: 99;
+        display: none;
+    }
+    .sidebar-backdrop.active {
+        display: block;
+    }
+
+    @@media (max-width: 900px) {
+        .chat-main-layout {
+            padding: 0 4px;
+            margin: 6px auto;
+            height: calc(100vh - 75px);
+        }
+        .chat-sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            z-index: 100;
+            width: min(320px, 85vw);
+            border-radius: 0 18px 18px 0;
+            transform: translateX(-105%);
+            transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 10px 0 40px rgba(0,0,0,0.7);
+        }
+        .chat-sidebar.open {
+            transform: translateX(0);
+        }
+        .btn-toggle-sidebar {
+            display: inline-flex !important;
+            align-items: center;
+        }
+        .chat-header {
+            padding: 8px 10px;
+            gap: 6px;
+        }
+        .header-avatar {
+            width: 36px;
+            height: 36px;
+            font-size: 14px;
+        }
+        .header-name {
+            font-size: 13.5px;
+        }
+        .header-sub {
+            font-size: 9.5px;
+        }
+        .btn-action {
+            padding: 5px 8px;
+            font-size: 11px;
+            gap: 4px;
+        }
+    }
+</style>
+
+<div class="sidebar-backdrop" id="sidebarBackdrop" onclick="toggleSidebarDrawer()"></div>
+
+<div id="imageModal">
+    <span id="closeModal">&times;</span>
+    <img id="modalImage" src="" alt="preview" />
+</div>
+
+<div class="chat-main-layout">
+    <!-- ═══════════ LEFT SIDEBAR ═══════════ -->
+    <div class="chat-sidebar" id="chatSidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-title-row">
+                <h2 class="sidebar-title">
+                    <i class="fa-solid fa-comments" style="color:var(--c-cyan);"></i> CUỘC TRÒ CHUYỆN
+                </h2>
+                <button type="button" class="btn-item-opt" title="Làm mới" onclick="loadSidebarChatList()">
+                    <i class="fa-solid fa-rotate-right"></i>
+                </button>
+            </div>
+
+            <div class="sidebar-search-box">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input type="text" id="sidebarSearchInput" placeholder="Tìm cuộc trò chuyện..." oninput="filterSidebarList()" autocomplete="off" />
+            </div>
+
+            <div class="sidebar-quick-actions">
+                <a href="@Url.Action("Index", "Chat")" class="quick-btn public-btn @(!isPrivate ? "active" : "")" title="Vào Sảnh ẩn danh">
+                    <i class="fa-solid fa-users"></i> Sảnh chung
+                </a>
+                <button type="button" class="quick-btn" onclick="showCreateGroupModal()" title="Tạo nhóm 5 hoặc nhóm học tập">
+                    <i class="fa-solid fa-user-group" style="color:var(--c-purple);"></i> Tạo nhóm
+                </button>
+            </div>
+            <div class="sidebar-quick-actions" style="margin-top:5px;">
+                <button type="button" class="quick-btn" onclick="joinRandomGroup()" title="Ghép nhóm 5 người">
+                    <i class="fa-solid fa-dice" style="color:var(--c-cyan);"></i> x5 Ghép
+                </button>
+                <button type="button" class="quick-btn" onclick="joinRandomAnonymous()" title="Ghép 1v1 ẩn danh">
+                    <i class="fa-solid fa-user-secret" style="color:var(--c-amber);"></i> 1v1 Ghép
+                </button>
+            </div>
+        </div>
+
+        <div class="sidebar-list-wrap" id="chatListContainer">
+            <div style="text-align:center; padding:24px; color:var(--c-muted); font-size:12px;">
+                <i class="fa-solid fa-circle-notch fa-spin"></i> Đang tải danh sách...
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════ RIGHT CHAT CONTAINER ═══════════ -->
+    <div class="messenger-container" id="messengerContainer">
+        <!-- HEADER -->
+        <div class="chat-header">
+            <div style="display:flex; align-items:center; gap:12px;">
+                <button type="button" class="btn-toggle-sidebar" id="btnToggleSidebar" title="Danh sách trò chuyện">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
+
+                <div style="position:relative; flex-shrink:0;">
+                    <div class="header-avatar @(isPrivate ? (roomType == "Group" || roomType == "RandomGroup" ? "group" : "private") : "group")">
+                        @if (isPrivate)
+                        {
+                            if (roomType == "Group" || roomType == "RandomGroup")
+                            {
+                                <i class="fa-solid fa-users"></i>
+                            }
+                            else
+                            {
+                                <i class="fa-solid fa-user-shield"></i>
+                            }
+                        }
+                        else
+                        {
+                            <i class="fa-solid fa-earth-americas"></i>
+                        }
+                    </div>
+                    <div class="status-dot online"></div>
+                </div>
+
+                <div>
+                    @if (isPrivate)
+                    {
+                        <p class="header-name" id="currentRoomTitleHeader">
+                            <span id="roomTitleText">@(ViewBag.RoomTitle ?? "Trò chuyện riêng tư")</span>
+                            <button type="button" class="btn-item-opt" title="Đổi tên cuộc trò chuyện" onclick="promptRenameRoom(@ViewBag.RoomID, '@(ViewBag.RoomTitle ?? "")')">
+                                <i class="fa-solid fa-pen" style="font-size:11px;"></i>
+                            </button>
+                        </p>
+                        <div class="header-sub secure">
+                            <i class="fa-solid fa-lock" style="font-size:9px;"></i> ẨN DANH · MÃ HÓA
+                            · <span id="onlineCount">--</span> người
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="header-name">Sảnh ẩn danh toàn trường</p>
+                        <div class="header-sub">
+                            NƠI BẮT ĐẦU NHỮNG CUỘC GẶP GỠ
+                            · <span id="onlineCount">--</span> người trực tuyến
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <!-- ACTION BUTTONS -->
+            <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+                @if (isPrivate)
+                {
+                    <button class="btn-action btn-green" onclick="showInviteMemberModal()" title="Thêm thành viên sinh viên vào nhóm">
+                        <i class="fa-solid fa-user-plus"></i> Thêm bạn
+                    </button>
+                    <button class="btn-action btn-amber" onclick="promptRenameRoom(@ViewBag.RoomID, '@(ViewBag.RoomTitle ?? "")')" title="Đổi tên nhóm/cuộc trò chuyện">
+                        <i class="fa-solid fa-pen-to-square"></i> Đổi tên
+                    </button>
+                    <button class="btn-action btn-red-outline" onclick="showReportModal(@ViewBag.RoomID, null, null)" title="Tố cáo vi phạm phòng này">
+                        <i class="fa-solid fa-flag"></i> Tố cáo
+                    </button>
+                    <button class="btn-action btn-red" onclick="leaveRoom()" title="Rời khỏi phòng này">
+                        <i class="fa-solid fa-right-from-bracket"></i> Rời phòng
+                    </button>
+                }
+            </div>
+        </div>
+
+        <!-- BODY -->
+        <div class="chat-body" id="chatBox">
+            @if (Model != null)
+            {
+                foreach (var m in Model)
+                {
+                    bool isMe = m.SenderID == myId;
+                    bool isRevoked = m.Content == "Tin nhắn đã được thu hồi";
+                    string safeContent = (m.Content ?? "").Replace("'", "\\'").Replace("\n", " ");
+
+                    <div class="msg-wrapper @(isMe ? "me" : "other")" id="msg-@m.MessageID">
+                        <div class="msg-row">
+                            @if (!isMe)
+                            {
+                                <div class="avatar-wrapper" onclick="showUserMenu(event, @m.SenderID)">
+                                    <div class="avatar"><i class="fa-solid fa-user-secret"></i></div>
+                                </div>
+                            }
+                            <div class="msg-container">
+                                <div class="msg-content">
+                                    @if (m.ReplyToID.HasValue && replyMessages != null && replyMessages.ContainsKey(m.ReplyToID.Value))
+                                    {
+                                        string rc = replyMessages[m.ReplyToID.Value] ?? "";
+                                        <div class="reply-preview-msg" onclick="scrollToMsg(@m.ReplyToID)">
+                                            ↩ @(rc.Length > 40 ? rc.Substring(0, 40) + "..." : rc)
+                                        </div>
+                                    }
+                                    @if (!string.IsNullOrEmpty(m.ImageUrl) && !isRevoked)
+                                    {
+                                        <div class="msg msg-image">
+                                            <img src="@m.ImageUrl" class="chat-img" onclick="viewImage('@m.ImageUrl')" />
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <div class="msg msg-text @(isRevoked ? "revoked-style" : "")">
+                                            @if (isRevoked)
+                                            {
+                                                <i class="fa-solid fa-circle-info" style="font-size:11px; opacity:0.5; margin-right:4px;"></i>
+                                            }
+                                            @m.Content
+                                        </div>
+                                    }
+                                    <div class="reaction-badge"></div>
+                                </div>
+                                <div class="msg-actions">
+                                    <button class="msg-option-btn" onclick="toggleMsgMenu(event, @m.MessageID)">
+                                        <i class="fa-solid fa-ellipsis-vertical"></i>
+                                    </button>
+                                    <div class="msg-dropdown" id="msgMenu-@m.MessageID">
+                                        @if (!isRevoked)
+                                        {
+                                            <a href="javascript:void(0)" onclick="setReply(@m.MessageID, '@safeContent')">
+                                                <i class="fa-solid fa-reply"></i> Trả lời
+                                            </a>
+                                        }
+                                        @if (isMe && !isRevoked)
+                                        {
+                                            <a href="javascript:void(0)" onclick="revokeMsg(@m.MessageID)" style="color:rgba(255,160,0,0.8);">
+                                                <i class="fa-solid fa-rotate-left"></i> Thu hồi
+                                            </a>
+                                            <a href="javascript:void(0)" onclick="deleteMsg(@m.MessageID)" style="color:rgba(255,80,80,0.8);">
+                                                <i class="fa-solid fa-trash"></i> Xóa
+                                            </a>
+                                        }
+                                        else if (!isMe && !isRevoked)
+                                        {
+                                            <a href="javascript:void(0)" onclick="showReportModal(@ViewBag.RoomID, @m.SenderID, @m.MessageID)" style="color:rgba(255,100,100,0.9);">
+                                                <i class="fa-solid fa-flag"></i> Tố cáo
+                                            </a>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="timestamp">
+                            @(m.SentAt != null ? Convert.ToDateTime(m.SentAt).ToString("HH:mm") : "")
+                        </div>
+                    </div>
+                }
+            }
+        </div>
+
+        <!-- CONTEXT MENU -->
+        <div id="userContextMenu" class="user-context-menu">
+            <ul>
+                <li onclick="handlePrivateChatFromMenu()"><i class="fa-solid fa-paper-plane"></i> Nhắn tin riêng</li>
+                <li onclick="handleReportFromUserMenu()" style="color:rgba(255,100,100,0.95);"><i class="fa-solid fa-flag"></i> Tố cáo người này</li>
+            </ul>
+        </div>
+
+        <!-- FOOTER -->
+        <div class="chat-footer">
+            <div id="emojiPicker">
+                @foreach (var e in new[] { "😀", "😂", "😍", "👍", "❤️", "🔥", "😭", "😮", "😊", "👏", "✨", "🤣" })
+                {
+                    <span class="emoji-item">@e</span>
+                }
+            </div>
+
+            <div id="replyPreview">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <span>↩ Đang trả lời: <span id="replyText" style="color:var(--c-cyan);"></span></span>
+                    <i class="fa-solid fa-xmark" onclick="cancelReply()" style="cursor:pointer; color:var(--c-muted);"></i>
+                </div>
+            </div>
+
+            <input type="file" id="fileInput" hidden accept="image/*" />
+            <div class="icon-btn" onclick="$('#fileInput').click()" title="Gửi ảnh">
+                <i class="fa-solid fa-image"></i>
+            </div>
+            <div class="icon-btn" id="emojiBtn" title="Emoji">
+                <i class="fa-solid fa-face-smile"></i>
+            </div>
+            <input id="txtMessage" placeholder="Nhập tin nhắn..." autocomplete="off" />
+            <div class="icon-btn send" id="btnSend" title="Gửi">
+                <i class="fa-solid fa-paper-plane"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+    const myId   = parseInt('@myId');
+    const roomId = parseInt('@(ViewBag.RoomID ?? 0)');
+    const chat   = $.connection.chatHub;
+    const chatBox = document.getElementById("chatBox");
+    const isPrivatePage = @(isPrivate ? "true" : "false");
+
+    let replyingToId = 0, replyingToContent = '';
+
+    // ── SIDEBAR CHAT LIST LOADER ──
+    function loadSidebarChatList() {
+        $.get('/Chat/GetChatList', { currentRoomId: roomId }, function(html) {
+            $('#chatListContainer').html(html);
+            filterSidebarList();
+        });
+    }
+
+    function openRoom(targetRoomId) {
+        window.location.href = '/Chat/Private/' + targetRoomId;
+    }
+
+    function filterSidebarList() {
+        var query = ($('#sidebarSearchInput').val() || '').toLowerCase().trim();
+        $('.chat-list-item').each(function() {
+            var name = ($(this).data('name') || '').toString();
+            if (!query || name.indexOf(query) !== -1) {
+                $(this).show();
+            } else {
+                $(this).hide();
+            }
+        });
+    }
+
+    // ── PROMPT RENAME ROOM ──
+    function promptRenameRoom(targetRoomId, currentName) {
+        Swal.fire({
+            title: 'Đổi tên cuộc trò chuyện',
+            input: 'text',
+            inputValue: currentName || '',
+            inputPlaceholder: 'Nhập tên mới cho cuộc trò chuyện...',
+            showCancelButton: true,
+            confirmButtonText: 'Lưu thay đổi',
+            cancelButtonText: 'Hủy',
+            inputValidator: (value) => {
+                if (!value || !value.trim()) {
+                    return 'Tên cuộc trò chuyện không được để trống!';
+                }
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                var newName = result.value.trim();
+                $.post('/Chat/RenameRoom', { roomId: targetRoomId, newName: newName }, function(res) {
+                    if (res.success) {
+                        Swal.fire({ icon: 'success', title: 'Thành công', text: 'Đã đổi tên cuộc trò chuyện!', toast: true, position: 'top-end', timer: 2500, showConfirmButton: false });
+                        if (targetRoomId === roomId) {
+                            $('#roomTitleText').text(newName);
+                        }
+                        $(`#sidebar-room-name-${targetRoomId}`).text(newName);
+                        loadSidebarChatList();
+                    } else {
+                        Swal.fire('Lỗi', res.message || 'Không thể đổi tên.', 'error');
+                    }
+                });
+            }
+        });
+    }
+
+    // ── CONFIRM DELETE CONVERSATION ──
+    function confirmDeleteConversation(targetRoomId, name) {
+        Swal.fire({
+            title: 'Xóa cuộc trò chuyện?',
+            text: `Bạn có chắc chắn muốn rời và xóa "${name}" khỏi danh sách?`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#ff4d4d',
+            confirmButtonText: 'Xóa ngay',
+            cancelButtonText: 'Hủy'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.post('/Chat/DeleteConversation', { roomId: targetRoomId }, function(res) {
+                    if (res.success) {
+                        Swal.fire({ icon: 'success', title: 'Đã xóa', text: 'Đã xóa cuộc trò chuyện.', toast: true, position: 'top-end', timer: 2000, showConfirmButton: false });
+                        if (targetRoomId === roomId) {
+                            window.location.href = '/Chat';
+                        } else {
+                            loadSidebarChatList();
+                        }
+                    } else {
+                        Swal.fire('Lỗi', res.message || 'Không thể xóa.', 'error');
+                    }
+                });
+            }
+        });
+    }
+
+    // ── MODAL THÊM THÀNH VIÊN NGAY TRONG NHÓM ──
+    function showInviteMemberModal() {
+        Swal.fire({
+            title: 'Thêm thành viên vào nhóm',
+            html: `
+            <div style="text-align:left; font-family:'Space Grotesk',sans-serif;">
+                <p style="font-size:13px; color:rgba(255,255,255,0.7); margin-bottom:12px;">
+                    Nhập email sinh viên TDMU để thêm trực tiếp vào nhóm trò chuyện này:
+                </p>
+                <label style="font-size:11px; color:rgba(255,255,255,0.4); letter-spacing:0.08em; font-family:'JetBrains Mono',monospace;">EMAIL SINH VIÊN</label>
+                <input id="swal-invite-email" class="swal2-input" placeholder="example@@student.tdmu.edu.vn" style="margin:6px 0 10px;">
+            </div>`,
+            showCancelButton: true,
+            confirmButtonText: 'Thêm vào nhóm',
+            cancelButtonText: 'Hủy',
+            preConfirm: () => {
+                const email = document.getElementById('swal-invite-email').value.trim();
+                if (!email) {
+                    Swal.showValidationMessage('Vui lòng nhập email sinh viên');
+                    return false;
+                }
+                if (!email.endsWith('@@student.tdmu.edu.vn')) {
+                    Swal.showValidationMessage('Chỉ chấp nhận email sinh viên TDMU (@@student.tdmu.edu.vn)');
+                    return false;
+                }
+                return email;
+            }
+        }).then(result => {
+            if (result.isConfirmed) {
+                $.post('/Chat/InviteToGroup', { roomId: roomId, email: result.value }, function(res) {
+                    if (res.success) {
+                        Swal.fire({ icon: 'success', title: 'Thành công', text: res.message, toast: true, position: 'top-end', timer: 3000, showConfirmButton: false });
+                        loadSidebarChatList();
+                    } else {
+                        Swal.fire('Lỗi', res.message || 'Không thể thêm thành viên.', 'error');
+                    }
+                });
+            }
+        });
+    }
+
+    // ── MODAL TẠO NHÓM 5 ──
+    function showCreateGroupModal() {
+        let emailCount = 1;
+        Swal.fire({
+            title: 'Tạo nhóm chat 5',
+            html: `
+            <div style="text-align:left; font-family:'Space Grotesk',sans-serif;">
+                <label style="font-size:11px; color:rgba(255,255,255,0.4); letter-spacing:0.08em; font-family:'JetBrains Mono',monospace;">TÊN NHÓM</label>
+                <input id="swal-groupName" class="swal2-input" placeholder="Ví dụ: Nhóm học tập CNPM, Nhóm 5 bạn..." style="margin:6px 0 16px;">
+                <label style="font-size:11px; color:rgba(255,255,255,0.4); letter-spacing:0.08em; font-family:'JetBrains Mono',monospace;">THÀNH VIÊN (TỐI ĐA 5)</label>
+                <div id="email-inputs-container">
+                    <div class="email-input-item" style="display:flex; margin-top:6px; margin-bottom:8px; gap:6px;">
+                        <input class="swal2-input email-list-input" placeholder="Email thành viên 1 (@@student.tdmu.edu.vn)" style="margin:0; flex:1;">
+                        <button type="button" id="add-email-btn" class="swal2-confirm swal2-styled" style="min-width:40px; padding:0 12px;"><i class="fa fa-plus"></i></button>
+                    </div>
+                </div>
+            </div>`,
+            showCancelButton: true,
+            confirmButtonText: 'Tạo nhóm ngay',
+            cancelButtonText: 'Hủy',
+            didOpen: () => {
+                const container = document.getElementById('email-inputs-container');
+                document.getElementById('add-email-btn').addEventListener('click', () => {
+                    if (document.querySelectorAll('.email-list-input').length >= 5) {
+                        Swal.showValidationMessage('Tối đa chỉ được mời 5 thành viên!'); return;
+                    }
+                    emailCount++;
+                    const newDiv = document.createElement('div');
+                    newDiv.className = 'email-input-item';
+                    newDiv.style.cssText = 'display:flex; margin-bottom:8px; gap:6px;';
+                    newDiv.innerHTML = `
+                        <input class="swal2-input email-list-input" placeholder="Email thành viên ${emailCount} (@@student.tdmu.edu.vn)" style="margin:0; flex:1;">
+                        <button type="button" class="swal2-deny swal2-styled remove-email-btn" style="min-width:40px; padding:0 12px;"><i class="fa fa-minus"></i></button>`;
+                    container.appendChild(newDiv);
+                    newDiv.querySelector('.remove-email-btn').addEventListener('click', () => newDiv.remove());
+                });
+            },
+            preConfirm: () => {
+                const groupName = document.getElementById('swal-groupName').value.trim();
+                const emails = Array.from(document.querySelectorAll('.email-list-input')).map(i => i.value.trim()).filter(e => e !== "");
+                if (!groupName) { Swal.showValidationMessage('Vui lòng nhập tên nhóm'); return false; }
+                if (emails.length === 0) { Swal.showValidationMessage('Vui lòng nhập ít nhất một email'); return false; }
+                return { groupName, emails };
+            }
+        }).then(result => {
+            if (result.isConfirmed) {
+                $.post('/Chat/CreateGroupWithEmails', { groupName: result.value.groupName, emails: result.value.emails }, function(res) {
+                    if (res.success) window.location.href = '/Chat/Private/' + res.roomId;
+                    else Swal.fire('Lỗi', res.message, 'error');
+                });
+            }
+        });
+    }
+
+    // ── CƠ CHẾ RỜI PHÒNG ──
+    function leaveRoom() {
+        if (!isPrivatePage) return;
+        Swal.fire({
+            title: 'Xác nhận rời phòng?',
+            text: 'Bạn sẽ không nhận tin nhắn từ cuộc trò chuyện này nữa.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#ff4d4d',
+            confirmButtonText: 'Rời đi',
+            cancelButtonText: 'Hủy'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.post('/Chat/LeaveRoom', { roomId: roomId }, function(res) {
+                    if (res.success) {
+                        chat.server.leaveRoomSignalR(roomId).done(() => { window.location.href = '/Chat/Index'; });
+                    } else {
+                        window.location.href = '/Chat/Index';
+                    }
+                });
+            }
+        });
+    }
+
+    // ── MODAL TỐ CÁO VI PHẠM (GỬI ADMIN) ──
+    function showReportModal(targetRoomId, targetUserId, messageId) {
+        const rId = targetRoomId || roomId;
+        Swal.fire({
+            title: '🚨 Báo cáo vi phạm',
+            html: `
+            <div style="text-align:left; font-family:'Space Grotesk',sans-serif; font-size:13px; color:rgba(255,255,255,0.85);">
+                <p style="margin-bottom:12px; color:#8b94a5;">
+                    Vui lòng chọn lý do và mô tả hành vi vi phạm (ngôn từ xúc phạm, spam, quấy rối, lừa đảo...):
+                </p>
+                <label style="font-size:11px; color:#00c8ff; font-weight:600; letter-spacing:0.05em;">LÝ DO VI PHẠM</label>
+                <select id="swal-report-reason" class="swal2-select" style="display:block; width:100%; margin:6px 0 14px; background:#0d1626; color:#fff; border:1px solid rgba(255,255,255,0.15); border-radius:8px; padding:8px;">
+                    <option value="Phát ngôn thù ghét, xúc phạm, lăng mạ">Phát ngôn thù ghét, xúc phạm, lăng mạ</option>
+                    <option value="Quấy rối, đe dọa người khác">Quấy rối, đe dọa người khác</option>
+                    <option value="Spam, quảng cáo trái phép">Spam, quảng cáo trái phép</option>
+                    <option value="Lừa đảo, gian lận">Lừa đảo, gian lận</option>
+                    <option value="Nội dung phản cảm, đồi trụy">Nội dung phản cảm, đồi trụy</option>
+                    <option value="Khác">Lý do khác</option>
+                </select>
+                <label style="font-size:11px; color:#00c8ff; font-weight:600; letter-spacing:0.05em;">MÔ TẢ CHI TIẾT (TÙY CHỌN)</label>
+                <textarea id="swal-report-details" class="swal2-textarea" placeholder="Nhập thêm chi tiết nếu cần..." style="margin:6px 0 0; width:100%; height:75px; background:#0d1626; color:#fff; border:1px solid rgba(255,255,255,0.15); border-radius:8px; padding:8px;"></textarea>
+            </div>`,
+            showCancelButton: true,
+            confirmButtonText: 'Gửi báo cáo',
+            cancelButtonText: 'Hủy',
+            confirmButtonColor: '#e24b4a',
+            preConfirm: () => {
+                const reason = document.getElementById('swal-report-reason').value;
+                const details = document.getElementById('swal-report-details').value.trim();
+                return { reason, details };
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.post('/Chat/ReportViolation', {
+                    roomId: rId,
+                    reportedUserId: targetUserId,
+                    messageId: messageId,
+                    reason: result.value.reason,
+                    details: result.value.details
+                }, function(res) {
+                    if (res.success) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Đã gửi báo cáo',
+                            text: res.message,
+                            timer: 3000,
+                            showConfirmButton: false
+                        });
+                    } else {
+                        Swal.fire('Thông báo', res.message || 'Không thể gửi báo cáo.', 'error');
+                    }
+                });
+            }
+        });
+    }
+
+    // ── DRAWER SIDEBAR RESPONSIVE ──
+    function toggleSidebarDrawer() {
+        $('#chatSidebar').toggleClass('open');
+        $('#sidebarBackdrop').toggleClass('active');
+    }
+
+    // ── REPLY & SCROLL ──
+    function setReply(msgId, content) {
+        replyingToId = msgId; replyingToContent = content;
+        $('#replyPreview').show();
+        $('#replyText').text(content.length > 50 ? content.substring(0,50)+'...' : content);
+        $('#txtMessage').focus();
+    }
+    function cancelReply() {
+        replyingToId = 0; replyingToContent = '';
+        $('#replyPreview').hide();
+    }
+    function scrollToMsg(msgId) {
+        const el = document.getElementById('msg-' + msgId);
+        if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            $(el).css('outline', '1px solid rgba(0,200,255,0.4)');
+            setTimeout(() => $(el).css('outline', ''), 1500);
+        }
+    }
+    function getCurrentTime() {
+        return new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit', hour12:false });
+    }
+    function viewImage(url) {
+        $('#modalImage').attr('src', url);
+        $('#imageModal').css('display', 'flex');
+    }
+
+    let currentTargetUserId = 0;
+    function showUserMenu(event, userId) {
+        if (isPrivatePage) return;
+        event.preventDefault(); event.stopPropagation();
+        currentTargetUserId = userId;
+        const menu = $('#userContextMenu');
+        menu.css({ top: event.clientY+"px", left: event.clientX+"px", display:"block" });
+    }
+    function handlePrivateChatFromMenu() {
+        $('#userContextMenu').hide();
+        if (currentTargetUserId > 0) {
+            startPrivateChat(currentTargetUserId, "Người lạ #" + currentTargetUserId);
+        }
+    }
+    function handleReportFromUserMenu() {
+        $('#userContextMenu').hide();
+        if (currentTargetUserId > 0) {
+            showReportModal(roomId, currentTargetUserId, null);
+        }
+    }
+
+    function toggleMsgMenu(event, msgId) {
+        event.stopPropagation();
+        const menu = $(`#msgMenu-${msgId}`);
+        $('.msg-dropdown').not(menu).hide();
+        menu.toggle();
+    }
+    function startPrivateChat(targetId, targetName) {
+        Swal.fire({
+            title: 'Bắt đầu chat riêng?',
+            text: `Kết nối ẩn danh với ${targetName}?`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Kết nối ngay',
+            cancelButtonText: 'Hủy'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.post('/Chat/CreatePrivateRoom', { targetId }, function(res) {
+                    if (res.success) {
+                        chat.server.inviteToPrivateChat(parseInt(targetId), myId, "Người lạ", res.roomId);
+                        window.location.href = '/Chat/Private/' + res.roomId;
+                    } else Swal.fire('Lỗi', res.message, 'error');
+                });
+            }
+        });
+    }
+    function joinRandomGroup() {
+        $.post('/Chat/JoinRandomGroup', function(res) {
+            if (res.success) window.location.href = '/Chat/Private/' + res.roomId;
+            else Swal.fire('Lỗi', res.message || 'Không thể tham gia nhóm.', 'error');
+        });
+    }
+    function joinRandomAnonymous() {
+        Swal.fire({ title: 'Đang ghép đôi...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+        $.post('/Chat/JoinRandomAnonymous', function(res) {
+            if (res.success) window.location.href = '/Chat/Private/' + res.roomId;
+            else Swal.fire('Lỗi', 'Không thể kết nối.', 'error');
+        }).fail(() => Swal.fire('Lỗi', 'Mất kết nối máy chủ.', 'error'));
+    }
+    function revokeMsg(id) {
+        Swal.fire({
+            title: 'Thu hồi tin nhắn?',
+            text: 'Mọi người sẽ thấy "Tin nhắn đã được thu hồi".',
+            icon: 'warning', showCancelButton: true,
+            confirmButtonText: 'Thu hồi', cancelButtonText: 'Hủy'
+        }).then(r => {
+            if (r.isConfirmed)
+                $.post('/Chat/RevokeMessage', { messageId: id }, res => { if (!res.success) Swal.fire('Lỗi', res.message, 'error'); });
+        });
+    }
+    function deleteMsg(id) {
+        Swal.fire({
+            title: 'Xóa tin nhắn?', text: 'Tin nhắn sẽ bị xóa hẳn khỏi lịch sử.',
+            icon: 'warning', showCancelButton: true,
+            confirmButtonText: 'Xóa', cancelButtonText: 'Hủy'
+        }).then(r => {
+            if (r.isConfirmed)
+                $.post('/Chat/DeleteMessage', { messageId: id }, res => {
+                    if (res.success) $(`#msg-${id}`).fadeOut(300, function() { $(this).remove(); });
+                    else Swal.fire('Lỗi', res.message, 'error');
+                });
+        });
+    }
+
+    $(document).ready(function () {
+        const input = $('#txtMessage');
+        const rId = parseInt(roomId), mId = parseInt(myId);
+
+        // Nạp danh sách cuộc trò chuyện bên Sidebar
+        loadSidebarChatList();
+
+        // Toggle Sidebar trên Mobile / Tablet
+        $('#btnToggleSidebar').click(function(e) {
+            e.stopPropagation();
+            toggleSidebarDrawer();
+        });
+
+        // Đóng sidebar khi chọn item trên màn hình nhỏ
+        $(document).on('click', '.chat-list-item', function() {
+            if ($(window).width() <= 900) {
+                $('#chatSidebar').removeClass('open');
+                $('#sidebarBackdrop').removeClass('active');
+            }
+        });
+
+        function updateOnlineCount() {
+            $.get('/Chat/GetOnlineCount', { roomId: rId }, function (data) {
+                $('#onlineCount').text(data.count);
+            });
+        }
+        updateOnlineCount();
+        setInterval(updateOnlineCount, 10000);
+
+        $('#closeModal').click(() => $('#imageModal').hide());
+        $('#imageModal').click(e => { if ($(e.target).is('#imageModal')) $('#imageModal').hide(); });
+
+        $('#fileInput').change(function () {
+            const file = this.files[0]; if (!file) return;
+            if (!rId || rId === 0) { alert("Lỗi: Không xác định được phòng chat!"); return; }
+            const formData = new FormData();
+            formData.append("roomId", rId); formData.append("file", file);
+            $.ajax({
+                url: '/Chat/SendImage', type: 'POST', data: formData,
+                processData: false, contentType: false,
+                success: res => { if (!res.success) Swal.fire({ icon: 'error', title: 'Lỗi', text: res.message || '', toast: true, position: 'top-end', showConfirmButton: false, timer: 3000 }); $('#fileInput').val(''); },
+                error: () => { Swal.fire({ icon: 'error', title: 'Lỗi kết nối', text: 'Không thể upload ảnh', toast: true, position: 'top-end', showConfirmButton: false, timer: 3000 }); $('#fileInput').val(''); }
+            });
+        });
+
+        $('#txtMessage').off('keydown').on('keydown', function(e) {
+            if (e.which == 13 && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+        });
+
+        // ── SIGNALR HANDLERS ──
+        chat.client.addNewMessageToPage = function(senderId, message, imageUrl, messageId, replyToId, replyContent) {
+            if (senderId === 0) {
+                $('#chatBox').append(`<div class="sys-msg"><i>${message}</i></div>`);
+                chatBox.scrollTop = chatBox.scrollHeight;
+                updateOnlineCount();
+                loadSidebarChatList();
+                return;
+            }
+            const isMe = (senderId == mId);
+            const hasImage = imageUrl && imageUrl !== "null" && imageUrl !== "";
+            const safeMsg = $('<div/>').text(message || "").html();
+            const msgId   = messageId || 0;
+            const safeReply = $('<div/>').text(replyContent || "").html();
+            const replyHtml = (replyToId && replyContent)
+                ? `<div class="reply-preview-msg" onclick="scrollToMsg(${replyToId})">↩ ${safeReply.length > 40 ? safeReply.substring(0,40)+'...' : safeReply}</div>` : '';
+            const contentHtml = hasImage
+                ? `<div class="msg msg-image"><img src="${imageUrl}" class="chat-img" onclick="viewImage('${imageUrl}')"/></div>`
+                : `<div class="msg msg-text">${safeMsg}</div>`;
+            const avatarHtml = !isMe
+                ? `<div class="avatar-wrapper" onclick="showUserMenu(event, ${senderId})"><div class="avatar"><i class="fa-solid fa-user-secret"></i></div></div>` : '';
+            const actionsHtml = msgId > 0 ? `
+                <div class="msg-actions" style="position:relative;">
+                    <button class="msg-option-btn" onclick="toggleMsgMenu(event, ${msgId})"><i class="fa-solid fa-ellipsis-vertical"></i></button>
+                    <div class="msg-dropdown" id="msgMenu-${msgId}">
+                        <a href="javascript:void(0)" onclick="setReply(${msgId}, '${safeMsg.replace(/'/g,"\\'")}')"><i class="fa-solid fa-reply"></i> Trả lời</a>
+                        ${isMe ? `
+                        <a href="javascript:void(0)" onclick="revokeMsg(${msgId})" style="color:rgba(255,160,0,0.8);"><i class="fa-solid fa-rotate-left"></i> Thu hồi</a>
+                        <a href="javascript:void(0)" onclick="deleteMsg(${msgId})" style="color:rgba(255,80,80,0.8);"><i class="fa-solid fa-trash"></i> Xóa</a>` : `
+                        <a href="javascript:void(0)" onclick="showReportModal(${rId}, ${senderId}, ${msgId})" style="color:rgba(255,100,100,0.9);"><i class="fa-solid fa-flag"></i> Tố cáo</a>`}
+                    </div>
+                </div>` : '';
+
+            $('#chatBox').append(`
+                <div class="msg-wrapper ${isMe ? 'me' : 'other'}" ${msgId > 0 ? `id="msg-${msgId}"` : ''}>
+                    <div class="msg-row">
+                        ${avatarHtml}
+                        <div class="msg-container">
+                            <div class="msg-content">${replyHtml}${contentHtml}<div class="reaction-badge"></div></div>
+                            ${actionsHtml}
+                        </div>
+                    </div>
+                    <div class="timestamp">${getCurrentTime()}</div>
+                </div>`);
+            chatBox.scrollTop = chatBox.scrollHeight;
+            loadSidebarChatList();
+        };
+
+        chat.client.onMessageRevoked = function(messageId) {
+            $(`#msg-${messageId}`).find('.msg-text, .msg-image').replaceWith(
+                `<div class="msg msg-text revoked-style"><i class="fa-solid fa-circle-info" style="font-size:11px;opacity:0.5;margin-right:4px;"></i>Tin nhắn đã được thu hồi</div>`
+            );
+            $(`#msg-${messageId}`).find('.msg-actions').remove();
+        };
+        chat.client.onMessageDeleted = function(messageId) {
+            $(`#msg-${messageId}`).fadeOut(300, function() { $(this).remove(); });
+        };
+        chat.client.onRoomRenamed = function(targetRoomId, newName) {
+            if (targetRoomId === roomId) {
+                $('#roomTitleText').text(newName);
+            }
+            $(`#sidebar-room-name-${targetRoomId}`).text(newName);
+            loadSidebarChatList();
+        };
+        chat.client.triggerReloadChatList = function(targetRoomId) {
+            loadSidebarChatList();
+        };
+        chat.client.receiveChatInvitation = function(fromId, fromName, targetRoomId, forUserId) {
+            if (forUserId == mId && fromId != mId) {
+                Swal.fire({
+                    title: 'Lời mời vào nhóm/chat riêng!',
+                    text: `${fromName} đã thêm hoặc mời bạn vào cuộc trò chuyện.`,
+                    icon: 'info', showCancelButton: true,
+                    confirmButtonText: 'Vào ngay', cancelButtonText: 'Để sau',
+                    toast: true, position: 'top-end', timer: 15000, timerProgressBar: true
+                }).then(r => { 
+                    loadSidebarChatList();
+                    if (r.isConfirmed) window.location.href = '/Chat/Private/' + targetRoomId; 
+                });
+            }
+        };
+
+        $.connection.hub.start().done(function() {
+            chat.server.joinRoom(rId, mId).done(function() {
+                $('#btnSend').off('click').on('click', sendMessage);
+            });
+        }).fail(e => Swal.fire('Lỗi kết nối', 'Vui lòng làm mới trang', 'error'));
+
+        @if (ViewBag.WaitingForPair == null ? false : (bool)ViewBag.WaitingForPair)
+        {
+            <text>
+            var pairInterval = setInterval(function () {
+                $.get('/Chat/CheckRoomReady/@ViewBag.RoomID', function (res) {
+                    if (res.ready) {
+                        clearInterval(pairInterval);
+                        location.reload();
+                    }
+                });
+            }, 3000);
+            </text>
+        }
+
+        function sendMessage() {
+            const msg = $('#txtMessage').val().trim();
+            if (!msg) return;
+            $('#txtMessage').val('').focus();
+            $.post('/Chat/SendMessage', { roomId: rId, content: msg, replyToId: replyingToId || null }, function(res) {
+                if (res.success) cancelReply();
+                else {
+                    $('#txtMessage').val(msg);
+                    Swal.fire({ icon:'error', title:'Lỗi', text: res.message||'', toast:true, position:'top-end', showConfirmButton:false, timer:3000 });
+                }
+            });
+        }
+
+        $('#emojiBtn').click(function(e) {
+            e.stopPropagation();
+            const p = $('#emojiPicker');
+            p.css('display') === 'grid' ? p.hide() : p.css('display','grid');
+        });
+        $(document).on('click', '.emoji-item', function(e) {
+            e.stopPropagation();
+            input.val(input.val() + $(this).text()).focus();
+        });
+        $(document).click(function() {
+            $('#emojiPicker, #userContextMenu, .msg-dropdown').hide();
+        });
+        setTimeout(() => { chatBox.scrollTop = chatBox.scrollHeight; }, 100);
+    });
+    </script>
+}

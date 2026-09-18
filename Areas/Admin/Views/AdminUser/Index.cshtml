@@ -1,0 +1,686 @@
+@model IEnumerable<StudentConnect.Models.User>
+@{
+    ViewBag.Title = "Quản lý Người Dùng";
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+}
+
+<style>
+    /* ── Biến màu (đồng bộ với AdminMarket) ── */
+    :root {
+        --dk-bg0:#0f1117; --dk-bg1:#161b27; --dk-bg2:#1c2333; --dk-bg3:#232a3b;
+        --dk-border:#2e3a52; --dk-border2:#3a4a66;
+        --dk-text:#e2e8f0; --dk-text2:#94a3b8; --dk-text3:#64748b;
+        --dk-blue:#3b82f6; --dk-blue-bg:#1e3a5f; --dk-blue-dim:#1d2d45;
+        --dk-green:#22c55e; --dk-green-bg:#14532d;
+        --dk-amber:#f59e0b; --dk-amber-bg:#451a03;
+        --dk-red:#ef4444;   --dk-red-bg:#450a0a;
+        --dk-purple:#a78bfa; --dk-purple-bg:#2e1065;
+        --dk-cyan:#22d3ee;   --dk-cyan-bg:#164e63;  --dk-cyan-dim:#0c3549;
+    }
+
+    /* ── Toast ── */
+    .dk-toast { display:flex; align-items:center; border-radius:8px; padding:10px 14px; gap:8px; font-size:13px; }
+    .dk-toast-success { background:var(--dk-green-bg); border:1px solid rgba(34,197,94,.3); color:var(--dk-green); }
+    .dk-toast-error   { background:var(--dk-red-bg);   border:1px solid rgba(239,68,68,.3);  color:var(--dk-red);   }
+    .dk-toast .btn-close { filter:invert(1) brightness(.8); }
+
+    /* ── Stats ── */
+    .dk-stats { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:16px; }
+    @@media (max-width:768px) { .dk-stats { grid-template-columns:repeat(2,1fr); } }
+    @@media (max-width:480px) { .dk-stats { grid-template-columns:1fr; } }
+    .dk-stat  { background:var(--dk-bg1); border:1px solid var(--dk-border); border-radius:12px; padding:14px 16px; }
+    .dk-stat-label { font-size:11px; color:var(--dk-text3); text-transform:uppercase; letter-spacing:.05em; margin-bottom:6px; }
+    .dk-stat-val   { font-size:22px; font-weight:700; line-height:1; }
+    .dk-stat-val.c-blue   { color:var(--dk-blue);   }
+    .dk-stat-val.c-green  { color:var(--dk-green);  }
+    .dk-stat-val.c-cyan   { color:var(--dk-cyan);   }
+    .dk-stat-val.c-purple { color:var(--dk-purple); }
+    .dk-stat-sub { font-size:11px; color:var(--dk-text3); margin-top:4px; }
+
+    /* ── Card ── */
+    .dk-card        { background:var(--dk-bg1)!important; border:1px solid var(--dk-border)!important; border-radius:12px!important; }
+    .dk-card-header { background:var(--dk-bg2)!important; border-bottom:1px solid var(--dk-border)!important; }
+
+    /* ── Toolbar ── */
+    .dk-toolbar { background:var(--dk-bg1); border-bottom:1px solid var(--dk-border); padding:12px 16px; display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+    .dk-toolbar label { color:var(--dk-text3)!important; font-size:12px; margin-bottom:0; }
+    .dk-count { font-size:12px; color:var(--dk-text3); background:var(--dk-bg2); border:1px solid var(--dk-border); border-radius:20px; padding:4px 12px; white-space:nowrap; }
+    .dk-count strong { color:var(--dk-blue); }
+
+    /* ── Form controls ── */
+    .form-control, .form-select {
+        background:var(--dk-bg2)!important; border:1px solid var(--dk-border)!important;
+        color:var(--dk-text)!important; border-radius:8px!important;
+    }
+    .form-control:focus, .form-select:focus {
+        border-color:var(--dk-blue)!important;
+        box-shadow:0 0 0 2px rgba(59,130,246,.15)!important;
+    }
+    .form-control::placeholder { color:var(--dk-text3)!important; }
+
+    /* ── Table ── */
+    #userTable { color:var(--dk-text)!important; }
+    #userTable thead th {
+        background:var(--dk-bg2)!important; color:var(--dk-text3)!important;
+        border-color:var(--dk-border2)!important; font-size:11px;
+        text-transform:uppercase; letter-spacing:.05em; font-weight:600;
+    }
+    #userTable tbody td {
+        background:var(--dk-bg1)!important; border-color:var(--dk-border)!important;
+        color:var(--dk-text)!important; vertical-align:middle;
+    }
+    #userTable tbody tr:nth-child(even) td { background:#181f2e!important; }
+    #userTable tbody tr:hover td           { background:var(--dk-bg2)!important; }
+
+    /* Avatar */
+    .dk-avatar {
+        width:40px; height:40px; object-fit:cover;
+        border-radius:10px; border:1px solid var(--dk-border);
+        flex-shrink:0;
+    }
+    .dk-avatar-lg {
+        width:80px; height:80px; object-fit:cover;
+        border-radius:16px; border:2px solid var(--dk-border2);
+    }
+
+    /* Username cell */
+    .dk-username { font-weight:600; color:var(--dk-cyan); font-size:13px; }
+    .dk-email    { font-size:12px; color:var(--dk-text2); margin-top:2px; }
+
+    /* ── Badges ── */
+    .dk-badge { display:inline-flex; align-items:center; padding:3px 9px; border-radius:20px; font-size:11px; font-weight:500; white-space:nowrap; }
+    .dk-badge-green  { background:var(--dk-green-bg);  color:var(--dk-green);  border:1px solid rgba(34,197,94,.2);   }
+    .dk-badge-gray   { background:var(--dk-bg3);       color:var(--dk-text2);  border:1px solid var(--dk-border);     }
+    .dk-badge-red    { background:var(--dk-red-bg);    color:var(--dk-red);    border:1px solid rgba(239,68,68,.2);   }
+    .dk-badge-blue   { background:var(--dk-blue-dim);  color:var(--dk-blue);   border:1px solid rgba(59,130,246,.25); }
+    .dk-badge-purple { background:var(--dk-purple-bg); color:var(--dk-purple); border:1px solid rgba(167,139,250,.3); }
+    .dk-badge-amber  { background:var(--dk-amber-bg);  color:var(--dk-amber);  border:1px solid rgba(245,158,11,.3); }
+    .dk-badge-cyan   { background:var(--dk-cyan-bg);   color:var(--dk-cyan);   border:1px solid rgba(34,211,238,.3); }
+
+    /* ── Action icon buttons ── */
+    .dk-btn {
+        width:30px; height:30px; padding:0; border-radius:6px; border:1px solid var(--dk-border);
+        background:var(--dk-bg2); display:inline-flex; align-items:center; justify-content:center;
+        cursor:pointer; transition:background .15s, border-color .15s; vertical-align:middle;
+    }
+    .dk-btn.view { color:var(--dk-cyan); }
+    .dk-btn.view:hover { background:var(--dk-cyan-dim); border-color:rgba(34,211,238,.4); }
+    .dk-btn.edit { color:var(--dk-blue); }
+    .dk-btn.edit:hover { background:var(--dk-blue-dim); border-color:rgba(59,130,246,.4); }
+    .dk-btn.del  { color:var(--dk-red);  }
+    .dk-btn.del:hover  { background:var(--dk-red-bg);  border-color:rgba(239,68,68,.4);  }
+
+    /* ── Add button ── */
+    .dk-btn-add {
+        background:var(--dk-green-bg)!important; border:1px solid rgba(34,197,94,.3)!important;
+        color:var(--dk-green)!important; border-radius:8px; font-weight:500; transition:background .2s;
+        white-space:nowrap;
+    }
+    .dk-btn-add:hover { background:rgba(34,197,94,.2)!important; color:var(--dk-green)!important; }
+
+    /* ── DataTables chrome ── */
+    .dataTables_wrapper .dataTables_length label,
+    .dataTables_wrapper .dataTables_filter label,
+    .dataTables_wrapper .dataTables_info { color:var(--dk-text2)!important; }
+    .dataTables_wrapper .dataTables_paginate .paginate_button {
+        background:var(--dk-bg2)!important; border:1px solid var(--dk-border)!important;
+        border-radius:6px!important; margin:0 2px!important; color:var(--dk-text2)!important;
+    }
+    .dataTables_wrapper .dataTables_paginate .paginate_button.current,
+    .dataTables_wrapper .dataTables_paginate .paginate_button.current:hover {
+        background:var(--dk-blue)!important; border-color:var(--dk-blue)!important; color:#fff!important;
+    }
+    .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+        background:var(--dk-bg3)!important; color:var(--dk-text)!important;
+    }
+
+    /* ── Modals ── */
+    .dk-modal .modal-content {
+        background:var(--dk-bg1)!important; border:1px solid var(--dk-border2)!important;
+        border-radius:16px!important; color:var(--dk-text)!important;
+    }
+    .dk-modal .modal-header { background:var(--dk-bg2)!important; border-bottom:1px solid var(--dk-border)!important; }
+    .dk-modal .modal-footer { background:var(--dk-bg1)!important; border-top:1px solid var(--dk-border)!important;    }
+    .dk-modal .modal-title  { color:var(--dk-text)!important; }
+    .dk-modal .btn-close    { filter:invert(1) brightness(.7); }
+    .dk-modal label         { color:var(--dk-text3)!important; font-size:12px; font-weight:500!important; }
+
+    .dk-modal .btn-secondary { background:var(--dk-bg2)!important; border:1px solid var(--dk-border)!important; color:var(--dk-text2)!important; }
+    .dk-modal .btn-primary   { background:var(--dk-blue)!important; border-color:var(--dk-blue)!important;  color:#fff!important; }
+    .dk-modal .btn-success   { background:var(--dk-green-bg)!important; border-color:rgba(34,197,94,.4)!important; color:var(--dk-green)!important; }
+    .dk-modal .btn-danger    { background:var(--dk-red)!important;  border-color:var(--dk-red)!important;   color:#fff!important; }
+
+    /* Detail info table */
+    .dk-info-table { width:100%; font-size:13px; }
+    .dk-info-table td { padding:6px 0; border-bottom:1px solid var(--dk-border); vertical-align:top; }
+    .dk-info-table tr:last-child td { border-bottom:none; }
+    .dk-info-table td:first-child { color:var(--dk-text3); width:130px; font-size:12px; }
+
+    /* Delete modal */
+    .dk-modal-danger .modal-header { background:rgba(239,68,68,.1)!important; border-bottom-color:rgba(239,68,68,.2)!important; }
+    .dk-modal-danger .modal-title  { color:var(--dk-red)!important; }
+
+    /* Responsive table — ẩn cột ít quan trọng ở mobile */
+    @@media (max-width:768px) {
+        .col-hide-md { display:none!important; }
+        .dataTables_wrapper .dataTables_filter,
+        .dataTables_wrapper .dataTables_length { width:100%; text-align:left; }
+    }
+    @@media (max-width:480px) {
+        .col-hide-sm { display:none!important; }
+        .dk-card-header { flex-direction:column; gap:10px; align-items:flex-start!important; }
+    }
+</style>
+
+@* ── Toasts ── *@
+@if (TempData["Success"] != null)
+{
+    <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index:9999">
+        <div class="toast show border-0 dk-toast dk-toast-success" role="alert">
+            <i class="bi bi-check-circle-fill"></i>
+            <div class="flex-grow-1">@TempData["Success"]</div>
+            <button type="button" class="btn-close ms-2" data-bs-dismiss="toast"></button>
+        </div>
+    </div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index:9999">
+        <div class="toast show border-0 dk-toast dk-toast-error" role="alert">
+            <i class="bi bi-x-circle-fill"></i>
+            <div class="flex-grow-1">@TempData["Error"]</div>
+            <button type="button" class="btn-close ms-2" data-bs-dismiss="toast"></button>
+        </div>
+    </div>
+}
+
+@* ── Stats ── *@
+@{
+    bool isSuperAdmin = (Session["AdminRole"] as string) == "SuperAdmin";
+    int totalUsers = Model.Count();
+    int tdmuCount = Model.Count(u => u.IsTDMUStudent);
+    int adminCount = Model.Count(u => u.IsAdmin);
+    int guestCount = totalUsers - tdmuCount;
+}
+<div class="dk-stats">
+    <div class="dk-stat">
+        <div class="dk-stat-label">Tổng người dùng</div>
+        <div class="dk-stat-val c-blue">@totalUsers</div>
+    </div>
+    <div class="dk-stat">
+        <div class="dk-stat-label">Sinh viên TDMU</div>
+        <div class="dk-stat-val c-green">@tdmuCount</div>
+    </div>
+    <div class="dk-stat">
+        <div class="dk-stat-label">Khách</div>
+        <div class="dk-stat-val c-cyan">@guestCount</div>
+    </div>
+    <div class="dk-stat">
+        <div class="dk-stat-label">Quản trị viên</div>
+        <div class="dk-stat-val c-purple">@adminCount</div>
+    </div>
+</div>
+
+@* ── Main card ── *@
+<div class="card dk-card shadow-none border-0 mb-4">
+    <div class="card-header dk-card-header d-flex justify-content-between align-items-center py-3 flex-wrap gap-2">
+        <h4 class="m-0 fw-bold" style="color:var(--dk-cyan)">
+            <i class="bi bi-people-fill me-2"></i>Danh sách người dùng
+        </h4>
+        <button class="btn dk-btn-add" data-bs-toggle="modal" data-bs-target="#createModal">
+            <i class="bi bi-person-plus-fill me-1"></i>Thêm
+        </button>
+    </div>
+
+    <div class="card-body p-0" style="background:var(--dk-bg1)">
+
+        @* Toolbar *@
+        <div class="dk-toolbar">
+            <div class="dk-count ms-auto">
+                Tổng: <strong id="recordCount">@totalUsers</strong> người dùng
+            </div>
+        </div>
+
+        @* Table *@
+        <div class="table-responsive px-3 pt-3 pb-2">
+            <table id="userTable" class="table table-hover align-middle" style="width:100%">
+                <thead>
+                    <tr>
+                        <th style="width:50px">ID</th>
+                        <th style="width:60px">Avatar</th>
+                        <th>Tài khoản</th>
+                        <th class="col-hide-md" style="width:80px">Loại</th>
+                        <th class="col-hide-sm" style="width:110px">Vai trò</th>
+                        <th class="col-hide-md" style="width:130px">Ngày tham gia</th>
+                        <th style="width:105px" class="text-center">Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model)
+                    {
+                        var joinDate = item.CreatedAt.HasValue
+                            ? item.CreatedAt.Value.ToString("dd/MM/yyyy HH:mm")
+                            : "N/A";
+                        var phone = string.IsNullOrEmpty(item.PhoneNumber)
+                            ? "Chưa cập nhật"
+                            : item.PhoneNumber;
+
+                        string roleDetailText = "Người dùng (User)";
+                        if (item.IsAdmin)
+                        {
+                            if (item.AdminRole == "SuperAdmin") { roleDetailText = "Admin tối cao (Toàn quyền)"; }
+                            else if (item.AdminRole == "AdminUser") { roleDetailText = "Admin Quản lý Người dùng"; }
+                            else if (item.AdminRole == "AdminMarket") { roleDetailText = "Admin Quản lý Chợ"; }
+                            else if (item.AdminRole == "AdminConnect") { roleDetailText = "Admin Quản lý Kết nối"; }
+                            else { roleDetailText = "Quản trị viên (Admin)"; }
+                        }
+                        <tr>
+                            <td style="font-size:12px;color:var(--dk-text3);font-weight:600" class="text-center">
+                                #@item.UserID
+                            </td>
+                            <td class="text-center">
+                                <img src="@item.Avatar"
+                                     alt="Avatar"
+                                     class="dk-avatar"
+                                     onerror="this.src='/Content/Images/default-avatar.png'" />
+                            </td>
+                            <td>
+                                <div class="dk-username">@item.Username</div>
+                                <div class="dk-email">@item.Email</div>
+                            </td>
+                            <td class="col-hide-md">
+                                @if (item.IsTDMUStudent)
+                                {
+                                    <span class="dk-badge dk-badge-green">SV TDMU</span>
+                                }
+                                else
+                                {
+                                    <span class="dk-badge dk-badge-gray">Khách</span>
+                                }
+                            </td>
+                            <td class="col-hide-sm">
+                                @if (item.IsAdmin)
+                                {
+                                    if (item.AdminRole == "SuperAdmin")
+                                    {
+                                        <span class="dk-badge dk-badge-purple" title="Admin tối cao toàn quyền"><i class="bi bi-shield-fill-check me-1"></i>Admin tối cao</span>
+                                    }
+                                    else if (item.AdminRole == "AdminUser")
+                                    {
+                                        <span class="dk-badge dk-badge-cyan" title="Quản lý Người dùng"><i class="bi bi-person-gear me-1"></i>QL Người dùng</span>
+                                    }
+                                    else if (item.AdminRole == "AdminMarket")
+                                    {
+                                        <span class="dk-badge dk-badge-green" title="Quản lý Chợ"><i class="bi bi-shop me-1"></i>QL Chợ</span>
+                                    }
+                                    else if (item.AdminRole == "AdminConnect")
+                                    {
+                                        <span class="dk-badge dk-badge-amber" title="Quản lý Kết nối"><i class="bi bi-globe me-1"></i>QL Kết nối</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="dk-badge dk-badge-red">Admin</span>
+                                    }
+                                }
+                                else
+                                {
+                                    <span class="dk-badge dk-badge-blue">User</span>
+                                }
+                            </td>
+                            <td class="col-hide-md" style="font-size:12px;color:var(--dk-text2)">@joinDate</td>
+                            <td class="text-center">
+                                <button class="dk-btn view btn-view-detail"
+                                        title="Xem hồ sơ"
+                                        data-id="@item.UserID"
+                                        data-username="@item.Username"
+                                        data-email="@item.Email"
+                                        data-phone="@phone"
+                                        data-type="@(item.IsTDMUStudent ? "Sinh viên TDMU" : "Khách")"
+                                        data-role="@roleDetailText"
+                                        data-joined="@joinDate"
+                                        data-avatar="@item.Avatar">
+                                    <i class="bi bi-person-vcard"></i>
+                                </button>
+                                @if (isSuperAdmin || !item.IsAdmin)
+                                {
+                                    <button class="dk-btn edit btn-edit-user"
+                                            title="Chỉnh sửa"
+                                            data-id="@item.UserID"
+                                            data-username="@item.Username"
+                                            data-email="@item.Email"
+                                            data-is-tdmu="@item.IsTDMUStudent.ToString().ToLower()"
+                                            data-is-admin="@item.IsAdmin.ToString().ToLower()"
+                                            data-admin-role="@(item.AdminRole ?? "")">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <button class="dk-btn del btn-delete-user"
+                                            title="Xóa"
+                                            data-id="@item.UserID"
+                                            data-username="@item.Username">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@* ══ MODAL: Chi tiết (dùng chung) ══ *@
+<div class="modal fade dk-modal" id="detailsModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-person-vcard me-2" style="color:var(--dk-cyan)"></i>
+                    Hồ sơ người dùng #<span id="view-id"></span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="text-center mb-3">
+                    <img id="view-avatar" src="" alt="Avatar"
+                         class="dk-avatar-lg"
+                         onerror="this.src='/Content/Images/default-avatar.png'" />
+                    <div class="mt-2" style="font-size:18px;font-weight:700;color:var(--dk-cyan)" id="view-username"></div>
+                    <div style="font-size:13px;color:var(--dk-text3)" id="view-email"></div>
+                </div>
+                <table class="dk-info-table">
+                    <tr>
+                        <td>Số điện thoại</td>
+                        <td id="view-phone"></td>
+                    </tr>
+                    <tr>
+                        <td>Loại tài khoản</td>
+                        <td id="view-type"></td>
+                    </tr>
+                    <tr>
+                        <td>Vai trò</td>
+                        <td id="view-role"></td>
+                    </tr>
+                    <tr>
+                        <td>Ngày tham gia</td>
+                        <td id="view-joined"></td>
+                    </tr>
+                </table>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary w-100" data-bs-dismiss="modal">Đóng</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* ══ MODAL: Sửa (dùng chung) ══ *@
+<div class="modal fade dk-modal" id="editModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-pencil-square me-2" style="color:var(--dk-blue)"></i>
+                    Cập nhật thông tin #<span id="edit-id-label"></span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="@Url.Action("Edit", "AdminUser")" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="UserID" id="edit-UserID" />
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="fw-bold">Tên tài khoản</label>
+                            <input type="text" class="form-control" name="Username" id="edit-Username" required />
+                        </div>
+                        <div class="col-12">
+                            <label class="fw-bold">Email</label>
+                            <input type="email" class="form-control" name="Email" id="edit-Email" required />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="fw-bold">Loại tài khoản</label>
+                            <select class="form-select" name="IsTDMUStudent" id="edit-IsTDMU">
+                                <option value="true">SV TDMU</option>
+                                <option value="false">Khách</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="fw-bold">Vai trò / Phân quyền</label>
+                            @if (isSuperAdmin)
+                            {
+                                <select class="form-select" id="edit-RoleSelect" onchange="syncEditRole(this)">
+                                    <option value="User">Người dùng (User)</option>
+                                    <option value="SuperAdmin">Admin tối cao (SuperAdmin)</option>
+                                    <option value="AdminUser">Admin Quản lý Người dùng</option>
+                                    <option value="AdminMarket">Admin Quản lý Chợ</option>
+                                    <option value="AdminConnect">Admin Quản lý Kết nối</option>
+                                </select>
+                                <input type="hidden" name="IsAdmin" id="edit-IsAdmin" value="false" />
+                                <input type="hidden" name="AdminRole" id="edit-AdminRole" value="" />
+                            }
+                            else
+                            {
+                                <input type="text" class="form-control" value="Người dùng (User)" readonly disabled />
+                                <input type="hidden" name="IsAdmin" id="edit-IsAdmin" value="false" />
+                                <input type="hidden" name="AdminRole" id="edit-AdminRole" value="" />
+                            }
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-save me-1"></i>Lưu thay đổi
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@* ══ MODAL: Xóa (dùng chung) ══ *@
+<div class="modal fade dk-modal dk-modal-danger" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-exclamation-triangle me-2"></i>Xác nhận xóa
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" style="font-size:13px;color:var(--dk-text2)">
+                Bạn có chắc chắn muốn xóa tài khoản
+                <strong style="color:var(--dk-red)" id="delete-username-label"></strong>?
+                <p class="mt-2 mb-0" style="font-size:12px;color:var(--dk-text3)">
+                    Hành động này không thể hoàn tác.
+                </p>
+            </div>
+            <div class="modal-footer">
+                <form action="@Url.Action("Delete", "AdminUser")" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="id" id="delete-user-id" />
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-danger btn-sm">
+                        <i class="bi bi-trash me-1"></i>Xóa tài khoản
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* ══ MODAL: Thêm mới ══ *@
+<div class="modal fade dk-modal" id="createModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-person-plus-fill me-2" style="color:var(--dk-green)"></i>Thêm người dùng mới
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="@Url.Action("Create", "AdminUser")" method="post">
+                @Html.AntiForgeryToken()
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="fw-bold">Tên tài khoản</label>
+                            <input type="text" class="form-control" name="Username" placeholder="Nhập username..." required />
+                        </div>
+                        <div class="col-12">
+                            <label class="fw-bold">Email</label>
+                            <input type="email" class="form-control" name="Email" placeholder="example@gmail.com" required />
+                        </div>
+                        <div class="col-12">
+                            <label class="fw-bold">
+                                Mật khẩu
+                                <span style="color:var(--dk-text3);font-weight:400">(Mặc định: 123456)</span>
+                            </label>
+                            <input type="password" class="form-control" name="PasswordHash" placeholder="Để trống = dùng mặc định" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="fw-bold">Loại tài khoản</label>
+                            <select class="form-select" name="IsTDMUStudent">
+                                <option value="true">SV TDMU</option>
+                                <option value="false" selected>Khách</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="fw-bold">Vai trò / Phân quyền</label>
+                            @if (isSuperAdmin)
+                            {
+                                <select class="form-select" id="create-RoleSelect" onchange="syncCreateRole(this)">
+                                    <option value="User" selected>Người dùng (User)</option>
+                                    <option value="SuperAdmin">Admin tối cao (SuperAdmin)</option>
+                                    <option value="AdminUser">Admin Quản lý Người dùng</option>
+                                    <option value="AdminMarket">Admin Quản lý Chợ</option>
+                                    <option value="AdminConnect">Admin Quản lý Kết nối</option>
+                                </select>
+                                <input type="hidden" name="IsAdmin" id="create-IsAdmin" value="false" />
+                                <input type="hidden" name="AdminRole" id="create-AdminRole" value="" />
+                            }
+                            else
+                            {
+                                <input type="text" class="form-control" value="Người dùng (User)" readonly disabled />
+                                <input type="hidden" name="IsAdmin" value="false" />
+                                <input type="hidden" name="AdminRole" value="" />
+                            }
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-person-check me-1"></i>Xác nhận thêm
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section scripts {
+    <script>
+        function syncCreateRole(select) {
+            var val = $(select).val();
+            if (val === 'User') {
+                $('#create-IsAdmin').val('false');
+                $('#create-AdminRole').val('');
+            } else {
+                $('#create-IsAdmin').val('true');
+                $('#create-AdminRole').val(val);
+            }
+        }
+
+        function syncEditRole(select) {
+            var val = $(select).val();
+            if (val === 'User') {
+                $('#edit-IsAdmin').val('false');
+                $('#edit-AdminRole').val('');
+            } else {
+                $('#edit-IsAdmin').val('true');
+                $('#edit-AdminRole').val(val);
+            }
+        }
+
+        $(document).ready(function () {
+
+            // ── DataTables (language inline) ─────────────────────────────────
+            var table = $('#userTable').DataTable({
+                order: [[0, 'desc']],
+                pageLength: 10,
+                language: {
+                    lengthMenu: 'Hiển thị _MENU_ người dùng',
+                    zeroRecords: 'Không tìm thấy người dùng nào',
+                    info: 'Trang _PAGE_ / _PAGES_',
+                    infoEmpty: 'Không có dữ liệu',
+                    infoFiltered: '(lọc từ _MAX_ người dùng)',
+                    search: 'Tìm kiếm:',
+                    paginate: { first: '«', last: '»', next: '›', previous: '‹' }
+                }
+            });
+
+            // Cập nhật badge đếm
+            table.on('draw', function () {
+                $('#recordCount').text(table.rows({ search: 'applied' }).count());
+            });
+
+            // ── Modal Chi tiết ────────────────────────────────────────────────
+            $(document).on('click', '.btn-view-detail', function () {
+                var d = $(this).data();
+                $('#view-id').text(d.id);
+                $('#view-avatar').attr('src', d.avatar || '/Content/Images/default-avatar.png');
+                $('#view-username').text(d.username);
+                $('#view-email').text(d.email);
+                $('#view-phone').text(d.phone);
+                $('#view-type').text(d.type);
+                $('#view-role').text(d.role);
+                $('#view-joined').text(d.joined);
+                new bootstrap.Modal(document.getElementById('detailsModal')).show();
+            });
+
+            // ── Modal Sửa ────────────────────────────────────────────────────
+            $(document).on('click', '.btn-edit-user', function () {
+                var d = $(this).data();
+                $('#edit-id-label').text(d.id);
+                $('#edit-UserID').val(d.id);
+                $('#edit-Username').val(d.username);
+                $('#edit-Email').val(d.email);
+                $('#edit-IsTDMU').val(d.isTdmu);
+
+                var isAdmin = (d.isAdmin === true || d.isAdmin === 'true');
+                var roleVal = 'User';
+                if (isAdmin) {
+                    roleVal = d.adminRole || 'SuperAdmin';
+                }
+                var editSelect = document.getElementById('edit-RoleSelect');
+                if (editSelect) {
+                    $(editSelect).val(roleVal);
+                    syncEditRole(editSelect);
+                } else {
+                    $('#edit-IsAdmin').val(isAdmin ? 'true' : 'false');
+                    $('#edit-AdminRole').val(d.adminRole || '');
+                }
+
+                new bootstrap.Modal(document.getElementById('editModal')).show();
+            });
+
+            // ── Modal Xóa ────────────────────────────────────────────────────
+            $(document).on('click', '.btn-delete-user', function () {
+                var d = $(this).data();
+                $('#delete-user-id').val(d.id);
+                $('#delete-username-label').text('"' + d.username + '"');
+                new bootstrap.Modal(document.getElementById('deleteModal')).show();
+            });
+
+            // ── Auto-dismiss toast sau 4 giây ────────────────────────────────
+            document.querySelectorAll('.toast.show').forEach(function (el) {
+                setTimeout(function () {
+                    new bootstrap.Toast(el, { delay: 400 }).hide();
+                }, 4000);
+            });
+
+        });
+    </script>
+}

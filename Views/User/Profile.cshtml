@@ -1,0 +1,491 @@
+﻿@model StudentConnect.Models.User
+@{
+    ViewBag.Title = "Hồ sơ cá nhân";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<style>
+    :root {
+        --c-bg: #050c1a; --c-surface: #0d1626;
+        --c-surface2: #111d30; --c-surface3: #162035;
+        --c-border: #1a2540; --c-border2: #232840;
+        --c-cyan: #00c8ff; --c-purple: #7b61ff;
+        --c-green: #00c850; --c-red: #e24b4a;
+        --c-amber: #ef9f27; --c-text: rgba(255,255,255,0.9);
+        --c-muted: #8b94a5; --c-hint: #4a5568;
+        --radius: 14px; --tr: 0.2s ease;
+    }
+
+    .profile-page {
+        max-width: 660px;
+        margin: 0 auto;
+        padding: 2rem 1rem 4rem;
+    }
+
+    /* ── TOAST ── */
+    .dk-toast {
+        display: flex; align-items: center;
+        border-radius: 10px; padding: 10px 14px;
+        gap: 9px; font-size: 13px;
+        backdrop-filter: blur(8px);
+    }
+    .dk-toast-success {
+        background: rgba(0,200,80,0.1);
+        border: 1px solid rgba(0,200,80,0.25);
+        color: var(--c-green);
+    }
+    .dk-toast-error {
+        background: rgba(226,75,74,0.1);
+        border: 1px solid rgba(226,75,74,0.25);
+        color: var(--c-red);
+    }
+    .dk-toast .btn-close { filter: invert(1) brightness(.7); }
+
+    /* ── HEADER ── */
+    .profile-header {
+        display: flex; align-items: center;
+        gap: 13px; margin-bottom: 1.75rem;
+    }
+    .profile-header-icon {
+        width: 42px; height: 42px; border-radius: 12px;
+        background: rgba(0,200,255,0.1);
+        border: 1px solid rgba(0,200,255,0.25);
+        display: flex; align-items: center; justify-content: center;
+        color: var(--c-cyan); font-size: 19px; flex-shrink: 0;
+    }
+    .profile-header h1 {
+        font-size: 1.15rem; font-weight: 700;
+        color: var(--c-text); margin: 0;
+    }
+    .profile-header p {
+        font-size: 12px; color: var(--c-hint); margin: 2px 0 0;
+    }
+
+    /* ── AVATAR BLOCK ── */
+    .avatar-block {
+        background: var(--c-surface);
+        border: 1px solid var(--c-border2);
+        border-radius: var(--radius);
+        padding: 1.5rem;
+        margin-bottom: 1.25rem;
+        display: flex; align-items: center;
+        gap: 1.5rem; flex-wrap: wrap;
+        position: relative; overflow: hidden;
+    }
+    .avatar-block::before {
+        content: '';
+        position: absolute; top: 0; left: 0; right: 0; height: 1px;
+        background: linear-gradient(90deg, transparent, rgba(0,200,255,0.4), transparent);
+    }
+    .avatar-wrap { position: relative; flex-shrink: 0; }
+    .avatar-img {
+        width: 88px; height: 88px;
+        border-radius: 18px; object-fit: cover;
+        border: 2px solid var(--c-border2); display: block;
+        transition: border-color var(--tr);
+    }
+    .avatar-wrap:hover .avatar-img { border-color: rgba(0,200,255,0.4); }
+    .avatar-cam {
+        position: absolute; bottom: -6px; right: -6px;
+        width: 26px; height: 26px; border-radius: 8px;
+        background: var(--c-cyan); border: 2px solid var(--c-surface);
+        display: flex; align-items: center; justify-content: center;
+        color: #000; font-size: 11px; cursor: pointer;
+        transition: background var(--tr);
+    }
+    .avatar-cam:hover { background: #00b0e0; }
+
+    .avatar-meta { flex: 1; min-width: 0; }
+    .avatar-name {
+        font-size: 1.05rem; font-weight: 700; color: var(--c-text);
+        margin: 0 0 2px; overflow: hidden;
+        text-overflow: ellipsis; white-space: nowrap;
+    }
+    .avatar-email { font-size: 12px; color: var(--c-hint); margin-bottom: 10px; }
+
+    .avatar-badges { display: flex; gap: 7px; flex-wrap: wrap; }
+    .dk-badge {
+        display: inline-flex; align-items: center;
+        gap: 5px; padding: 3px 10px; border-radius: 20px;
+        font-size: 11px; font-weight: 500;
+    }
+    .badge-tdmu {
+        background: rgba(0,200,255,0.1); color: var(--c-cyan);
+        border: 1px solid rgba(0,200,255,0.25);
+    }
+    .badge-guest {
+        background: var(--c-surface2); color: var(--c-muted);
+        border: 1px solid var(--c-border2);
+    }
+    .badge-admin {
+        background: rgba(226,75,74,0.1); color: var(--c-red);
+        border: 1px solid rgba(226,75,74,0.2);
+    }
+    .badge-user {
+        background: rgba(123,97,255,0.1); color: var(--c-purple);
+        border: 1px solid rgba(123,97,255,0.2);
+    }
+
+    .avatar-hint {
+        font-size: 11px; color: var(--c-hint);
+        margin-top: 9px; display: flex;
+        align-items: center; gap: 5px;
+    }
+
+    #avatarPreviewBanner {
+        display: none; margin-top: 8px;
+        background: rgba(0,200,255,0.07);
+        border: 1px solid rgba(0,200,255,0.2);
+        border-radius: 8px; padding: 7px 12px;
+        font-size: 12px; color: var(--c-cyan);
+        align-items: center; gap: 8px;
+    }
+    #avatarPreviewBanner.show { display: flex; }
+    .banner-dismiss {
+        background: none; border: none; color: inherit;
+        cursor: pointer; font-size: 16px; padding: 0;
+        line-height: 1; margin-left: auto;
+    }
+
+    /* ── SECTION CARD ── */
+    .section-card {
+        background: var(--c-surface);
+        border: 1px solid var(--c-border2);
+        border-radius: var(--radius);
+        overflow: hidden; margin-bottom: 1.25rem;
+    }
+    .section-head {
+        background: var(--c-surface2);
+        border-bottom: 1px solid var(--c-border);
+        padding: 11px 18px;
+        display: flex; align-items: center; gap: 9px;
+    }
+    .section-head i { color: var(--c-cyan); font-size: 14px; }
+    .section-head span {
+        font-size: 12px; font-weight: 600;
+        color: var(--c-text); letter-spacing: .03em;
+    }
+    .section-body { padding: 18px; }
+
+    /* ── FORM ── */
+    .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px; margin-bottom: 14px;
+    }
+    .form-row.full { grid-template-columns: 1fr; }
+    @@media (max-width: 520px) { .form-row { grid-template-columns: 1fr; } }
+
+    .form-group { display: flex; flex-direction: column; gap: 5px; }
+    .form-label {
+        font-size: 10px; color: var(--c-hint);
+        font-weight: 600; text-transform: uppercase;
+        letter-spacing: .07em;
+    }
+    .form-label .req { color: var(--c-red); margin-left: 2px; }
+
+    .form-control {
+        background: var(--c-surface2) !important;
+        border: 1px solid var(--c-border) !important;
+        border-radius: 9px !important;
+        color: var(--c-text) !important;
+        font-size: 13px !important;
+        padding: 9px 13px !important;
+        outline: none;
+        transition: border-color var(--tr), box-shadow var(--tr);
+        width: 100%;
+    }
+    .form-control:focus {
+        border-color: rgba(0,200,255,0.4) !important;
+        box-shadow: 0 0 0 3px rgba(0,200,255,0.07) !important;
+    }
+    .form-control::placeholder { color: var(--c-hint) !important; }
+
+    /* ── INFO GRID ── */
+    .info-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+    }
+    @@media (max-width: 480px) { .info-grid { grid-template-columns: 1fr; } }
+
+    .info-item {
+        background: var(--c-surface2);
+        border: 1px solid var(--c-border);
+        border-radius: 10px; padding: 11px 14px;
+    }
+    .info-item-label {
+        font-size: 10px; color: var(--c-hint);
+        text-transform: uppercase; letter-spacing: .07em;
+        margin-bottom: 5px;
+    }
+    .info-item-value {
+        font-size: 13px; color: var(--c-text); font-weight: 500;
+    }
+
+    /* ── BUTTONS ── */
+    .btn-save {
+        display: inline-flex; align-items: center; gap: 7px;
+        padding: 9px 22px; border-radius: 50px;
+        background: var(--c-cyan); border: none;
+        color: #000; font-size: 13px; font-weight: 700;
+        cursor: pointer; transition: background var(--tr);
+    }
+    .btn-save:hover { background: #00b0e0; }
+
+    .btn-cancel {
+        display: inline-flex; align-items: center; gap: 7px;
+        padding: 9px 18px; border-radius: 50px;
+        background: none;
+        border: 1px solid var(--c-border2);
+        color: var(--c-muted); font-size: 13px;
+        cursor: pointer; transition: all var(--tr);
+        text-decoration: none;
+    }
+    .btn-cancel:hover {
+        background: rgba(255,255,255,0.04);
+        border-color: rgba(255,255,255,0.2);
+        color: var(--c-text);
+    }
+
+    .error-feedback {
+    color: #ff4d4d;
+    font-size: 11px;
+    margin-top: 8px;
+    padding: 8px 12px;
+    background: rgba(255, 77, 77, 0.1);
+    border-radius: 8px;
+    border-left: 3px solid #ff4d4d;
+    animation: slideIn 0.3s ease-out;
+}
+
+@@keyframes slideIn {
+    from { opacity: 0; transform: translateY(-5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+</style>
+
+@if (TempData["Success"] != null)
+{
+    <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index:9999">
+        <div class="toast show border-0 dk-toast dk-toast-success" role="alert">
+            <i class="bi bi-check-circle-fill"></i>
+            <div class="flex-grow-1">@TempData["Success"]</div>
+            <button type="button" class="btn-close ms-2" data-bs-dismiss="toast"></button>
+        </div>
+    </div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index:9999">
+        <div class="toast show border-0 dk-toast dk-toast-error" role="alert">
+            <i class="bi bi-x-circle-fill"></i>
+            <div class="flex-grow-1">@TempData["Error"]</div>
+            <button type="button" class="btn-close ms-2" data-bs-dismiss="toast"></button>
+        </div>
+    </div>
+}
+
+@{
+    var joinDate = Model.CreatedAt.HasValue ? Model.CreatedAt.Value.ToString("dd/MM/yyyy") : "N/A";
+    var avatarSrc = string.IsNullOrEmpty(Model.Avatar)
+        ? "https://ui-avatars.com/api/?name=" + Uri.EscapeDataString(Model.Username) + "&background=0d1626&color=00c8ff&size=200"
+        : Model.Avatar;
+}
+
+<div class="profile-page">
+
+    <div class="profile-header">
+        <div class="profile-header-icon"><i class="bi bi-person-circle"></i></div>
+        <div>
+            <h1>Hồ sơ cá nhân</h1>
+            <p>Xem và chỉnh sửa thông tin của bạn</p>
+        </div>
+    </div>
+
+    <form action="@Url.Action("UpdateProfile","User")" method="post" enctype="multipart/form-data">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="UserID" value="@Model.UserID" />
+        <input type="file" id="avatarFileInput" name="avatarFile" accept="image/*" style="display:none" />
+
+        <div class="avatar-block">
+            <div class="avatar-wrap">
+                <img id="avatarImg" src="@avatarSrc" alt="Avatar" class="avatar-img"
+                     onerror="this.src='https://ui-avatars.com/api/?name=@Uri.EscapeDataString(Model.Username)&background=0d1626&color=00c8ff&size=200'" />
+                <div class="avatar-cam" onclick="document.getElementById('avatarFileInput').click()" title="Đổi ảnh đại diện">
+                    <i class="bi bi-camera-fill"></i>
+                </div>
+            </div>
+            <div class="avatar-meta">
+                <div class="avatar-name">@Model.Username</div>
+                <div class="avatar-email">@Model.Email</div>
+                <div class="avatar-badges">
+                    @if (Model.IsTDMUStudent)
+                    {<span class="dk-badge badge-tdmu"><i class="bi bi-mortarboard-fill"></i> SV TDMU</span>}
+                    else
+                    {<span class="dk-badge badge-guest"><i class="bi bi-person"></i> Khách</span>}
+
+                    @if (Model.IsAdmin)
+                    {<span class="dk-badge badge-admin"><i class="bi bi-shield-fill"></i> Admin</span>}
+                    else
+                    {<span class="dk-badge badge-user"><i class="bi bi-person-check"></i> User</span>}
+                </div>
+                <div class="avatar-hint">
+                    <i class="bi bi-info-circle"></i> Nhấn vào biểu tượng máy ảnh để đổi ảnh
+                </div>
+                <div id="avatarPreviewBanner">
+                    <i class="bi bi-image"></i>
+                    <span id="avatarFileName"></span>
+                    <button type="button" class="banner-dismiss" onclick="clearAvatar()">×</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="section-card">
+            <div class="section-head">
+                <i class="bi bi-person-fill"></i>
+                <span>Thông tin cá nhân</span>
+            </div>
+            <div class="section-body">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Tên tài khoản <span class="req">*</span></label>
+                        <input type="text" class="form-control" name="Username"
+                               value="@Model.Username" required placeholder="Nhập tên tài khoản..." />
+                    </div>
+                    <div class="form-group mb-3">
+                        <label class="form-label">Email <span class="req">*</span></label>
+                        <input type="email"
+                               class="form-control"
+                               name="Email"
+                               id="emailInput" @* Thêm ID để JS bắt sự kiện *@
+                               value="@Model.Email"
+                               required
+                               pattern=".+@@student\.tdmu\.edu\.vn"
+                               placeholder="mssv@@student.tdmu.edu.vn" />
+
+                        @* 1. Dòng hướng dẫn (Luôn hiện) *@
+                        <div class="mt-1 d-flex align-items-center gap-1" style="font-size: 10px; color: var(--dk-cyan); opacity: 0.8;">
+                            <i class="bi bi-info-circle"></i>
+                            <span>Hệ thống chỉ chấp nhận email sinh viên TDMU</span>
+                        </div>
+
+                        @* 2. Thông báo lỗi Custom (Chỉ hiện khi nhập sai - Điều khiển bằng JS) *@
+                        <div id="emailError" class="error-feedback" style="display: none;">
+                            <i class="bi bi-exclamation-circle-fill me-1"></i>
+                            <span>Định dạng email không hợp lệ hoặc không phải của TDMU!</span>
+                        </div>
+
+                        @* 3. Hiển thị lỗi từ Server (Controller) gửi về *@
+                        @Html.ValidationMessageFor(m => m.Email, "", new { @class = "text-danger d-block", style = "font-size: 11px; margin-top: 4px;" })
+                    </div>
+                </div>
+                <div class="form-row full">
+                    <div class="form-group">
+                        <label class="form-label">Số điện thoại</label>
+                        <input type="text" class="form-control" name="PhoneNumber"
+                               value="@Model.PhoneNumber" placeholder="VD: 0901234567" />
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex gap-2 justify-content-end mb-4">
+            <a href="@Url.Action("Index","Home")" class="btn-cancel">
+                <i class="bi bi-x-lg" style="font-size:11px;"></i> Hủy
+            </a>
+            <button type="submit" class="btn-save">
+                <i class="bi bi-floppy-fill" style="font-size:12px;"></i> Lưu thay đổi
+            </button>
+        </div>
+    </form>
+
+    <div class="section-card">
+        <div class="section-head">
+            <i class="bi bi-shield-lock-fill"></i>
+            <span>Thông tin tài khoản</span>
+        </div>
+        <div class="section-body">
+            <div class="info-grid">
+                <div class="info-item">
+                    <div class="info-item-label">ID tài khoản</div>
+                    <div class="info-item-value" style="color:var(--c-cyan);">#@Model.UserID</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-item-label">Ngày tham gia</div>
+                    <div class="info-item-value">@joinDate</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-item-label">Loại tài khoản</div>
+                    <div class="info-item-value">
+                        @if (Model.IsTDMUStudent)
+                        {<span style="color:var(--c-cyan);">Sinh viên TDMU</span>}
+                        else
+                        {<span style="color:var(--c-muted);">Khách</span>}
+                    </div>
+                </div>
+                <div class="info-item">
+                    <div class="info-item-label">Vai trò</div>
+                    <div class="info-item-value">
+                        @if (Model.IsAdmin)
+                        {<span style="color:var(--c-red);">Quản trị viên</span>}
+                        else
+                        {<span style="color:var(--c-purple);">Người dùng</span>}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+@section scripts {
+    <script>
+        $(function () {
+            var originalSrc = $('#avatarImg').attr('src');
+
+            $('#avatarFileInput').on('change', function () {
+                var file = this.files[0];
+                if (!file) return;
+                var reader = new FileReader();
+                reader.onload = function (e) { $('#avatarImg').attr('src', e.target.result); };
+                reader.readAsDataURL(file);
+                $('#avatarFileName').text(file.name);
+                $('#avatarPreviewBanner').addClass('show');
+            });
+
+            window.clearAvatar = function () {
+                $('#avatarFileInput').val('');
+                $('#avatarImg').attr('src', originalSrc);
+                $('#avatarPreviewBanner').removeClass('show');
+            };
+
+            document.querySelectorAll('.toast.show').forEach(function (el) {
+                setTimeout(function () {
+                    new bootstrap.Toast(el, { delay: 400 }).hide();
+                }, 4000);
+            });
+        });
+
+        // báo lỗi custom cho email (bên cạnh validation message của MVC)
+        $(function () {
+            const emailInput = document.getElementById('emailInput');
+            const errorDiv = document.getElementById('emailError');
+
+            // Khi người dùng nhấn Submit mà nhập sai, chặn thông báo xấu của trình duyệt
+            emailInput.addEventListener('invalid', function (e) {
+                e.preventDefault();
+                $(this).addClass('is-invalid');
+                $(errorDiv).fadeIn(200);
+            });
+
+            // Khi đang gõ, nếu gõ đúng thì tự động ẩn lỗi ngay lập tức
+            $(emailInput).on('input', function () {
+                if (this.validity.valid) {
+                    $(this).removeClass('is-invalid');
+                    $(errorDiv).fadeOut(200);
+                }
+            });
+        });
+    </script>
+}

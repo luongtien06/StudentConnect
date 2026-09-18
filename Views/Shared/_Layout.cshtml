@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>@ViewBag.Title - TDMU EcoSystem</title>
+    @Styles.Render("~/Content/css")
+    @Scripts.Render("~/bundles/modernizr")
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --tdmu-bg: #050a14;
+            --tdmu-surface: rgba(255,255,255,0.03);
+            --tdmu-border: rgba(255,255,255,0.08);
+            --tdmu-cyan: #00c8ff;
+            --tdmu-green: #00c850;
+            --tdmu-purple: #7b61ff;
+            --tdmu-text: rgba(255,255,255,0.85);
+            --tdmu-muted: rgba(255,255,255,0.4);
+        }
+        * { box-sizing: border-box; }
+        html, body {
+            background-color: var(--tdmu-bg) !important;
+            font-family: 'Space Grotesk', sans-serif;
+            color: var(--tdmu-text);  min-height: 100vh;
+            background: linear-gradient(270deg, black, #030031, #1d1531);
+            background-size: 400% 400%;
+            animation: gradientShift 25s ease infinite;
+        }
+        @@keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        body::before {
+            content: '';
+            position: fixed; inset: 0; z-index: 0;
+            background-image:
+                linear-gradient(rgba(0,200,255,0.035) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0,200,255,0.035) 1px, transparent 1px);
+            background-size: 48px 48px;
+            pointer-events: none;
+        }
+        body::after {
+            content: '';
+            position: fixed;
+            width: 500px; height: 500px;
+            top: -150px; left: -100px;
+            background: radial-gradient(circle, rgba(0,80,200,0.18), transparent 70%);
+            border-radius: 50%; filter: blur(60px);
+            pointer-events: none; z-index: 0;
+        }
+        @@keyframes pageEnter {
+            from { opacity: 0; transform: translateY(18px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        @@keyframes pageLeave {
+            from { opacity: 1; transform: translateY(0); }
+            to   { opacity: 0; transform: translateY(-10px); }
+        }
+        .body-content {
+            animation: pageEnter 0.4s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+            position: relative; z-index: 2;
+        }
+        body.page-leaving .body-content {
+            animation: pageLeave 0.35s ease forwards;
+        }
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(0,200,255,0.2); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(0,200,255,0.4); }
+
+        .swal2-popup {
+            background: #0d1626 !important;
+            border: 1px solid rgba(0,200,255,0.2) !important;
+            border-radius: 16px !important;
+            font-family: 'Space Grotesk', sans-serif !important;
+            color: #fff !important;
+        }
+        .swal2-title { color: #fff !important; font-weight: 600 !important; }
+        .swal2-content { color: rgba(255,255,255,0.6) !important; }
+        .swal2-confirm {
+            background: rgba(0,200,255,0.15) !important;
+            border: 1px solid rgba(0,200,255,0.35) !important;
+            color: #00c8ff !important;
+            border-radius: 100px !important;
+            font-family: 'Space Grotesk', sans-serif !important;
+        }
+        .swal2-cancel {
+            background: rgba(255,255,255,0.06) !important;
+            border: 1px solid rgba(255,255,255,0.1) !important;
+            color: rgba(255,255,255,0.6) !important;
+            border-radius: 100px !important;
+        }
+        .swal2-timer-progress-bar { background: var(--tdmu-cyan) !important; }
+
+        .card {
+            background: rgba(255,255,255,0.03) !important;
+            border: 1px solid rgba(255,255,255,0.08) !important;
+            border-radius: 16px !important;
+            color: var(--tdmu-text) !important;
+        }
+        .btn-primary {
+            background: rgba(0,200,255,0.12) !important;
+            border: 1px solid rgba(0,200,255,0.35) !important;
+            color: #00c8ff !important;
+            border-radius: 100px !important;
+            font-weight: 500 !important;
+        }
+        .btn-primary:hover {
+            background: rgba(0,200,255,0.25) !important;
+            border-color: rgba(0,200,255,0.6) !important;
+            color: #fff !important;
+        }
+        .form-control, .form-select {
+            background: rgba(255,255,255,0.04) !important;
+            border: 1px solid rgba(255,255,255,0.1) !important;
+            color: #fff !important;
+            border-radius: 10px !important;
+        }
+        .form-control:focus, .form-select:focus {
+            background: rgba(255,255,255,0.06) !important;
+            border-color: rgba(0,200,255,0.4) !important;
+            box-shadow: 0 0 0 3px rgba(0,200,255,0.1) !important;
+            color: #fff !important;
+        }
+        .form-control::placeholder { color: rgba(255,255,255,0.25) !important; }
+        .text-muted { color: rgba(255,255,255,0.4) !important; }
+        .table { color: var(--tdmu-text) !important; }
+        .table-bordered > :not(caption) > * > * { border-color: rgba(255,255,255,0.07) !important; }
+        .badge { border-radius: 100px !important; font-family: 'JetBrains Mono', monospace !important; font-size: 10px !important; letter-spacing: 0.06em !important; }
+        .modal-content {
+            background: #0d1626 !important;
+            border: 1px solid rgba(0,200,255,0.15) !important;
+            border-radius: 20px !important;
+        }
+        .modal-header { border-bottom: 1px solid rgba(255,255,255,0.07) !important; }
+        .modal-footer { border-top: 1px solid rgba(255,255,255,0.07) !important; }
+        .modal-title { color: #fff !important; font-weight: 600 !important; }
+        .dropdown-menu {
+            background: #0d1626 !important;
+            border: 1px solid rgba(255,255,255,0.1) !important;
+            border-radius: 12px !important;
+            padding: 6px !important;
+        }
+        .dropdown-item { color: rgba(255,255,255,0.65) !important; border-radius: 8px !important; font-size: 13px !important; }
+        .dropdown-item:hover { background: rgba(255,255,255,0.06) !important; color: #fff !important; }
+        .dropdown-divider { border-color: rgba(255,255,255,0.08) !important; }
+
+        .site-footer {
+            background: rgba(5,10,20,0.98);
+            border-top: 1px solid rgba(0,200,255,0.08);
+            padding: 1.5rem 0;
+            position: relative; z-index: 2;
+            margin-top: auto;
+        }
+        .footer-inner {
+            display: flex; align-items: center; justify-content: space-between;
+            flex-wrap: wrap; gap: 12px;
+        }
+        .footer-brand {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px; color: rgba(255,255,255,0.2); letter-spacing: 0.08em;
+        }
+        .footer-links { display: flex; gap: 20px; list-style: none; padding: 0; margin: 0; }
+        .footer-links a { font-size: 12px; color: rgba(255,255,255,0.3); text-decoration: none; transition: color 0.2s; }
+        .footer-links a:hover { color: rgba(0,200,255,0.7); }
+        .footer-status {
+            display: flex; align-items: center; gap: 6px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px; color: rgba(0,200,80,0.7); letter-spacing: 0.08em;
+        }
+        .footer-status-dot {
+            width: 5px; height: 5px; border-radius: 50%;
+            background: #00c850; animation: blink 2s infinite;
+        }
+        @@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+    </style>
+
+    @RenderSection("styles", required: false)
+    @RenderSection("Modals", required: false)
+</head>
+<body class="d-flex flex-column min-vh-100">
+
+    @Html.Partial("_Navbar")
+    @Html.AntiForgeryToken()
+
+    <div class="container body-content flex-grow-1 py-4">
+        @RenderBody()
+    </div>
+
+    @Html.Partial("_Footer")
+
+    @Scripts.Render("~/bundles/jquery")
+    @Scripts.Render("~/bundles/bootstrap")
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/Scripts/jquery.signalR-2.4.3.min.js"></script>
+    <script src="~/signalr/hubs"></script>
+
+    @RenderSection("scripts", required: false)
+
+    <script>
+    $(function () {
+        var currentUserId = @(Session["UserID"] ?? 0);
+        if (currentUserId <= 0) return;
+
+        var hub = $.connection.chatHub;
+        if (hub) {
+            // Lắng nghe thông báo đẩy Real-time toàn trang
+            hub.client.receiveNotification = function (notif) {
+                if (typeof window.onReceiveNotification === 'function') {
+                    window.onReceiveNotification(notif);
+                }
+            };
+
+            var isChatPage = @(ViewBag.IsChatPage != null ? "true" : "false");
+            if (!isChatPage) {
+                hub.client.receiveChatInvitation = function (fromId, fromName, roomId, forUserId) {
+                    if (forUserId == currentUserId) {
+                        Swal.fire({
+                            title: 'Tin nhắn riêng mới',
+                            text: fromName + " đã nhắn tin trò chuyện với bạn!",
+                            icon: 'info',
+                            showCancelButton: true,
+                            confirmButtonColor: 'rgba(0,200,255,0.8)',
+                            cancelButtonColor: 'rgba(255,255,255,0.1)',
+                            confirmButtonText: 'Mở đoạn chat',
+                            cancelButtonText: 'Để sau',
+                            toast: true,
+                            position: 'top-end',
+                            timer: 10000,
+                            timerProgressBar: true
+                        }).then((result) => {
+                            if (result.isConfirmed) {
+                                window.location.href = '/Chat/Private/' + roomId;
+                            }
+                        });
+                    }
+                };
+
+                $.connection.hub.start().done(function () {
+                    console.log("Hub connected, userId:", currentUserId);
+                    if (hub.server && hub.server.joinUser) {
+                        hub.server.joinUser(currentUserId);
+                    }
+                });
+            }
+        }
+    });
+
+    // ── PAGE TRANSITION & BROWSER BACK/FORWARD RELOAD
+    (function () {
+        window.addEventListener('pageshow', function (event) {
+            var perfEntries = (window.performance && window.performance.getEntriesByType) ? window.performance.getEntriesByType("navigation") : [];
+            var isBackForward = event.persisted || (perfEntries.length > 0 && perfEntries[0].type === 'back_forward');
+
+            if (isBackForward) {
+                window.location.reload();
+            } else {
+                document.body.classList.remove('page-leaving');
+            }
+        });
+
+        document.querySelectorAll('a[href]').forEach(function (link) {
+            var href = link.getAttribute('href');
+            if (!href || href.startsWith('#') || href.startsWith('javascript') ||
+                href.startsWith('http') || link.hasAttribute('download') ||
+                link.getAttribute('target') === '_blank') return;
+
+            link.addEventListener('click', function (e) {
+                e.preventDefault();
+                var dest = this.href;
+                document.body.classList.add('page-leaving');
+                setTimeout(function () { window.location.href = dest; }, 220);
+            });
+        });
+
+        document.querySelectorAll('form').forEach(function (form) {
+            form.addEventListener('submit', function () {
+                document.body.classList.add('page-leaving');
+            });
+        });
+    })();
+    </script>
+</body>
+</html>

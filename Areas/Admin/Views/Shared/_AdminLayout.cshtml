@@ -1,0 +1,1817 @@
+@{
+    string currentAdminRole = Session["AdminRole"] as string ?? "SuperAdmin";
+    bool isSuperAdmin = currentAdminRole == "SuperAdmin";
+    bool canUser = isSuperAdmin || currentAdminRole == "AdminUser";
+    bool canMarket = isSuperAdmin || currentAdminRole == "AdminMarket";
+    bool canConnect = isSuperAdmin || currentAdminRole == "AdminConnect";
+    bool canChat = isSuperAdmin;
+
+    string roleDisplayName = "Quản trị viên";
+    string roleTagClass = "tag-superadmin";
+    string roleIcon = "bi-shield-shaded";
+
+    if (currentAdminRole == "SuperAdmin")
+    {
+        roleDisplayName = "Admin tối cao";
+        roleTagClass = "tag-superadmin";
+        roleIcon = "bi-shield-fill-check";
+    }
+    else if (currentAdminRole == "AdminUser")
+    {
+        roleDisplayName = "QL Người dùng";
+        roleTagClass = "tag-adminuser";
+        roleIcon = "bi-person-gear";
+    }
+    else if (currentAdminRole == "AdminMarket")
+    {
+        roleDisplayName = "QL Chợ";
+        roleTagClass = "tag-adminmarket";
+        roleIcon = "bi-shop-window";
+    }
+    else if (currentAdminRole == "AdminConnect")
+    {
+        roleDisplayName = "QL Kết nối";
+        roleTagClass = "tag-adminconnect";
+        roleIcon = "bi-globe";
+    }
+}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>@ViewBag.Title - TDMU Admin</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <link href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --sb-w: 240px;
+            --sb-w-collapsed: 62px;
+            --sb-bg: #070d1a;
+            --sb-border: rgba(255,255,255,0.07);
+            --sb-cyan: #00c8ff;
+            --sb-purple: #7b61ff;
+            --sb-text: rgba(255,255,255,0.55);
+            --sb-text-hover: rgba(255,255,255,0.9);
+            --content-bg: #050a14;
+            --transition: 0.28s cubic-bezier(0.4,0,0.2,1);
+        }
+
+        *, *::before, *::after {
+            box-sizing: border-box;
+        }
+
+        body {
+            display: flex;
+            min-height: 100vh;
+            margin: 0;
+            font-family: 'Space Grotesk', sans-serif;
+            background: var(--content-bg);
+            overflow-x: hidden;
+        }
+
+        /* ── SIDEBAR ── */
+        .admin-sidebar {
+            width: var(--sb-w);
+            background: var(--sb-bg);
+            border-right: 1px solid var(--sb-border);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+            position: fixed;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            z-index: 100;
+            transition: width var(--transition);
+            overflow: hidden;
+        }
+
+            .admin-sidebar::after {
+                content: '';
+                position: absolute;
+                top: 0;
+                right: 0;
+                bottom: 0;
+                width: 1px;
+                background: linear-gradient(180deg, transparent, rgba(0,200,255,0.25), rgba(123,97,255,0.2), transparent);
+            }
+
+        body.sidebar-collapsed .admin-sidebar {
+            width: var(--sb-w-collapsed);
+        }
+
+        /* LOGO */
+        .sb-logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 0 16px;
+            height: 62px;
+            flex-shrink: 0;
+            border-bottom: 1px solid var(--sb-border);
+            overflow: hidden;
+            white-space: nowrap;
+        }
+
+        .sb-logo-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 9px;
+            flex-shrink: 0;
+            background: rgba(0,200,255,0.1);
+            border: 1px solid rgba(0,200,255,0.25);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            color: var(--sb-cyan);
+        }
+
+        .sb-logo-text {
+            display: flex;
+            flex-direction: column;
+            line-height: 1.2;
+            transition: opacity var(--transition), transform var(--transition);
+        }
+
+        .sb-logo-name {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            font-weight: 600;
+            color: #fff;
+            letter-spacing: 0.06em;
+        }
+
+        .sb-logo-sub {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 9px;
+            color: rgba(0,200,255,0.5);
+            letter-spacing: 0.1em;
+        }
+
+        body.sidebar-collapsed .sb-logo-text {
+            opacity: 0;
+            transform: translateX(-8px);
+            pointer-events: none;
+        }
+
+        /* TOGGLE BUTTON */
+        .sb-toggle {
+            position: absolute;
+            top: 16px;
+            right: -13px;
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            background: #0d1626;
+            border: 1px solid rgba(0,200,255,0.25);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 101;
+            color: var(--sb-cyan);
+            font-size: 11px;
+            transition: all var(--transition);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+        }
+
+            .sb-toggle:hover {
+                background: rgba(0,200,255,0.15);
+                transform: scale(1.1);
+            }
+
+            .sb-toggle .toggle-icon {
+                transition: transform var(--transition);
+            }
+
+        body.sidebar-collapsed .sb-toggle .toggle-icon {
+            transform: rotate(180deg);
+        }
+
+        /* NAV LINKS */
+        .sb-nav {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding: 8px 8px;
+        }
+
+            .sb-nav::-webkit-scrollbar {
+                width: 3px;
+            }
+
+            .sb-nav::-webkit-scrollbar-thumb {
+                background: rgba(255,255,255,0.1);
+                border-radius: 99px;
+            }
+
+        .sb-link {
+            display: flex;
+            align-items: center;
+            gap: 11px;
+            padding: 9px 12px;
+            border-radius: 10px;
+            color: var(--sb-text);
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 400;
+            white-space: nowrap;
+            border: 1px solid transparent;
+            transition: all var(--transition);
+            margin-bottom: 2px;
+            position: relative;
+            overflow: hidden;
+        }
+
+            .sb-link:hover {
+                color: var(--sb-text-hover);
+                background: rgba(255,255,255,0.05);
+                border-color: rgba(255,255,255,0.08);
+            }
+
+            .sb-link.active {
+                color: var(--sb-cyan) !important;
+                background: rgba(0,200,255,0.08);
+                border-color: rgba(0,200,255,0.2);
+                font-weight: 500;
+            }
+
+            .sb-link .sb-icon {
+                width: 20px;
+                text-align: center;
+                font-size: 15px;
+                flex-shrink: 0;
+            }
+
+            .sb-link .sb-label {
+                transition: opacity var(--transition), transform var(--transition);
+                white-space: nowrap;
+            }
+
+        body.sidebar-collapsed .sb-link .sb-label {
+            opacity: 0;
+            transform: translateX(-6px);
+            pointer-events: none;
+        }
+
+        /* tooltip on collapsed */
+        .sb-link::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            left: calc(var(--sb-w-collapsed) - 4px);
+            background: #0d1626;
+            color: #fff;
+            font-size: 12px;
+            padding: 5px 10px;
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.1);
+            white-space: nowrap;
+            pointer-events: none;
+            opacity: 0;
+            transform: translateX(-4px);
+            transition: opacity 0.15s, transform 0.15s;
+            z-index: 200;
+            font-weight: 400;
+        }
+
+        body.sidebar-collapsed .sb-link:hover::after {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        /* FOOTER */
+        .sb-footer {
+            padding: 10px 8px;
+            border-top: 1px solid var(--sb-border);
+            flex-shrink: 0;
+        }
+
+        .sb-logout {
+            display: flex;
+            align-items: center;
+            gap: 11px;
+            padding: 9px 12px;
+            border-radius: 10px;
+            color: rgba(255,100,100,0.7);
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 400;
+            white-space: nowrap;
+            border: 1px solid transparent;
+            transition: all var(--transition);
+            background: none;
+            width: 100%;
+            cursor: pointer;
+        }
+
+            .sb-logout:hover {
+                color: rgba(255,100,100,0.95);
+                background: rgba(255,60,60,0.08);
+                border-color: rgba(255,60,60,0.2);
+            }
+
+            .sb-logout .sb-label {
+                transition: opacity var(--transition), transform var(--transition);
+            }
+
+        body.sidebar-collapsed .sb-logout .sb-label {
+            opacity: 0;
+            transform: translateX(-6px);
+            pointer-events: none;
+        }
+
+        /* ── TOPBAR ── */
+        .admin-topbar {
+            position: fixed;
+            top: 0;
+            right: 0;
+            height: 62px;
+            left: var(--sb-w);
+            z-index: 50;
+            background: rgba(5,10,20,0.96);
+            border-bottom: 1px solid rgba(255,255,255,0.07);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+            transition: left var(--transition);
+        }
+
+        body.sidebar-collapsed .admin-topbar {
+            left: var(--sb-w-collapsed);
+        }
+
+        .admin-topbar::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(0,200,255,0.3), transparent);
+        }
+
+        .topbar-title {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: rgba(255,255,255,0.25);
+            letter-spacing: 0.1em;
+        }
+
+            .topbar-title span {
+                color: rgba(0,200,255,0.6);
+            }
+
+        .topbar-right {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .topbar-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 12px 4px 5px;
+            border-radius: 100px;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.08);
+            font-size: 12px;
+            color: rgba(255,255,255,0.5);
+        }
+
+        .admin-role-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 3px 9px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            font-family: 'JetBrains Mono', monospace;
+            letter-spacing: 0.02em;
+        }
+
+        .tag-superadmin {
+            background: rgba(123,97,255,0.18);
+            border: 1px solid rgba(123,97,255,0.4);
+            color: #c4b5fd;
+        }
+
+        .tag-adminuser {
+            background: rgba(34,211,238,0.15);
+            border: 1px solid rgba(34,211,238,0.35);
+            color: #22d3ee;
+        }
+
+        .tag-adminmarket {
+            background: rgba(34,197,94,0.15);
+            border: 1px solid rgba(34,197,94,0.35);
+            color: #4ade80;
+        }
+
+        .tag-adminconnect {
+            background: rgba(245,158,11,0.15);
+            border: 1px solid rgba(245,158,11,0.35);
+            color: #fbbf24;
+        }
+
+        .topbar-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #00c850;
+            animation: pulse 2s infinite;
+        }
+
+        @@keyframes pulse {
+            0%, 100% {
+                opacity: 1
+            }
+
+            50% {
+                opacity: 0.3
+            }
+        }
+
+        /* ── REPORT NOTIFICATION BELL & DROPDOWN ── */
+        .report-bell-btn {
+            position: relative;
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: rgba(255,255,255,0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all var(--transition);
+        }
+        .report-bell-btn:hover {
+            background: rgba(255,77,79,0.15);
+            border-color: rgba(255,77,79,0.4);
+            color: #ff4d4f;
+        }
+        .report-bell-badge {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            background: #ff4d4f;
+            color: #fff;
+            border-radius: 10px;
+            padding: 1px 6px;
+            font-size: 10px;
+            font-weight: 700;
+            font-family: 'JetBrains Mono', monospace;
+            border: 2px solid #080f1e;
+            display: none;
+            animation: pulse-red 1.5s infinite;
+        }
+        @@keyframes pulse-red {
+            0% { box-shadow: 0 0 0 0 rgba(255,77,79, 0.7); }
+            70% { box-shadow: 0 0 0 6px rgba(255,77,79, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255,77,79, 0); }
+        }
+        .report-dropdown-menu {
+            width: 360px;
+            max-height: 480px;
+            background: #0d1626 !important;
+            border: 1px solid rgba(255,77,79,0.25) !important;
+            border-radius: 14px !important;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.6) !important;
+            padding: 0 !important;
+            overflow: hidden;
+        }
+        .report-dropdown-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 8px;
+            padding: 10px 14px;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            background: rgba(255,77,79,0.06);
+        }
+        .report-dropdown-header h6 {
+            margin: 0;
+            font-size: 13px;
+            font-weight: 700;
+            color: #ff7875;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .report-header-actions {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .btn-report-hdr {
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.12);
+            color: #cbd5e1;
+            font-size: 11px;
+            font-weight: 500;
+            padding: 3px 8px;
+            border-radius: 6px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            line-height: 1.4;
+        }
+        .btn-report-hdr:hover {
+            background: rgba(255,255,255,0.15);
+            color: #fff;
+            border-color: rgba(255,255,255,0.25);
+        }
+        .btn-report-hdr-del {
+            color: #f87171;
+            border-color: rgba(248,113,113,0.25);
+            background: rgba(239,68,68,0.08);
+        }
+        .btn-report-hdr-del:hover {
+            background: rgba(239, 68, 68, 0.25);
+            border-color: rgba(239, 68, 68, 0.5);
+            color: #ff4d4f;
+        }
+        .report-list-wrap {
+            max-height: 380px;
+            overflow-y: auto;
+        }
+        .report-item {
+            padding: 12px 16px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            display: flex;
+            gap: 10px;
+            align-items: flex-start;
+            transition: background 0.15s ease;
+            text-decoration: none !important;
+            color: inherit !important;
+        }
+        .report-item:hover {
+            background: rgba(255,255,255,0.04);
+        }
+        .report-item.unread {
+            background: rgba(255,77,79,0.08);
+        }
+        .report-item-icon {
+            width: 30px;
+            height: 30px;
+            border-radius: 8px;
+            background: rgba(255,77,79,0.15);
+            border: 1px solid rgba(255,77,79,0.3);
+            color: #ff4d4f;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            font-size: 13px;
+        }
+        .report-item-body {
+            flex: 1;
+            min-width: 0;
+        }
+        .report-item-msg {
+            font-size: 12px;
+            color: rgba(255,255,255,0.9);
+            line-height: 1.4;
+            margin-bottom: 4px;
+            word-break: break-word;
+        }
+        .report-item-date {
+            font-size: 10px;
+            color: rgba(255,255,255,0.4);
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .btn-report-link {
+            font-size: 11px;
+            padding: 3px 8px;
+            border-radius: 6px;
+            background: rgba(0,200,255,0.15);
+            border: 1px solid rgba(0,200,255,0.3);
+            color: var(--sb-cyan);
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            margin-top: 5px;
+            transition: all 0.15s ease;
+        }
+        .btn-report-link:hover {
+            background: rgba(0,200,255,0.25);
+            color: #fff;
+        }
+
+        /* ── RESPONSIVE MOBILE ── */
+        @@media (max-width: 768px) {
+            .admin-sidebar {
+                transform: translateX(-100%);
+                width: var(--sb-w);
+                z-index: 200;
+            }
+            .admin-sidebar.mobile-open {
+                transform: translateX(0);
+            }
+            body.sidebar-collapsed .admin-sidebar {
+                width: var(--sb-w);
+                transform: translateX(-100%);
+            }
+            body.sidebar-collapsed .admin-sidebar.mobile-open {
+                transform: translateX(0);
+            }
+            .sb-toggle { display: none; }
+            .admin-topbar {
+                left: 0 !important;
+                padding: 0 10px;
+            }
+            .admin-content {
+                margin-left: 0 !important;
+            }
+            .topbar-badge { display: none; }
+            .topbar-title { font-size: 11px; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+            /* Report dropdown */
+            .report-dropdown-menu {
+                position: fixed !important;
+                top: 62px !important;
+                left: 8px !important;
+                right: 8px !important;
+                width: auto !important;
+                max-width: none !important;
+                transform: none !important;
+                border-radius: 14px !important;
+            }
+
+            /* Mobile sidebar overlay */
+            .mobile-sidebar-overlay {
+                display: none;
+                position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+                background: rgba(0,0,0,0.6); z-index: 199;
+                backdrop-filter: blur(2px);
+            }
+            .mobile-sidebar-overlay.show { display: block; }
+
+            /* Hamburger button */
+            .mobile-menu-btn {
+                display: flex !important;
+                width: 36px; height: 36px; border-radius: 10px;
+                background: rgba(255,255,255,0.04);
+                border: 1px solid rgba(255,255,255,0.1);
+                color: rgba(255,255,255,0.8);
+                align-items: center; justify-content: center;
+                cursor: pointer; font-size: 18px;
+                transition: all 0.15s ease;
+            }
+            .mobile-menu-btn:hover {
+                background: rgba(0,200,255,0.15);
+                border-color: rgba(0,200,255,0.3);
+                color: var(--sb-cyan);
+            }
+        }
+
+        @@media (min-width: 769px) {
+            .mobile-menu-btn { display: none !important; }
+            .mobile-sidebar-overlay { display: none !important; }
+        }
+
+        /* ── GLOBAL SWEETALERT2 RESPONSIVE ENHANCEMENT ── */
+        .swal2-container {
+            z-index: 20000 !important;
+            padding: 10px !important;
+        }
+        .swal2-popup {
+            background: #0d1626 !important;
+            border: 1px solid rgba(255,255,255,0.12) !important;
+            border-radius: 18px !important;
+            color: #fff !important;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.8) !important;
+            max-width: calc(100vw - 20px) !important;
+            width: 480px !important;
+            padding: 1.5rem !important;
+        }
+        .swal2-title {
+            color: #fff !important;
+            font-size: 1.25rem !important;
+            font-weight: 700 !important;
+        }
+        .swal2-html-container {
+            color: rgba(255,255,255,0.8) !important;
+            font-size: 0.92rem !important;
+            line-height: 1.6 !important;
+            margin: 0.8rem 0 !important;
+        }
+        .swal2-input, .swal2-textarea, .swal2-select {
+            background: #141f33 !important;
+            border: 1px solid rgba(255,255,255,0.15) !important;
+            color: #fff !important;
+            border-radius: 10px !important;
+            font-size: 0.9rem !important;
+            box-sizing: border-box !important;
+            width: 100% !important;
+            margin: 0.5rem 0 !important;
+        }
+        .swal2-input:focus, .swal2-textarea:focus, .swal2-select:focus {
+            border-color: #00c8ff !important;
+            box-shadow: 0 0 0 3px rgba(0,200,255,0.15) !important;
+        }
+        .swal2-actions {
+            width: 100% !important;
+            display: flex !important;
+            gap: 10px !important;
+            flex-wrap: wrap !important;
+            margin-top: 1.2rem !important;
+        }
+        .swal2-confirm, .swal2-cancel {
+            border-radius: 10px !important;
+            font-size: 0.88rem !important;
+            font-weight: 600 !important;
+            padding: 10px 18px !important;
+            flex: 1 1 auto !important;
+            min-width: 120px !important;
+        }
+        @@media (max-width: 576px) {
+            .swal2-actions {
+                flex-direction: column !important;
+            }
+            .swal2-confirm, .swal2-cancel {
+                width: 100% !important;
+                margin: 3px 0 !important;
+            }
+        }
+
+        /* ── BOOTSTRAP MODALS RESPONSIVE ENHANCEMENT ── */
+        .modal {
+            z-index: 10050 !important;
+        }
+        .modal-backdrop {
+            z-index: 10040 !important;
+        }
+        @@media (max-width: 768px) {
+            .modal-dialog {
+                margin: 12px auto !important;
+                max-width: calc(100vw - 24px) !important;
+                width: 100% !important;
+            }
+            .modal-content {
+                border-radius: 14px !important;
+            }
+            .modal-header, .modal-footer {
+                padding: 12px 16px !important;
+            }
+            .modal-body {
+                padding: 16px !important;
+                max-height: calc(100vh - 150px) !important;
+                overflow-y: auto !important;
+                -webkit-overflow-scrolling: touch;
+            }
+            .modal-footer {
+                flex-wrap: wrap !important;
+                gap: 8px !important;
+            }
+            .modal-footer > * {
+                flex: 1 1 100% !important;
+                margin: 0 !important;
+            }
+        }
+
+        /* ── TABLES SCROLL & DATATABLES RESPONSIVE ── */
+        .table-responsive {
+            -webkit-overflow-scrolling: touch;
+            overflow-x: auto;
+            border-radius: 10px;
+        }
+        @@media (max-width: 768px) {
+            .dataTables_wrapper .dataTables_length,
+            .dataTables_wrapper .dataTables_filter {
+                float: none !important;
+                text-align: left !important;
+                margin-bottom: 8px !important;
+            }
+            .dataTables_wrapper .dataTables_filter input {
+                width: 100% !important;
+                margin-left: 0 !important;
+            }
+            .dataTables_wrapper .dataTables_info,
+            .dataTables_wrapper .dataTables_paginate {
+                float: none !important;
+                text-align: center !important;
+                margin-top: 10px !important;
+            }
+        }
+
+        /* ── REPORT DETAIL POPUP MODAL (CHI TIẾT VI PHẠM) ── */
+        .report-modal-overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.75); backdrop-filter: blur(8px);
+            z-index: 15000; display: none; align-items: center; justify-content: center;
+            padding: 12px;
+        }
+        .report-modal-overlay.show { display: flex; }
+        .report-modal {
+            background: #0b1220;
+            border: 1px solid rgba(255,77,79,0.35);
+            border-radius: 20px;
+            width: 100%;
+            max-width: 600px;
+            max-height: 92vh;
+            box-shadow: 0 24px 70px rgba(0,0,0,0.85), 0 0 35px rgba(255,77,79,0.12);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            animation: modalSlideIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        @@keyframes modalSlideIn {
+            from { opacity: 0; transform: translateY(24px) scale(0.96); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .report-modal-header {
+            padding: 16px 20px;
+            background: linear-gradient(90deg, rgba(255,77,79,0.14), rgba(255,160,0,0.06));
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            display: flex; align-items: center; justify-content: space-between;
+            flex-shrink: 0;
+        }
+        .report-modal-header h5 {
+            margin: 0; font-size: 15px; font-weight: 700; color: #ff7875;
+            display: flex; align-items: center; gap: 8px;
+        }
+        .report-modal-close {
+            width: 32px; height: 32px; border-radius: 9px;
+            background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
+            color: rgba(255,255,255,0.6); display: flex; align-items: center;
+            justify-content: center; cursor: pointer; font-size: 15px;
+            transition: all 0.15s ease;
+        }
+        .report-modal-close:hover { background: rgba(255,60,60,0.25); color: #ff4d4f; border-color: rgba(255,77,79,0.4); }
+        
+        .report-modal-body {
+            padding: 18px 20px;
+            overflow-y: auto;
+            flex: 1;
+            -webkit-overflow-scrolling: touch;
+        }
+        .report-modal-body::-webkit-scrollbar { width: 4px; }
+        .report-modal-body::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 4px; }
+
+        /* Block section titles */
+        .report-sec-label {
+            font-size: 10px; font-family: 'JetBrains Mono', monospace;
+            color: rgba(0,200,255,0.7); letter-spacing: 0.1em;
+            text-transform: uppercase; margin-bottom: 6px;
+            display: flex; align-items: center; gap: 6px;
+        }
+
+        /* Reported User Card */
+        .report-user-card {
+            background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 14px; padding: 14px 16px; display: flex;
+            align-items: center; gap: 14px; margin-bottom: 14px;
+        }
+        .report-user-avatar {
+            width: 48px; height: 48px; border-radius: 12px;
+            background: linear-gradient(135deg, rgba(255,77,79,0.25), rgba(255,160,0,0.15));
+            border: 1.5px solid rgba(255,77,79,0.4);
+            color: #ff7875; display: flex; align-items: center;
+            justify-content: center; font-size: 18px; font-weight: 700;
+            flex-shrink: 0; object-fit: cover;
+        }
+        .report-user-details { flex: 1; min-width: 0; }
+        .report-user-name { font-size: 15px; font-weight: 700; color: #fff; margin-bottom: 2px; }
+        .report-user-email { font-size: 12px; color: rgba(255,255,255,0.6); font-family: 'JetBrains Mono', monospace; word-break: break-all; }
+        .report-user-meta { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+        .report-chip {
+            font-size: 10px; padding: 2px 8px; border-radius: 6px;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .chip-student { background: rgba(34,197,94,0.15); color: #22c55e; border: 1px solid rgba(34,197,94,0.3); }
+        .chip-guest { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.6); border: 1px solid rgba(255,255,255,0.1); }
+        .chip-stats { background: rgba(0,200,255,0.1); color: #00c8ff; border: 1px solid rgba(0,200,255,0.25); }
+
+        /* Violating Message Card (TIN NHẮN VI PHẠM) */
+        .report-violation-card {
+            background: rgba(255,77,79,0.06);
+            border: 1px solid rgba(255,77,79,0.3);
+            border-left: 4px solid #ff4d4f;
+            border-radius: 12px;
+            padding: 14px 16px;
+            margin-bottom: 14px;
+        }
+        .report-violation-header {
+            display: flex; justify-content: space-between; align-items: center;
+            font-size: 11px; color: #ff7875; font-weight: 600;
+            margin-bottom: 8px; flex-wrap: wrap; gap: 4px;
+        }
+        .report-violation-text {
+            font-size: 14px; color: #fff; line-height: 1.6;
+            word-break: break-word; font-weight: 500;
+            background: rgba(0,0,0,0.25); padding: 10px 12px;
+            border-radius: 8px; border: 1px solid rgba(255,77,79,0.2);
+        }
+        .report-violation-img {
+            max-width: 100%; max-height: 180px; object-fit: cover;
+            border-radius: 8px; border: 1px solid rgba(255,77,79,0.3);
+            margin-top: 8px; cursor: pointer; transition: transform 0.2s;
+        }
+        .report-violation-img:hover { transform: scale(1.02); }
+        .report-violation-time {
+            font-size: 10px; color: rgba(255,255,255,0.4);
+            font-family: 'JetBrains Mono', monospace; margin-top: 6px;
+        }
+
+        /* Context Information (Lý do & Người tố cáo) */
+        .report-context-grid {
+            background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 12px; padding: 12px 14px;
+        }
+        .report-info-row {
+            display: flex; align-items: flex-start; gap: 8px;
+            padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.04);
+            font-size: 12px;
+        }
+        .report-info-row:last-child { border-bottom: none; }
+        .report-info-label {
+            font-family: 'JetBrains Mono', monospace; font-size: 10px;
+            color: rgba(255,255,255,0.4); min-width: 110px; flex-shrink: 0;
+            text-transform: uppercase; padding-top: 2px;
+        }
+        .report-info-val {
+            color: rgba(255,255,255,0.9); flex: 1; word-break: break-word;
+        }
+
+        /* Footer buttons */
+        .report-modal-footer {
+            padding: 14px 20px; border-top: 1px solid rgba(255,255,255,0.08);
+            display: flex; gap: 8px; flex-wrap: wrap; flex-shrink: 0;
+            background: rgba(255,255,255,0.01);
+        }
+        .report-modal-footer .btn-admin {
+            flex: 1 1 auto; min-width: 110px; padding: 10px 14px; border-radius: 10px;
+            font-size: 12px; font-weight: 600; cursor: pointer;
+            border: 1px solid transparent; transition: all 0.15s ease;
+            display: flex; align-items: center; justify-content: center; gap: 6px;
+        }
+        .btn-admin-warn {
+            background: rgba(255,160,0,0.14); border-color: rgba(255,160,0,0.35) !important;
+            color: #ffaa00;
+        }
+        .btn-admin-warn:hover { background: rgba(255,160,0,0.25); color: #fff; }
+        .btn-admin-delete {
+            background: rgba(255,60,60,0.15); border-color: rgba(255,60,60,0.4) !important;
+            color: #ff6b6b;
+        }
+        .btn-admin-delete:hover { background: rgba(255,60,60,0.3); color: #fff; }
+        .btn-admin-view {
+            background: rgba(0,200,255,0.1); border-color: rgba(0,200,255,0.3) !important;
+            color: #00c8ff;
+        }
+        .btn-admin-view:hover { background: rgba(0,200,255,0.2); color: #fff; }
+        .btn-admin-dismiss {
+            background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.1) !important;
+            color: rgba(255,255,255,0.6);
+        }
+        .btn-admin-dismiss:hover { background: rgba(255,255,255,0.1); color: #fff; }
+
+        @@media (max-width: 768px) {
+            .report-modal {
+                max-width: calc(100vw - 16px) !important;
+                border-radius: 14px;
+            }
+            .report-modal-body {
+                padding: 14px;
+            }
+            .report-user-card {
+                flex-direction: column;
+                align-items: flex-start !important;
+                gap: 10px;
+            }
+            .report-info-row {
+                flex-direction: column;
+                gap: 2px;
+            }
+            .report-info-label {
+                min-width: unset;
+            }
+            .report-modal-footer {
+                flex-direction: column;
+                gap: 8px;
+            }
+            .report-modal-footer .btn-admin {
+                width: 100% !important;
+                flex: unset !important;
+                padding: 11px;
+            }
+        }
+
+        /* ── CONTENT ── */
+        .admin-content {
+            margin-left: var(--sb-w);
+            padding-top: 62px;
+            flex: 1;
+            min-height: 100vh;
+            transition: margin-left var(--transition);
+            background: var(--content-bg);
+        }
+
+        body.sidebar-collapsed .admin-content {
+            margin-left: var(--sb-w-collapsed);
+        }
+
+        .admin-content-inner {
+            padding: 24px;
+            background-image: linear-gradient(rgba(0,200,255,0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(0,200,255,0.025) 1px, transparent 1px);
+            background-size: 48px 48px;
+            min-height: calc(100vh - 62px);
+        }
+
+        /* ── DATATABLE DARK OVERRIDE ── */
+        .dataTables_wrapper, .dataTables_wrapper * {
+            color: rgba(255,255,255,0.7) !important;
+        }
+
+        table.dataTable thead th {
+            background: rgba(255,255,255,0.04) !important;
+            border-bottom: 1px solid rgba(255,255,255,0.08) !important;
+            font-family: 'JetBrains Mono', monospace !important;
+            font-size: 11px !important;
+            letter-spacing: 0.08em !important;
+            color: rgba(0,200,255,0.6) !important;
+        }
+
+        table.dataTable tbody tr {
+            background: rgba(255,255,255,0.02) !important;
+        }
+
+            table.dataTable tbody tr:hover {
+                background: rgba(255,255,255,0.05) !important;
+            }
+
+        table.dataTable tbody td {
+            border-bottom: 1px solid rgba(255,255,255,0.05) !important;
+        }
+
+        .dataTables_filter input, .dataTables_length select {
+            background: rgba(255,255,255,0.04) !important;
+            border: 1px solid rgba(255,255,255,0.1) !important;
+            color: #fff !important;
+            border-radius: 8px !important;
+        }
+
+        .page-link {
+            background: rgba(255,255,255,0.04) !important;
+            border-color: rgba(255,255,255,0.1) !important;
+            color: rgba(255,255,255,0.6) !important;
+        }
+
+        .page-item.active .page-link {
+            background: rgba(0,200,255,0.2) !important;
+            border-color: rgba(0,200,255,0.4) !important;
+            color: #00c8ff !important;
+        }
+
+        /* card override */
+        .card {
+            background: rgba(255,255,255,0.03) !important;
+            border: 1px solid rgba(255,255,255,0.08) !important;
+            border-radius: 14px !important;
+        }
+
+        .card-header {
+            background: rgba(255,255,255,0.03) !important;
+            border-bottom: 1px solid rgba(255,255,255,0.07) !important;
+            color: #fff !important;
+        }
+
+        .card-body {
+            color: rgba(255,255,255,0.75) !important;
+        }
+
+        .table {
+            color: rgba(255,255,255,0.75) !important;
+        }
+
+        .form-control, .form-select {
+            background: rgba(255,255,255,0.04) !important;
+            border: 1px solid rgba(255,255,255,0.1) !important;
+            color: #fff !important;
+            border-radius: 9px !important;
+        }
+
+            .form-control:focus, .form-select:focus {
+                border-color: rgba(0,200,255,0.4) !important;
+                box-shadow: 0 0 0 3px rgba(0,200,255,0.08) !important;
+            }
+
+        .btn-primary {
+            background: rgba(0,200,255,0.15) !important;
+            border: 1px solid rgba(0,200,255,0.35) !important;
+            color: #00c8ff !important;
+            border-radius: 8px !important;
+        }
+
+            .btn-primary:hover {
+                background: rgba(0,200,255,0.25) !important;
+            }
+
+        .btn-danger {
+            background: rgba(255,60,60,0.12) !important;
+            border: 1px solid rgba(255,60,60,0.3) !important;
+            color: rgba(255,100,100,0.9) !important;
+            border-radius: 8px !important;
+        }
+
+        .btn-success {
+            background: rgba(0,200,80,0.12) !important;
+            border: 1px solid rgba(0,200,80,0.3) !important;
+            color: rgba(0,200,80,0.9) !important;
+            border-radius: 8px !important;
+        }
+
+        .btn-warning {
+            background: rgba(255,160,0,0.12) !important;
+            border: 1px solid rgba(255,160,0,0.3) !important;
+            color: rgba(255,160,0,0.9) !important;
+            border-radius: 8px !important;
+        }
+
+        h4, h5, h6 {
+            color: #fff !important;
+        }
+
+        label {
+            color: rgba(255,255,255,0.6) !important;
+        }
+
+        .text-muted {
+            color: rgba(255,255,255,0.3) !important;
+        }
+
+        hr {
+            border-color: rgba(255,255,255,0.07) !important;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- SIDEBAR -->
+    <div class="admin-sidebar" id="adminSidebar">
+
+        <div class="sb-logo">
+            <div class="sb-logo-icon"><i class="bi bi-shield-lock"></i></div>
+            <div class="sb-logo-text">
+                <span class="sb-logo-name">TDMU_ADMIN</span>
+            </div>
+        </div>
+
+        <div class="sb-toggle" id="sidebarToggle">
+            <i class="bi bi-chevron-left toggle-icon"></i>
+        </div>
+
+        <div class="sb-nav">
+
+            <a href="@Url.Action("Index", "AdminHome", new { area = "Admin" })"
+               class="sb-link" data-tooltip="Tổng quan">
+                <span class="sb-icon"><i class="bi bi-speedometer2"></i></span>
+                <span class="sb-label">Tổng quan</span>
+            </a>
+            @if (canChat)
+            {
+                <a href="@Url.Action("Index", "AdminChat", new { area = "Admin" })"
+                   class="sb-link" data-tooltip="Phòng Chat">
+                    <span class="sb-icon"><i class="bi bi-chat-dots"></i></span>
+                    <span class="sb-label">Quản lý Chat</span>
+                </a>
+            }
+            @if (canMarket)
+            {
+                <a href="@Url.Action("Index", "AdminMarket", new { area = "Admin" })"
+                   class="sb-link" data-tooltip="Chợ">
+                    <span class="sb-icon"><i class="bi bi-shop"></i></span>
+                    <span class="sb-label">Quản lý Chợ</span>
+                </a>
+            }
+            @if (canConnect)
+            {
+                <a href="@Url.Action("Index", "AdminConnect", new { area = "Admin" })"
+                   class="sb-link" data-tooltip="Khám phá">
+                    <span class="sb-icon"><i class="bi bi-globe-americas"></i></span>
+                    <span class="sb-label">Quản lý Kết nối</span>
+                </a>
+            }
+            @if (canUser)
+            {
+                <a href="@Url.Action("Index", "AdminUser", new { area = "Admin" })"
+                   class="sb-link" data-tooltip="Người dùng">
+                    <span class="sb-icon"><i class="bi bi-people"></i></span>
+                    <span class="sb-label">Quản lý Người dùng</span>
+                </a>
+            }
+        </div>
+
+        <div class="sb-footer">
+            <a href="@Url.Action("Logout", "Auth", new { area = "Admin" })" class="sb-logout" data-tooltip="Đăng xuất">
+                <span class="sb-icon"><i class="bi bi-box-arrow-right"></i></span>
+                <span class="sb-label">Đăng xuất</span>
+            </a>
+        </div>
+    </div>
+    <!-- MOBILE SIDEBAR OVERLAY -->
+    <div class="mobile-sidebar-overlay" id="mobileSidebarOverlay"></div>
+
+    <!-- TOPBAR -->
+    <div class="admin-topbar">
+        <div style="display:flex;align-items:center;gap:10px;">
+            <div class="mobile-menu-btn" id="mobileMenuBtn" style="display:none;">
+                <i class="bi bi-list"></i>
+            </div>
+            <div class="topbar-title">
+                TDMU ADMIN · <span>@ViewBag.Title</span>
+            </div>
+        </div>
+        <div class="topbar-right">
+            <!-- VAI TRÒ ADMIN -->
+            <div class="topbar-badge" title="Tài khoản: @Session["AdminEmail"]">
+                <span class="admin-role-tag @roleTagClass">
+                    <i class="bi @roleIcon"></i> @roleDisplayName
+                </span>
+                <span class="d-none d-md-inline" style="color: rgba(255,255,255,0.6); font-size: 11px; font-family: 'JetBrains Mono', monospace;">
+                    @(Session["AdminUsername"] ?? Session["AdminEmail"])
+                </span>
+            </div>
+
+            <!-- CHUÔNG THÔNG BÁO TỐ CÁO -->
+            @if (canUser)
+            {
+                <div class="dropdown">
+                    <button class="report-bell-btn" type="button" id="adminReportDropdown" data-bs-toggle="dropdown" aria-expanded="false" title="Thông báo tố cáo vi phạm">
+                        <i class="bi bi-bell"></i>
+                        <span class="report-bell-badge" id="reportUnreadCount">0</span>
+                    </button>
+                    <div class="dropdown-menu dropdown-menu-end report-dropdown-menu" aria-labelledby="adminReportDropdown">
+                        <div class="report-dropdown-header">
+                            <h6><i class="bi bi-shield-exclamation"></i> Tố cáo & Vi phạm</h6>
+                            <div class="report-header-actions">
+                                <button type="button" class="btn-report-hdr" title="Đánh dấu tất cả đã đọc" onclick="markAllReportsRead()">
+                                    <i class="bi bi-check2-all"></i> Đọc hết
+                                </button>
+                                <button type="button" class="btn-report-hdr btn-report-hdr-del" title="Xóa tất cả thông báo" onclick="deleteAllReports()">
+                                    <i class="bi bi-trash3"></i> Xóa hết
+                                </button>
+                            </div>
+                        </div>
+                        <div class="report-list-wrap" id="reportListWrap">
+                            <div class="p-3 text-center text-muted" style="font-size:12px;">Đang tải thông báo...</div>
+                        </div>
+                    </div>
+                </div>
+            }
+
+        </div>
+    </div>
+
+    <!-- CONTENT -->
+    <div class="admin-content">
+        <div class="admin-content-inner">
+            @RenderBody()
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <script>
+        (function () {
+            var STORAGE_KEY = 'tdmu_admin_sidebar';
+            var body = document.body;
+
+            // restore state
+            if (localStorage.getItem(STORAGE_KEY) === 'collapsed') {
+                body.classList.add('sidebar-collapsed');
+            }
+
+            document.getElementById('sidebarToggle').addEventListener('click', function () {
+                body.classList.toggle('sidebar-collapsed');
+                localStorage.setItem(STORAGE_KEY,
+                    body.classList.contains('sidebar-collapsed') ? 'collapsed' : 'expanded'
+                );
+            });
+
+            // active link highlight
+            var current = window.location.pathname.toLowerCase();
+            document.querySelectorAll('.sb-link').forEach(function (link) {
+                var href = link.getAttribute('href');
+                if (href && current.indexOf(href.split('?')[0].toLowerCase()) !== -1) {
+                    link.classList.add('active');
+                }
+            });
+        })();
+
+        // ── MOBILE SIDEBAR TOGGLE ──
+        (function () {
+            var sidebar = document.getElementById('adminSidebar');
+            var overlay = document.getElementById('mobileSidebarOverlay');
+            var menuBtn = document.getElementById('mobileMenuBtn');
+
+            function openMobileSidebar() {
+                sidebar.classList.add('mobile-open');
+                overlay.classList.add('show');
+            }
+            function closeMobileSidebar() {
+                sidebar.classList.remove('mobile-open');
+                overlay.classList.remove('show');
+            }
+
+            if (menuBtn) {
+                menuBtn.addEventListener('click', function () {
+                    if (sidebar.classList.contains('mobile-open')) {
+                        closeMobileSidebar();
+                    } else {
+                        openMobileSidebar();
+                    }
+                });
+            }
+            if (overlay) {
+                overlay.addEventListener('click', closeMobileSidebar);
+            }
+
+            // Close sidebar when clicking a nav link on mobile
+            document.querySelectorAll('.sb-link, .sb-logout').forEach(function (link) {
+                link.addEventListener('click', function () {
+                    if (window.innerWidth <= 768) {
+                        closeMobileSidebar();
+                    }
+                });
+            });
+        })();
+
+        // ── REPORT NOTIFICATIONS POLLING & MANAGEMENT ──
+        var _currentReportData = null;
+
+        function loadAdminReports() {
+            $.ajax({
+                url: '@Url.Action("GetReports", "AdminHome", new { area = "Admin" })',
+                type: 'GET',
+                dataType: 'json',
+                success: function (res) {
+                    if (res && res.success) {
+                        let count = res.unreadCount || 0;
+                        if (count > 0) {
+                            $('#reportUnreadCount').text(count > 99 ? '99+' : count).show();
+                        } else {
+                            $('#reportUnreadCount').hide();
+                        }
+
+                        let html = '';
+                        if (res.reports && res.reports.length > 0) {
+                            res.reports.forEach(function (r) {
+                                let unreadCls = (!r.IsRead) ? 'unread' : '';
+                                html += '<div class="report-item ' + unreadCls + '" style="cursor:pointer;" onclick="openReportDetail(' + r.NotificationID + ')">';
+                                html += '  <div class="report-item-icon"><i class="bi bi-exclamation-triangle-fill"></i></div>';
+                                html += '  <div class="report-item-body">';
+                                html += '    <div class="report-item-msg">' + $('<div>').text(r.Message).html() + '</div>';
+                                html += '    <div class="report-item-date"><i class="bi bi-clock"></i> ' + r.CreatedAt + '</div>';
+                                html += '  </div>';
+                                html += '</div>';
+                            });
+                        } else {
+                            html = '<div class="p-4 text-center text-muted" style="font-size:12px;"><i class="bi bi-check-circle fs-3 text-success d-block mb-2"></i>Không có tố cáo vi phạm nào</div>';
+                        }
+                        $('#reportListWrap').html(html);
+                    }
+                }
+            });
+        }
+
+        function markReportAsRead(id) {
+            $.post('@Url.Action("MarkReportRead", "AdminHome", new { area = "Admin" })', { id: id }, function () {
+                loadAdminReports();
+            });
+        }
+
+        function markAllReportsRead() {
+            $.post('@Url.Action("MarkAllReportsRead", "AdminHome", new { area = "Admin" })', function () {
+                loadAdminReports();
+            });
+        }
+
+        function deleteAllReports() {
+            Swal.fire({
+                title: 'Xóa tất cả thông báo?',
+                text: 'Tất cả thông báo tố cáo vi phạm sẽ bị xóa vĩnh viễn và không thể khôi phục!',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                cancelButtonColor: '#475569',
+                confirmButtonText: '<i class="bi bi-trash3"></i> Xóa hết',
+                cancelButtonText: 'Hủy',
+                background: '#0f172a',
+                color: '#e2e8f0'
+            }).then(function (result) {
+                if (result.isConfirmed) {
+                    $.post('@Url.Action("DeleteAllReports", "AdminHome", new { area = "Admin" })', function (res) {
+                        if (res && res.success) {
+                            loadAdminReports();
+                            Swal.fire({
+                                title: 'Đã xóa!',
+                                text: 'Toàn bộ thông báo đã được xóa.',
+                                icon: 'success',
+                                timer: 1500,
+                                showConfirmButton: false,
+                                background: '#0f172a',
+                                color: '#e2e8f0'
+                            });
+                        }
+                    });
+                }
+            });
+        }
+
+        // ── REPORT DETAIL POPUP ──
+        function openReportDetail(notifId) {
+            // Close dropdown
+            var dd = bootstrap.Dropdown.getInstance(document.getElementById('adminReportDropdown'));
+            if (dd) dd.hide();
+
+            $.ajax({
+                url: '@Url.Action("GetReportDetail", "AdminHome", new { area = "Admin" })',
+                data: { id: notifId },
+                type: 'GET',
+                dataType: 'json',
+                success: function (res) {
+                    if (!res || !res.success) {
+                        Swal.fire('Lỗi', res ? res.message : 'Không thể tải chi tiết.', 'error');
+                        return;
+                    }
+                    _currentReportData = res;
+                    renderReportModal(res);
+                    loadAdminReports(); // refresh unread count
+                }
+            });
+        }
+
+        function renderReportModal(d) {
+            var rUser = d.ReportedUser;
+            var reporter = d.Reporter;
+
+            // 1. Thẻ tài khoản bị tố cáo
+            var userHtml = '';
+            if (rUser) {
+                var avatarImg = (rUser.Avatar && rUser.Avatar.length > 0 && rUser.Avatar !== '/Content/Images/default-avatar.png')
+                    ? '<img src="' + escHtml(rUser.Avatar) + '" class="report-user-avatar" onerror="this.onerror=null;this.src=\'/Content/Images/default-avatar.png\';" />'
+                    : '<div class="report-user-avatar">' + escHtml(rUser.Username ? rUser.Username.charAt(0).toUpperCase() : '?') + '</div>';
+
+                var studentBadge = rUser.IsTDMUStudent
+                    ? '<span class="report-chip chip-student"><i class="bi bi-mortarboard me-1"></i>SV TDMU</span>'
+                    : '<span class="report-chip chip-guest"><i class="bi bi-person me-1"></i>Khách vãng lai</span>';
+
+                var adminBadge = rUser.IsAdmin
+                    ? '<span class="report-chip" style="background:rgba(239,68,68,0.15);color:#ff4d4f;border:1px solid rgba(239,68,68,0.3);"><i class="bi bi-shield-fill-check me-1"></i>Quản trị viên</span>'
+                    : '';
+
+                var statsBadge = '<span class="report-chip chip-stats"><i class="bi bi-chat-left-dots me-1"></i>' + (rUser.TotalMessages || 0) + ' tin nhắn</span>'
+                    + '<span class="report-chip chip-stats"><i class="bi bi-postcard me-1"></i>' + (rUser.TotalPosts || 0) + ' bài đăng</span>'
+                    + '<span class="report-chip chip-guest"><i class="bi bi-clock-history me-1"></i>Gia nhập: ' + (rUser.CreatedAt || '---') + '</span>';
+
+                userHtml = '<div class="report-user-card">' +
+                    avatarImg +
+                    '<div class="report-user-details">' +
+                        '<div class="report-user-name">' + escHtml(rUser.Username) + ' <span style="font-size:11px;color:rgba(255,255,255,0.4);font-family:JetBrains Mono">#' + rUser.UserID + '</span></div>' +
+                        '<div class="report-user-email"><i class="bi bi-envelope me-1"></i>' + escHtml(rUser.Email) + (rUser.PhoneNumber && rUser.PhoneNumber !== 'Chưa cập nhật' ? ' · <i class="bi bi-telephone ms-1 me-1"></i>' + escHtml(rUser.PhoneNumber) : '') + '</div>' +
+                        '<div class="report-user-meta">' + studentBadge + adminBadge + statsBadge + '</div>' +
+                    '</div>' +
+                '</div>';
+            } else {
+                userHtml = '<div class="report-user-card" style="border-color:rgba(255,160,0,0.3);">' +
+                    '<div class="report-user-avatar" style="color:#ffa000;background:rgba(255,160,0,0.1);"><i class="bi bi-question-lg"></i></div>' +
+                    '<div class="report-user-details">' +
+                        '<div class="report-user-name" style="color:#ffa000;">Tài khoản không xác định hoặc đã bị xóa</div>' +
+                        '<div class="report-user-email">Không có thông tin chi tiết về người dùng này trong hệ thống.</div>' +
+                    '</div>' +
+                '</div>';
+            }
+
+            // 2. Khung tin nhắn vi phạm
+            var violationMsgHtml = '';
+            var msgText = d.ViolatingMessage || 'Không thể trích xuất trực tiếp nội dung tin nhắn cụ thể (có thể do tố cáo toàn bộ phòng hoặc tin nhắn đã bị xóa).';
+            var msgMeta = '';
+            if (d.MessageId) {
+                msgMeta += '<span class="badge bg-secondary me-1" style="font-family:JetBrains Mono">Tin nhắn #' + d.MessageId + '</span>';
+            }
+            if (d.RoomId) {
+                msgMeta += '<span class="badge bg-info text-dark me-1" style="font-family:JetBrains Mono">Phòng #' + d.RoomId + '</span>';
+            }
+            if (d.ViolatingSentAt) {
+                msgMeta += '<span style="font-family:JetBrains Mono;font-size:11px;color:rgba(255,255,255,0.5);"><i class="bi bi-clock me-1"></i>' + d.ViolatingSentAt + '</span>';
+            }
+
+            var imagePreviewHtml = '';
+            if (d.ViolatingImageUrl) {
+                imagePreviewHtml = '<div style="margin-top:8px;">' +
+                    '<a href="' + escHtml(d.ViolatingImageUrl) + '" target="_blank" title="Bấm để xem ảnh gốc full size">' +
+                        '<img src="' + escHtml(d.ViolatingImageUrl) + '" class="report-violation-img" />' +
+                    '</a>' +
+                    '<div style="font-size:10px;color:rgba(255,255,255,0.4);margin-top:3px;"><i class="bi bi-image me-1"></i>Ảnh đính kèm trong tin nhắn (bấm để xem gốc)</div>' +
+                '</div>';
+            }
+
+            violationMsgHtml = '<div class="report-violation-card">' +
+                '<div class="report-violation-header">' +
+                    '<span><i class="bi bi-exclamation-octagon-fill me-1"></i>PHÁT NGÔN / NỘI DUNG BỊ TỐ CÁO</span>' +
+                    '<div>' + msgMeta + '</div>' +
+                '</div>' +
+                '<div class="report-violation-text">' +
+                    '<i class="bi bi-chat-quote-fill me-2" style="opacity:0.5;font-size:1.1rem;vertical-align:text-bottom;"></i>' +
+                    '<span>' + escHtml(msgText) + '</span>' +
+                '</div>' +
+                imagePreviewHtml +
+            '</div>';
+
+            // 3. Thông tin tố cáo chi tiết
+            var contextHtml = '<div class="report-context-grid">' +
+                '<div class="report-info-row">' +
+                    '<div class="report-info-label">LÝ DO VI PHẠM</div>' +
+                    '<div class="report-info-val"><span class="badge" style="background:rgba(239,68,68,0.2);color:#ff6b6b;border:1px solid rgba(239,68,68,0.4);font-size:11px;padding:3px 8px;">' + escHtml(d.Reason) + '</span></div>' +
+                '</div>' +
+                (d.Details ? ('<div class="report-info-row">' +
+                    '<div class="report-info-label">MÔ TẢ TỪ BẠN ĐỌC</div>' +
+                    '<div class="report-info-val">' + escHtml(d.Details) + '</div>' +
+                '</div>') : '') +
+                '<div class="report-info-row">' +
+                    '<div class="report-info-label">NGƯỜI GỬI TỐ CÁO</div>' +
+                    '<div class="report-info-val">' + (reporter ? ('<strong style="color:#00c8ff;">' + escHtml(reporter.Username) + '</strong> (' + escHtml(reporter.Email) + ' - ID: #' + reporter.UserID + ')') : 'Ẩn danh') + '</div>' +
+                '</div>' +
+                '<div class="report-info-row">' +
+                    '<div class="report-info-label">THỜI GIAN GỬI</div>' +
+                    '<div class="report-info-val" style="font-family:JetBrains Mono;font-size:11px;color:rgba(255,255,255,0.6);"><i class="bi bi-calendar-event me-1"></i>' + d.CreatedAt + '</div>' +
+                '</div>' +
+            '</div>';
+
+            var finalBody = '<div class="report-sec-label"><i class="bi bi-person-x-fill"></i>TÀI KHOẢN BỊ BÁO CÁO VI PHẠM</div>' +
+                userHtml +
+                '<div class="report-sec-label"><i class="bi bi-chat-left-quote-fill"></i>TIN NHẮN / PHÁT NGÔN VI PHẠM</div>' +
+                violationMsgHtml +
+                '<div class="report-sec-label"><i class="bi bi-info-circle-fill"></i>THÔNG TIN TỐ CÁO CHI TIẾT</div>' +
+                contextHtml;
+
+            $('#reportModalBody').html(finalBody);
+
+            // Nút xử lý tài khoản
+            if (rUser && rUser.UserID) {
+                $('#reportBtnWarn').show();
+                if (rUser.IsAdmin) {
+                    $('#reportBtnDelete').hide(); // Không cho xóa Admin
+                } else {
+                    $('#reportBtnDelete').show();
+                }
+            } else {
+                $('#reportBtnWarn, #reportBtnDelete').hide();
+            }
+
+            // Nút xem phòng chat
+            if (d.Url) {
+                var cleanUrl = d.Url.split('?')[0];
+                $('#reportBtnView').attr('href', cleanUrl).show();
+            } else {
+                $('#reportBtnView').hide();
+            }
+
+            $('#reportModalOverlay').addClass('show');
+        }
+
+        function closeReportModal() {
+            $('#reportModalOverlay').removeClass('show');
+            _currentReportData = null;
+        }
+
+        // Close on overlay click
+        $(document).on('click', '#reportModalOverlay', function (e) {
+            if (e.target === this) closeReportModal();
+        });
+        // Close on Escape
+        $(document).on('keydown', function (e) {
+            if (e.key === 'Escape') closeReportModal();
+        });
+
+        // ── GỬI CẢNH BÁO VI PHẠM ──
+        function warnReportedUser() {
+            if (!_currentReportData || !_currentReportData.ReportedUser) return;
+            var rUser = _currentReportData.ReportedUser;
+
+            Swal.fire({
+                title: 'Gửi Cảnh Báo Vi Phạm',
+                html: '<div style="text-align:left;font-size:13px;color:#cbd5e1;">' +
+                      '<p style="margin-bottom:8px;">Gửi thông báo cảnh báo trực tiếp đến tài khoản <strong style="color:#00c8ff;">' + escHtml(rUser.Username) + '</strong> (ID: #' + rUser.UserID + ').</p>' +
+                      '<label style="font-size:11px;color:rgba(255,255,255,0.5);font-weight:600;display:block;margin-bottom:4px;">CHỌN LÝ DO MẪU (NHANH):</label>' +
+                      '<select id="swal-warn-template" class="swal2-select" style="margin:0 0 10px;width:100%;font-size:13px;">' +
+                          '<option value="">-- Chọn mẫu cảnh báo sẵn có --</option>' +
+                          '<option value="Tài khoản của bạn đã bị người dùng khác tố cáo vì sử dụng ngôn từ thù ghét, xúc phạm người khác. Vui lòng dừng ngay hành vi này để tránh bị khóa vĩnh viễn.">1. Ngôn từ xúc phạm, thiếu chuẩn mực</option>' +
+                          '<option value="Bạn vừa bị báo cáo vì hành vi spam tin nhắn hoặc quảng cáo trái phép trong hệ thống. Đề nghị bạn tuân thủ nội quy chung.">2. Spam, quảng cáo trái quy định</option>' +
+                          '<option value="Hệ thống ghi nhận tố cáo tài khoản của bạn có dấu hiệu lừa đảo, gian lận. Ban quản trị đang giám sát tài khoản của bạn.">3. Nghi vấn gian lận, lừa đảo</option>' +
+                          '<option value="Bạn đã chia sẻ nội dung/hình ảnh phản cảm không phù hợp chuẩn mực sinh viên. Đề nghị gỡ bỏ ngay lập tức.">4. Nội dung phản cảm, không phù hợp</option>' +
+                          '<option value="Tùy chỉnh">5. Nhập nội dung cảnh báo riêng...</option>' +
+                      '</select>' +
+                      '<label style="font-size:11px;color:rgba(255,255,255,0.5);font-weight:600;display:block;margin-bottom:4px;">LỜI CẢNH BÁO GỬI ĐẾN NGƯỜI DÙNG:</label>' +
+                      '<textarea id="swal-warn-text" class="swal2-textarea" placeholder="Nhập nội dung cảnh báo chi tiết gửi tới thành viên vi phạm..." style="margin:0;width:100%;height:85px;font-size:13px;"></textarea>' +
+                      '</div>',
+                showCancelButton: true,
+                confirmButtonText: '<i class="bi bi-send-fill me-1"></i> Gửi cảnh báo ngay',
+                cancelButtonText: 'Hủy bỏ',
+                confirmButtonColor: '#f59e0b',
+                background: '#0d1626',
+                color: '#fff',
+                didOpen: function() {
+                    $('#swal-warn-template').on('change', function() {
+                        var val = $(this).val();
+                        if (val && val !== 'Tùy chỉnh') {
+                            $('#swal-warn-text').val(val);
+                        } else if (val === 'Tùy chỉnh') {
+                            $('#swal-warn-text').val('').focus();
+                        }
+                    });
+                },
+                preConfirm: function() {
+                    var text = $('#swal-warn-text').val().trim();
+                    if (!text) {
+                        Swal.showValidationMessage('Vui lòng chọn mẫu hoặc nhập nội dung cảnh báo!');
+                        return false;
+                    }
+                    return text;
+                }
+            }).then(function (result) {
+                if (result.isConfirmed) {
+                    Swal.fire({
+                        title: 'Đang xử lý...',
+                        text: 'Đang gửi cảnh báo đến tài khoản...',
+                        allowOutsideClick: false,
+                        didOpen: function() { Swal.showLoading(); }
+                    });
+
+                    $.post('@Url.Action("WarnUser", "AdminHome", new { area = "Admin" })', {
+                        userId: rUser.UserID,
+                        warningMessage: result.value
+                    }, function (res) {
+                        if (res.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Thành công',
+                                text: res.message,
+                                background: '#0d1626',
+                                color: '#fff',
+                                timer: 3000
+                            });
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Không thể gửi cảnh báo',
+                                text: res.message,
+                                background: '#0d1626',
+                                color: '#fff'
+                            });
+                        }
+                    }).fail(function() {
+                        Swal.fire('Lỗi', 'Không thể kết nối đến máy chủ.', 'error');
+                    });
+                }
+            });
+        }
+
+        // ── XÓA TÀI KHOẢN VÀ TOÀN BỘ DỮ LIỆU LIÊN QUAN ──
+        function deleteReportedUser() {
+            if (!_currentReportData || !_currentReportData.ReportedUser) return;
+            var rUser = _currentReportData.ReportedUser;
+
+            Swal.fire({
+                title: 'Xóa Vĩnh Viễn Tài Khoản?',
+                html: '<div style="text-align:left;font-size:13px;color:#cbd5e1;">' +
+                      '<p style="color:#ff6b6b;font-weight:600;font-size:14px;"><i class="bi bi-exclamation-triangle-fill me-1"></i>HÀNH ĐỘNG NGUY HIỂM - KHÔNG THỂ HOÀN TÁC!</p>' +
+                      '<p>Bạn đang yêu cầu xóa tài khoản: <strong style="color:#fff;font-size:14px;">' + escHtml(rUser.Username) + '</strong> (' + escHtml(rUser.Email) + ' - ID: #' + rUser.UserID + ').</p>' +
+                      '<div style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:10px;padding:10px 12px;margin:10px 0;font-size:12px;line-height:1.5;">' +
+                          '<div style="font-weight:600;color:#ff7875;margin-bottom:4px;">Các dữ liệu liên quan sẽ bị xóa sạch:</div>' +
+                          '• Tất cả bài đăng Chợ và ảnh đính kèm<br>' +
+                          '• Tất cả bài đăng Khám phá / Kết nối<br>' +
+                          '• Toàn bộ tin nhắn Chat & lịch sử phòng chat<br>' +
+                          '• Toàn bộ bình luận, đánh giá và thông báo liên quan' +
+                      '</div>' +
+                      '<p style="margin-bottom:0;color:rgba(255,255,255,0.6);font-size:12px;">Bạn có hoàn toàn chắc chắn muốn xóa tài khoản này khỏi hệ thống?</p>' +
+                      '</div>',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: '<i class="bi bi-trash3-fill me-1"></i> Xóa vĩnh viễn toàn bộ',
+                cancelButtonText: 'Hủy thao tác',
+                confirmButtonColor: '#ef4444',
+                background: '#0d1626',
+                color: '#fff',
+                focusCancel: true
+            }).then(function (result) {
+                if (result.isConfirmed) {
+                    Swal.fire({
+                        title: 'Đang xóa toàn bộ dữ liệu...',
+                        text: 'Vui lòng chờ trong giây lát...',
+                        allowOutsideClick: false,
+                        didOpen: function() { Swal.showLoading(); }
+                    });
+
+                    $.post('@Url.Action("DeleteUser", "AdminHome", new { area = "Admin" })', {
+                        userId: rUser.UserID
+                    }, function (res) {
+                        if (res.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Đã xóa tài khoản',
+                                text: res.message,
+                                background: '#0d1626',
+                                color: '#fff',
+                                timer: 3500
+                            });
+                            closeReportModal();
+                            loadAdminReports();
+                            // Nếu đang ở trang AdminUser, reload table
+                            if (window.location.pathname.toLowerCase().indexOf('adminuser') !== -1) {
+                                setTimeout(function() { window.location.reload(); }, 1200);
+                            }
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Lỗi khi xóa tài khoản',
+                                text: res.message,
+                                background: '#0d1626',
+                                color: '#fff'
+                            });
+                        }
+                    }).fail(function() {
+                        Swal.fire('Lỗi', 'Không thể kết nối đến máy chủ để thực hiện xóa.', 'error');
+                    });
+                }
+            });
+        }
+
+        function escHtml(str) {
+            if (!str) return '';
+            return $('<div>').text(str).html();
+        }
+
+        $(function () {
+            loadAdminReports();
+            setInterval(loadAdminReports, 20000);
+
+            @if (TempData["ErrorMessage"] != null)
+            {
+                <text>
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Từ chối truy cập',
+                    text: '@Html.Raw(HttpUtility.JavaScriptStringEncode(TempData["ErrorMessage"].ToString()))',
+                    confirmButtonColor: '#00c8ff',
+                    background: '#0d1626',
+                    color: '#fff'
+                });
+                </text>
+            }
+        });
+    </script>
+
+    <!-- REPORT DETAIL POPUP MODAL (POPUP VI PHẠM) -->
+    <div class="report-modal-overlay" id="reportModalOverlay">
+        <div class="report-modal">
+            <div class="report-modal-header">
+                <h5><i class="bi bi-shield-exclamation"></i> Chi tiết Báo cáo Vi phạm</h5>
+                <div class="report-modal-close" onclick="closeReportModal()"><i class="bi bi-x-lg"></i></div>
+            </div>
+            <div class="report-modal-body" id="reportModalBody">
+                <div class="p-3 text-center text-muted">Đang tải dữ liệu vi phạm...</div>
+            </div>
+            <div class="report-modal-footer">
+                <button type="button" class="btn-admin btn-admin-warn" id="reportBtnWarn" onclick="warnReportedUser()">
+                    <i class="bi bi-exclamation-triangle"></i> Gửi cảnh báo
+                </button>
+                <button type="button" class="btn-admin btn-admin-delete" id="reportBtnDelete" onclick="deleteReportedUser()">
+                    <i class="bi bi-trash3"></i> Xóa tài khoản & Dữ liệu
+                </button>
+                <a href="#" target="_blank" class="btn-admin btn-admin-view" id="reportBtnView" style="text-decoration:none;">
+                    <i class="bi bi-box-arrow-up-right"></i> Xem phòng chat
+                </a>
+                <button type="button" class="btn-admin btn-admin-dismiss" onclick="closeReportModal()">
+                    <i class="bi bi-check-lg"></i> Đóng
+                </button>
+            </div>
+        </div>
+    </div>
+
+    @RenderSection("scripts", required: false)
+</body>
+</html>

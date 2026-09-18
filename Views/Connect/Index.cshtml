@@ -1,0 +1,704 @@
+@model Dictionary<string, List<StudentConnect.Models.ConnectPost>>
+@{
+    ViewBag.Title = "Khám phá Thủ Dầu Một";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    int totalPosts = Model?.Values.SelectMany(v => v).Count() ?? 0;
+    int totalCats = Model?.Count ?? 0;
+}
+
+<style>
+    :root {
+        --c-bg: #050c1a;
+        --c-surface: #0d1626;
+        --c-border: #1a2540;
+        --c-border2: #232840;
+        --c-cyan: #00c8ff;
+        --c-purple: #7b61ff;
+        --c-amber: #ef9f27;
+        --c-red: #e24b4a;
+        --c-text: rgba(255,255,255,0.9);
+        --c-muted: #8b94a5;
+        --c-hint: #4a5568;
+        --radius: 14px;
+        --tr: 0.2s ease;
+    }
+
+    .explore-page {
+        color: var(--c-text);
+    }
+
+    /* ── TOPBAR ── */
+    .explore-topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 24px;
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+
+    .explore-brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .explore-brand-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 12px;
+        background: rgba(0,200,255,0.1);
+        border: 1px solid rgba(0,200,255,0.25);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--c-cyan);
+        font-size: 18px;
+        flex-shrink: 0;
+    }
+
+    .explore-brand-name {
+        font-size: 18px;
+        font-weight: 700;
+        color: #fff;
+        line-height: 1.2;
+    }
+
+    .explore-brand-sub {
+        font-size: 10px;
+        color: var(--c-cyan);
+        letter-spacing: .08em;
+    }
+
+    .btn-xp {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        border: 1px solid rgba(0,200,255,0.3);
+        color: var(--c-cyan);
+        background: none;
+        border-radius: 50px;
+        padding: 8px 18px;
+        font-size: 13px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all var(--tr);
+        text-decoration: none;
+    }
+
+        .btn-xp:hover {
+            background: rgba(0,200,255,0.1);
+            border-color: rgba(0,200,255,0.5);
+            color: var(--c-cyan);
+        }
+
+        .btn-xp.purple {
+            border-color: rgba(123,97,255,0.3);
+            color: var(--c-purple);
+        }
+
+            .btn-xp.purple:hover {
+                background: rgba(123,97,255,0.1);
+                border-color: rgba(123,97,255,0.5);
+                color: var(--c-purple);
+            }
+
+    /* ── HERO ── */
+    .explore-hero {
+        background: var(--c-surface);
+        border: 1px solid var(--c-border2);
+        border-radius: 18px;
+        padding: 28px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 24px;
+        margin-bottom: 24px;
+        flex-wrap: wrap;
+    }
+
+    .hero-title {
+        font-size: 20px;
+        font-weight: 700;
+        color: #fff;
+        margin-bottom: 6px;
+    }
+
+    .hero-desc {
+        font-size: 13px;
+        color: var(--c-muted);
+        max-width: 400px;
+        line-height: 1.6;
+        margin: 0;
+    }
+
+    .hero-stats {
+        display: flex;
+        gap: 28px;
+        flex-shrink: 0;
+    }
+
+    .hstat-num {
+        font-size: 24px;
+        font-weight: 700;
+        color: var(--c-cyan);
+        text-align: center;
+    }
+
+    .hstat-lbl {
+        font-size: 11px;
+        color: var(--c-muted);
+        text-align: center;
+        margin-top: 2px;
+    }
+
+    /* ── SEARCH ── */
+        .explore-search {
+        background: var(--c-surface);
+        border: 1px solid var(--c-border2);
+        border-radius: 50px;
+        padding: 6px 8px 6px 18px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 20px;
+        transition: border-color var(--tr);
+        flex-wrap: wrap;
+    }
+
+        .explore-search:focus-within {
+            border-color: rgba(0,200,255,0.4);
+            box-shadow: 0 0 0 3px rgba(0,200,255,0.07);
+        }
+
+        .explore-search i.search-icon {
+            color: var(--c-hint);
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+
+        .explore-search input {
+            flex: 1;
+            min-width: 150px;
+            background: none;
+            border: none;
+            outline: none;
+            color: var(--c-text);
+            font-size: 14px;
+        }
+
+            .explore-search input::placeholder {
+                color: var(--c-hint);
+            }
+
+    .search-cat-select {
+        background: rgba(255,255,255,0.06);
+        border: 1px solid var(--c-border2);
+        color: var(--c-text);
+        border-radius: 20px;
+        padding: 6px 12px;
+        font-size: 13px;
+        outline: none;
+        cursor: pointer;
+        transition: all var(--tr);
+    }
+    .search-cat-select option {
+        background: #0d1626;
+        color: #fff;
+    }
+    .search-cat-select:focus {
+        border-color: var(--c-cyan);
+    }
+
+    /* ── CATEGORY PILLS ── */
+    .cat-pills-container {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        overflow-x: auto;
+        padding-bottom: 12px;
+        margin-bottom: 24px;
+        scrollbar-width: thin;
+    }
+    .cat-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 18px;
+        border-radius: 50px;
+        background: var(--c-surface);
+        border: 1px solid var(--c-border2);
+        color: var(--c-muted);
+        font-size: 13px;
+        font-weight: 500;
+        text-decoration: none;
+        white-space: nowrap;
+        transition: all var(--tr);
+    }
+    .cat-pill:hover {
+        border-color: rgba(0,200,255,0.4);
+        color: #fff;
+        background: rgba(0,200,255,0.05);
+    }
+    .cat-pill.active {
+        background: rgba(0,200,255,0.15);
+        border-color: var(--c-cyan);
+        color: var(--c-cyan);
+        font-weight: 600;
+        box-shadow: 0 0 15px rgba(0,200,255,0.2);
+    }
+    .filter-notice {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: rgba(0,200,255,0.08);
+        border: 1px solid rgba(0,200,255,0.25);
+        border-radius: 12px;
+        padding: 10px 16px;
+        margin-bottom: 20px;
+        font-size: 13px;
+        color: var(--c-text);
+    }
+
+    .btn-search-xp {
+        background: var(--c-cyan);
+        color: #000;
+        border: none;
+        border-radius: 40px;
+        padding: 9px 24px;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background var(--tr);
+        flex-shrink: 0;
+    }
+
+        .btn-search-xp:hover {
+            background: #00b0e0;
+        }
+
+    /* ── SECTION HEADER ── */
+    .section-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 16px;
+    }
+
+        .section-head h4 {
+            font-size: 15px;
+            font-weight: 600;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 0;
+        }
+
+    .section-count {
+        font-size: 11px;
+        font-weight: 400;
+        color: var(--c-muted);
+        background: rgba(255,255,255,0.05);
+        padding: 2px 10px;
+        border-radius: 20px;
+    }
+
+    .see-all {
+        font-size: 12px;
+        color: var(--c-cyan);
+        text-decoration: none;
+    }
+
+        .see-all:hover {
+            text-decoration: underline;
+        }
+
+    /* ── CARDS GRID ── */
+    .cards-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 14px;
+        margin-bottom: 32px;
+    }
+
+    @@media (max-width: 991px) {
+        .cards-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+
+    @@media (max-width: 575px) {
+        .cards-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    /* ── CARD ── */
+    .xp-card {
+        background: var(--c-surface);
+        border: 1px solid var(--c-border);
+        border-radius: var(--radius);
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        transition: all var(--tr);
+        text-decoration: none;
+        color: var(--c-text);
+    }
+
+        .xp-card:hover {
+            border-color: rgba(0,200,255,0.3);
+            transform: translateY(-4px);
+            box-shadow: 0 12px 28px rgba(0,0,0,0.4);
+            color: var(--c-text);
+        }
+
+    .xp-card-img-wrap {
+        position: relative;
+        flex-shrink: 0;
+    }
+
+        .xp-card-img-wrap img {
+            width: 100%;
+            height: 160px;
+            object-fit: cover;
+            display: block;
+        }
+
+    .xp-card-placeholder {
+        width: 100%;
+        height: 160px;
+        background: #111827;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 32px;
+        color: var(--c-hint);
+    }
+
+    .badge-new {
+        position: absolute;
+        top: 8px;
+        left: 8px;
+        background: var(--c-red);
+        color: #fff;
+        font-size: 9px;
+        font-weight: 700;
+        padding: 3px 9px;
+        border-radius: 20px;
+        letter-spacing: .05em;
+    }
+
+    .badge-hot-card {
+        position: absolute;
+        top: 8px;
+        left: 8px;
+        background: var(--c-amber);
+        color: #412402;
+        font-size: 9px;
+        font-weight: 700;
+        padding: 3px 9px;
+        border-radius: 20px;
+        letter-spacing: .05em;
+    }
+
+    .xp-card-body {
+        padding: 12px 14px 14px;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .card-loc {
+        font-size: 10px;
+        color: var(--c-muted);
+        background: rgba(255,255,255,0.04);
+        border-radius: 20px;
+        padding: 2px 9px;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        margin-bottom: 7px;
+        width: fit-content;
+    }
+
+    .card-title-xp {
+        font-size: 13px;
+        font-weight: 600;
+        color: #fff;
+        line-height: 1.45;
+        margin-bottom: 5px;
+        overflow: hidden;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        min-height: 38px;
+    }
+
+    .card-desc-xp {
+        font-size: 11px;
+        color: var(--c-muted);
+        line-height: 1.5;
+        flex: 1;
+        overflow: hidden;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        margin-bottom: 12px;
+    }
+
+    .card-foot-xp {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding-top: 10px;
+        border-top: 1px solid var(--c-border);
+    }
+
+    .card-author-xp {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .avatar-xs {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background: rgba(0,200,255,0.15);
+        border: 1px solid rgba(0,200,255,0.3);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 9px;
+        color: var(--c-cyan);
+        font-weight: 700;
+        flex-shrink: 0;
+    }
+
+    .author-name {
+        font-size: 11px;
+        color: var(--c-muted);
+    }
+
+    .author-date {
+        font-size: 10px;
+        color: var(--c-hint);
+    }
+
+    .btn-detail-xp {
+        font-size: 10px;
+        border: 1px solid rgba(0,200,255,0.3);
+        color: var(--c-cyan);
+        border-radius: 20px;
+        padding: 4px 12px;
+        transition: all var(--tr);
+        white-space: nowrap;
+    }
+
+    .xp-card:hover .btn-detail-xp {
+        background: var(--c-cyan);
+        color: #000;
+        border-color: var(--c-cyan);
+    }
+
+    /* ── EMPTY STATE ── */
+    .empty-cat {
+        background: var(--c-surface);
+        border: 1px dashed var(--c-border2);
+        border-radius: var(--radius);
+        padding: 44px 20px;
+        text-align: center;
+        margin-bottom: 32px;
+    }
+
+        .empty-cat i {
+            font-size: 2.5rem;
+            color: var(--c-border2);
+            display: block;
+            margin-bottom: 12px;
+        }
+
+        .empty-cat p {
+            color: var(--c-muted);
+            font-size: 14px;
+            margin-bottom: 12px;
+        }
+</style>
+
+<div class="container py-4 explore-page">
+
+    <div class="explore-topbar">
+        <div class="explore-brand">
+            <div class="explore-brand-icon"><i class="fas fa-compass"></i></div>
+            <div>
+                <div class="explore-brand-name">Khám phá TDMU</div>
+            </div>
+        </div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <a href="@Url.Action("Create","Connect")" class="btn-xp">
+                <i class="fas fa-pen" style="font-size:11px;"></i> Viết review
+            </a>
+            <a href="@Url.Action("MyPosts","Connect")" class="btn-xp purple">
+                <i class="fas fa-layer-group" style="font-size:11px;"></i> Bài của tôi
+            </a>
+        </div>
+    </div>
+
+    <div class="explore-hero">
+        <div>
+            <div class="hero-title">Tìm địa điểm quanh Thủ Dầu Một</div>
+            <p class="hero-desc">Quán ăn ngon, góc chill yêu thích hay trải nghiệm thú vị – tất cả do cộng đồng sinh viên TDMU chia sẻ.</p>
+        </div>
+        <div class="hero-stats">
+            <div>
+                <div class="hstat-num">@totalPosts</div>
+                <div class="hstat-lbl">Bài review</div>
+            </div>
+            <div>
+                <div class="hstat-num">@totalCats</div>
+                <div class="hstat-lbl">Danh mục</div>
+            </div>
+        </div>
+    </div>
+
+    <form id="connectSearchForm" onsubmit="handleConnectSearch(event)">
+        <div class="explore-search">
+            <i class="fas fa-search search-icon"></i>
+            <select id="connectCategorySelect" name="category" class="search-cat-select" onchange="onSelectConnectCategoryChange()">
+                <option value="">Tất cả danh mục</option>
+                @if (ViewBag.AllCategories != null)
+                {
+                    foreach (var c in (List<string>)ViewBag.AllCategories)
+                    {
+                        <option value="@c" @(ViewBag.CurrentCategory == c ? "selected" : "")>@c</option>
+                    }
+                }
+            </select>
+            <input type="text" id="connectSearchInput" name="searchString" value="@ViewBag.CurrentSearch"
+                   placeholder="Tìm kiếm bài viết, quán ăn, hỗ trợ học tập..." />
+            <button type="submit" class="btn-search-xp">Tìm kiếm</button>
+        </div>
+    </form>
+
+    <!-- CATEGORY PILLS BAR -->
+    <div class="cat-pills-container">
+        <a href="javascript:void(0);" onclick="selectConnectCategory(null)"
+           class="cat-pill connect-cat-pill @(string.IsNullOrEmpty(ViewBag.CurrentCategory) ? "active" : "")"
+           data-cat="">
+            <i class="fas fa-border-all"></i> Tất cả
+        </a>
+        @if (ViewBag.AllCategories != null)
+        {
+            foreach (var c in (List<string>)ViewBag.AllCategories)
+            {
+                string pillIcon = c.Contains("Ẩm thực") ? "fa-utensils" :
+                                  c.Contains("Nước uống") ? "fa-mug-hot" :
+                                  c.Contains("Địa điểm") || c.Contains("vui chơi") ? "fa-gamepad" :
+                                  c.Contains("Hỗ trợ") ? "fa-hands-helping" : "fa-layer-group";
+
+                <a href="javascript:void(0);" onclick="selectConnectCategory('@c')"
+                   class="cat-pill connect-cat-pill @(ViewBag.CurrentCategory == c ? "active" : "")"
+                   data-cat="@c">
+                    <i class="fas @pillIcon"></i> @c
+                </a>
+            }
+        }
+    </div>
+
+    <!-- DYNAMIC AJAX POSTS CONTAINER -->
+    <div id="connectPostsContainer" style="transition: opacity 0.2s ease;">
+        @Html.Partial("_ConnectPostsPartial", Model)
+    </div>
+
+</div>
+
+<script>
+    let currentConnectSearch = '@(ViewBag.CurrentSearch ?? "")';
+    let currentConnectCategory = '@(ViewBag.CurrentCategory ?? "")';
+
+    function selectConnectCategory(cat) {
+        currentConnectCategory = cat || '';
+        $('#connectCategorySelect').val(currentConnectCategory);
+        $('.connect-cat-pill').removeClass('active');
+        if (currentConnectCategory) {
+            $('.connect-cat-pill[data-cat="' + currentConnectCategory + '"]').addClass('active');
+        } else {
+            $('.connect-cat-pill[data-cat=""]').addClass('active');
+        }
+        loadConnectPosts();
+    }
+
+    function onSelectConnectCategoryChange() {
+        let val = $('#connectCategorySelect').val();
+        selectConnectCategory(val || null);
+    }
+
+    function handleConnectSearch(e) {
+        if (e) e.preventDefault();
+        currentConnectSearch = $('#connectSearchInput').val().trim();
+        let val = $('#connectCategorySelect').val();
+        currentConnectCategory = val || '';
+        $('.connect-cat-pill').removeClass('active');
+        if (currentConnectCategory) {
+            $('.connect-cat-pill[data-cat="' + currentConnectCategory + '"]').addClass('active');
+        } else {
+            $('.connect-cat-pill[data-cat=""]').addClass('active');
+        }
+        loadConnectPosts();
+    }
+
+    function resetConnectFilter() {
+        currentConnectSearch = '';
+        currentConnectCategory = '';
+        $('#connectSearchInput').val('');
+        $('#connectCategorySelect').val('');
+        $('.connect-cat-pill').removeClass('active');
+        $('.connect-cat-pill[data-cat=""]').addClass('active');
+        loadConnectPosts();
+    }
+
+    function loadConnectPosts() {
+        $('#connectPostsContainer').css('opacity', '0.4').css('pointer-events', 'none');
+
+        $.ajax({
+            url: '@Url.Action("GetPostsAjax", "Connect")',
+            type: 'GET',
+            data: {
+                searchString: currentConnectSearch,
+                category: currentConnectCategory
+            },
+            success: function (html) {
+                $('#connectPostsContainer').html(html).css('opacity', '1').css('pointer-events', 'auto');
+
+                // Update URL history without page reload
+                let newUrl = '@Url.Action("Index", "Connect")';
+                let params = [];
+                if (currentConnectSearch) params.push('searchString=' + encodeURIComponent(currentConnectSearch));
+                if (currentConnectCategory) params.push('category=' + encodeURIComponent(currentConnectCategory));
+                if (params.length > 0) newUrl += '?' + params.join('&');
+                window.history.pushState({ path: newUrl }, '', newUrl);
+            },
+            error: function () {
+                $('#connectPostsContainer').css('opacity', '1').css('pointer-events', 'auto');
+            }
+        });
+    }
+</script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+@if (TempData["DeletedPost"] != null)
+{
+    <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Bài viết đã bị xóa',
+            text: 'Bài viết này đã bị xóa hoặc không còn tồn tại.',
+            confirmButtonText: 'Đã hiểu',
+            confirmButtonColor: '#0084ff'
+        });
+    });
+    </script>
+}
