@@ -1,4 +1,4 @@
-﻿@model StudentConnect.Models.ConnectPost
+@model StudentConnect.Models.ConnectPost
 @{
     ViewBag.Title = "Đăng bài mới";
     Layout = "~/Views/Shared/_Layout.cshtml";
@@ -98,6 +98,13 @@
                     </div>
                 </div>
 
+                @if (!ViewData.ModelState.IsValid)
+                {
+                    <div class="alert alert-danger py-2 px-3 mb-3 small" style="background: rgba(220,53,69,0.2); border: 1px solid rgba(220,53,69,0.4); color: #ff8080; border-radius: 8px;">
+                        @Html.ValidationSummary(false, "")
+                    </div>
+                }
+
                 @using (Html.BeginForm("Create", "Connect", FormMethod.Post, new { enctype = "multipart/form-data" }))
                 {
                     @Html.AntiForgeryToken()
@@ -116,7 +123,11 @@
 
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Ảnh đại diện</label>
-                            <input type="file" name="ImageFile" class="form-control" accept="image/*" required />
+                            <input type="file" name="ImageFile" id="imageFileInput" class="form-control" accept="image/*" required onchange="handleImagePreview(this)" />
+                            <small class="text-muted d-block mt-1" style="font-size: 11px;">Hỗ trợ JPG, PNG, WEBP. Tối đa 25MB.</small>
+                            <div id="imagePreviewContainer" class="mt-2 text-center" style="display: none;">
+                                <img id="imagePreview" src="" alt="Preview" class="rounded" style="max-height: 140px; max-width: 100%; object-fit: cover; border: 1px solid rgba(255,255,255,0.2);" />
+                            </div>
                         </div>
 
                         <div class="col-12 mb-4">
@@ -144,3 +155,52 @@
 </div>
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+    function handleImagePreview(input) {
+        const file = input.files[0];
+        if (!file) {
+            $('#imagePreviewContainer').hide();
+            return;
+        }
+
+        // Kiểm tra dung lượng (tối đa 25MB)
+        const maxSize = 25 * 1024 * 1024;
+        if (file.size > maxSize) {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Ảnh quá lớn',
+                    text: 'Dung lượng ảnh (' + (file.size / (1024 * 1024)).toFixed(1) + 'MB) vượt quá giới hạn 25MB. Vui lòng chọn ảnh nhẹ hơn.',
+                    confirmButtonColor: '#38bdf8'
+                });
+            } else {
+                alert('Dung lượng ảnh vượt quá giới hạn 25MB. Vui lòng chọn ảnh nhẹ hơn.');
+            }
+            input.value = '';
+            $('#imagePreviewContainer').hide();
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            $('#imagePreview').attr('src', e.target.result);
+            $('#imagePreviewContainer').show();
+        };
+        reader.readAsDataURL(file);
+    }
+
+    $(document).ready(function() {
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('uploadError') === 'tooLarge') {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Lỗi tải ảnh',
+                    text: 'File tải lên vượt quá dung lượng cho phép của máy chủ. Vui lòng chọn ảnh nhẹ hơn (dưới 25MB).',
+                    confirmButtonColor: '#38bdf8'
+                });
+            }
+        }
+    });
+</script>

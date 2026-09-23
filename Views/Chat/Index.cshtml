@@ -1,4 +1,4 @@
-@model IEnumerable<StudentConnect.Models.ChatMessage>
+﻿@model IEnumerable<StudentConnect.Models.ChatMessage>
 @{
     ViewBag.Title = "Trò chuyện ẩn danh";
     int myId = Session["UserID"] != null ? (int)Session["UserID"] : 0;
@@ -10,6 +10,14 @@
 }
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+<script>
+    function handleAvatarError(img) {
+        if (img && img.parentElement) {
+            img.onerror = null;
+            img.parentElement.innerHTML = '<i class="fa-solid fa-user"></i>';
+        }
+    }
+</script>
 <style>
     :root {
         --c-bg: #050a14;
@@ -427,6 +435,73 @@
         transform: scale(1.08);
         box-shadow: 0 0 10px rgba(123,97,255,0.3);
     }
+    .avatar.anon {
+        background: rgba(255,184,48,0.12);
+        border: 1px solid rgba(255,184,48,0.3);
+        color: #ffb830;
+    }
+    .avatar.revealed {
+        background: rgba(0,200,255,0.15);
+        border: 1px solid rgba(0,200,255,0.35);
+        color: #00c8ff;
+        overflow: hidden;
+    }
+    .avatar img.avatar-img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: 8px;
+    }
+    .avatar .avatar-initials {
+        font-weight: 700;
+        font-size: 13px;
+        color: #fff;
+    }
+    .msg-sender-name {
+        font-size: 11px;
+        font-weight: 600;
+        margin-bottom: 3px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin-left: 38px;
+        user-select: none;
+    }
+    .msg-sender-name .name-text {
+        color: #00c8ff;
+    }
+    .msg-sender-name .badge-sv {
+        font-size: 9px;
+        padding: 1px 5px;
+        border-radius: 4px;
+        background: rgba(0, 200, 255, 0.15);
+        border: 1px solid rgba(0, 200, 255, 0.3);
+        color: #00c8ff;
+        font-family: 'JetBrains Mono', monospace;
+    }
+    .msg-sender-name .badge-anon {
+        font-size: 9px;
+        padding: 1px 5px;
+        border-radius: 4px;
+        background: rgba(255, 184, 48, 0.15);
+        border: 1px solid rgba(255, 184, 48, 0.3);
+        color: #ffb830;
+        font-family: 'JetBrains Mono', monospace;
+    }
+    .ts-mode {
+        font-size: 9px;
+        margin-left: 4px;
+        padding: 0 4px;
+        border-radius: 3px;
+    }
+    .ts-mode.anon {
+        color: #ffb830;
+        opacity: 0.8;
+    }
+    .ts-mode.public {
+        color: #00c8ff;
+        opacity: 0.8;
+    }
 
     .msg-container {
         position: relative;
@@ -648,6 +723,46 @@
         position: relative;
     }
 
+    .anon-toggle-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        height: 38px;
+        padding: 0 12px;
+        border-radius: 100px;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        border: 1px solid rgba(255, 184, 48, 0.35);
+        background: rgba(255, 184, 48, 0.12);
+        color: #ffb830;
+        flex-shrink: 0;
+        transition: all var(--transition);
+        user-select: none;
+        font-family: 'Space Grotesk', sans-serif;
+    }
+    .anon-toggle-btn:hover {
+        transform: scale(1.04);
+        box-shadow: 0 0 14px rgba(255, 184, 48, 0.3);
+    }
+    .anon-toggle-btn.revealed {
+        border-color: rgba(0, 200, 255, 0.4);
+        background: rgba(0, 200, 255, 0.12);
+        color: #00c8ff;
+    }
+    .anon-toggle-btn.revealed:hover {
+        box-shadow: 0 0 14px rgba(0, 200, 255, 0.35);
+    }
+    @@media (max-width: 650px) {
+        .anon-toggle-btn {
+            padding: 0 9px;
+            font-size: 13px;
+        }
+        .anon-toggle-btn .anon-text {
+            display: none;
+        }
+    }
+
     #txtMessage {
         flex: 1;
         border: 1px solid var(--c-border);
@@ -779,38 +894,306 @@
         transform: scale(1.15) rotate(90deg);
     }
 
+    /* BACKDROP */
+    .user-menu-backdrop {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.65);
+        backdrop-filter: blur(4px);
+        -webkit-backdrop-filter: blur(4px);
+        z-index: 9998;
+        opacity: 0;
+        transition: opacity 0.25s ease;
+    }
+    .user-menu-backdrop.active {
+        display: block;
+        opacity: 1;
+    }
+
+    /* DESKTOP POPUP STYLING (> 768px) */
     .user-context-menu {
         position: fixed;
         display: none;
-        background: #0d1626;
-        border: 1px solid var(--c-border2);
-        box-shadow: 0 8px 32px rgba(0,0,0,0.5);
-        border-radius: 12px;
-        z-index: 10000;
-        width: 175px;
-        padding: 5px;
-        animation: popIn 0.15s ease;
+        background: rgba(13, 22, 38, 0.95);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border: 1px solid rgba(0, 200, 255, 0.25);
+        box-shadow: 0 16px 40px rgba(0, 0, 0, 0.65), 0 0 20px rgba(0, 200, 255, 0.08);
+        border-radius: 16px;
+        z-index: 9999;
+        width: 270px;
+        padding: 14px;
+        box-sizing: border-box;
+        transform-origin: top left;
     }
-    .user-context-menu ul {
+    .user-context-menu.active {
+        display: block;
+        animation: menuPopIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    @@keyframes menuPopIn {
+        from { opacity: 0; transform: scale(0.92) translateY(-4px); }
+        to { opacity: 1; transform: scale(1) translateY(0); }
+    }
+
+    .user-menu-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 2px 4px 10px;
+    }
+
+    .user-menu-avatar {
+        width: 38px;
+        height: 38px;
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+        color: #00c8ff;
+        flex-shrink: 0;
+        overflow: hidden;
+    }
+    .user-menu-avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .user-menu-info {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .user-menu-name {
+        font-size: 13.5px;
+        font-weight: 700;
+        color: rgba(255, 255, 255, 0.95);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        font-family: 'Space Grotesk', sans-serif;
+    }
+
+    .user-menu-meta {
+        margin-top: 2px;
+    }
+    .user-menu-meta .badge-anon {
+        font-size: 10px;
+        background: rgba(255, 255, 255, 0.08);
+        color: rgba(255, 255, 255, 0.6);
+        padding: 1px 7px;
+        border-radius: 20px;
+        display: inline-block;
+    }
+    .user-menu-meta .badge-sv {
+        font-size: 10px;
+        background: rgba(0, 200, 255, 0.15);
+        color: #00c8ff;
+        border: 1px solid rgba(0, 200, 255, 0.3);
+        padding: 1px 7px;
+        border-radius: 20px;
+        display: inline-block;
+        font-weight: 600;
+    }
+
+    .user-menu-close-btn {
+        background: none;
+        border: none;
+        color: rgba(255, 255, 255, 0.4);
+        font-size: 18px;
+        cursor: pointer;
+        padding: 4px;
+        border-radius: 50%;
+        transition: color 0.15s;
+    }
+    .user-menu-close-btn:hover {
+        color: #fff;
+    }
+
+    .user-menu-divider {
+        height: 1px;
+        background: rgba(255, 255, 255, 0.08);
+        margin: 2px 0 8px;
+    }
+
+    .user-menu-actions {
         list-style: none;
         margin: 0;
         padding: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
     }
-    .user-context-menu li {
-        padding: 9px 13px;
-        cursor: pointer;
-        font-size: 13px;
-        transition: background var(--transition);
+
+    .action-item {
         display: flex;
         align-items: center;
-        gap: 8px;
-        border-radius: 8px;
-        color: var(--c-muted);
-        font-family: 'Space Grotesk', sans-serif;
+        gap: 10px;
+        padding: 9px 12px;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: all 0.18s ease;
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid transparent;
     }
-    .user-context-menu li:hover {
-        background: rgba(255,255,255,0.05);
-        color: var(--c-cyan);
+
+    .action-item:hover {
+        transform: translateX(2px);
+    }
+
+    .action-icon {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 13px;
+        flex-shrink: 0;
+    }
+
+    .chat-icon {
+        background: rgba(0, 200, 255, 0.12);
+        color: #00c8ff;
+        border: 1px solid rgba(0, 200, 255, 0.25);
+    }
+    .action-item.action-chat:hover {
+        background: rgba(0, 200, 255, 0.08);
+        border-color: rgba(0, 200, 255, 0.25);
+    }
+    .action-item.action-chat:hover .action-title {
+        color: #00c8ff;
+    }
+
+    .report-icon {
+        background: rgba(255, 77, 77, 0.12);
+        color: #ff5c5c;
+        border: 1px solid rgba(255, 77, 77, 0.25);
+    }
+    .action-item.action-report:hover {
+        background: rgba(255, 77, 77, 0.08);
+        border-color: rgba(255, 77, 77, 0.25);
+    }
+    .action-item.action-report:hover .action-title {
+        color: #ff5c5c;
+    }
+
+    .action-details {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .action-title {
+        font-size: 13px;
+        font-weight: 600;
+        color: rgba(255, 255, 255, 0.88);
+        font-family: 'Space Grotesk', sans-serif;
+        transition: color 0.15s;
+    }
+
+    .action-sub {
+        font-size: 10.5px;
+        color: rgba(255, 255, 255, 0.38);
+        margin-top: 1px;
+    }
+
+    .action-arrow {
+        color: rgba(255, 255, 255, 0.25);
+        font-size: 12px;
+    }
+
+    .btn-user-menu-cancel {
+        width: 100%;
+        padding: 12px;
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        color: rgba(255, 255, 255, 0.7);
+        font-size: 13.5px;
+        font-weight: 600;
+        cursor: pointer;
+        margin-top: 10px;
+        transition: background 0.15s, color 0.15s;
+    }
+    .btn-user-menu-cancel:hover {
+        background: rgba(255, 255, 255, 0.1);
+        color: #fff;
+    }
+
+    /* MOBILE / TABLET RESPONSIVE (<= 768px) -> BOTTOM SHEET */
+    @@media (max-width: 768px) {
+        .user-context-menu {
+            top: auto !important;
+            left: 0 !important;
+            right: 0 !important;
+            bottom: 0 !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            border-radius: 22px 22px 0 0 !important;
+            padding: 16px 20px 24px !important;
+            box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.8) !important;
+            border-bottom: none !important;
+            border-left: none !important;
+            border-right: none !important;
+            border-top: 1px solid rgba(0, 200, 255, 0.25) !important;
+            transform: translateY(100%);
+            transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .user-context-menu.active {
+            transform: translateY(0) !important;
+            animation: none !important;
+        }
+
+        .user-sheet-handle {
+            width: 40px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.25);
+            border-radius: 100px;
+            margin: 0 auto 14px;
+        }
+
+        .user-menu-header {
+            padding: 0 0 14px;
+        }
+
+        .user-menu-avatar {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            font-size: 18px;
+        }
+
+        .user-menu-name {
+            font-size: 15px;
+        }
+
+        .action-item {
+            padding: 12px 14px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .action-icon {
+            width: 38px;
+            height: 38px;
+            font-size: 15px;
+        }
+
+        .action-title {
+            font-size: 14px;
+        }
+
+        .action-sub {
+            font-size: 11.5px;
+        }
     }
 
     .sys-msg {
@@ -920,19 +1303,19 @@
             </div>
 
             <div class="sidebar-quick-actions">
-                <a href="@Url.Action("Index", "Chat")" class="quick-btn public-btn @(!isPrivate ? "active" : "")" title="Vào Sảnh ẩn danh">
+                <a href="@Url.Action("Index", "Chat")" class="quick-btn public-btn @(!isPrivate ? "active" : "")" title="Vào Sảnh chung">
                     <i class="fa-solid fa-users"></i> Sảnh chung
                 </a>
-                <button type="button" class="quick-btn" onclick="showCreateGroupModal()" title="Tạo nhóm 5 hoặc nhóm học tập">
+                <button type="button" class="quick-btn" onclick="showCreateGroupModal()" title="Tạo nhóm 5">
                     <i class="fa-solid fa-user-group" style="color:var(--c-purple);"></i> Tạo nhóm
                 </button>
             </div>
             <div class="sidebar-quick-actions" style="margin-top:5px;">
-                <button type="button" class="quick-btn" onclick="joinRandomGroup()" title="Ghép nhóm 5 người">
+                <button type="button" class="quick-btn" onclick="joinRandomGroup()" title="Ghép nhóm 5">
                     <i class="fa-solid fa-dice" style="color:var(--c-cyan);"></i> x5 Ghép
                 </button>
-                <button type="button" class="quick-btn" onclick="joinRandomAnonymous()" title="Ghép 1v1 ẩn danh">
-                    <i class="fa-solid fa-user-secret" style="color:var(--c-amber);"></i> 1v1 Ghép
+                <button type="button" class="quick-btn" onclick="joinRandomAnonymous()" title="Ghép 1v1">
+                    <i class="fa-solid fa-user-secret" style="color:var(--c-amber);"></i>Ghép 1v1
                 </button>
             </div>
         </div>
@@ -984,16 +1367,13 @@
                             </button>
                         </p>
                         <div class="header-sub secure">
-                            <i class="fa-solid fa-lock" style="font-size:9px;"></i> ẨN DANH · MÃ HÓA
-                            · <span id="onlineCount">--</span> người
+                            <i class="fa-solid fa-lock" style="font-size:9px;"></i> <span id="onlineCount">--</span> người
                         </div>
                     }
                     else
                     {
                         <p class="header-name">Sảnh ẩn danh toàn trường</p>
-                        <div class="header-sub">
-                            NƠI BẮT ĐẦU NHỮNG CUỘC GẶP GỠ
-                            · <span id="onlineCount">--</span> người trực tuyến
+                        <div class="header-sub" style="color: #2abe02;"> NƠI BẮT ĐẦU NHỮNG CUỘC GẶP GỠ · <span id="onlineCount">--</span> người
                         </div>
                     }
                 </div>
@@ -1003,16 +1383,16 @@
             <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
                 @if (isPrivate)
                 {
-                    <button class="btn-action btn-green" onclick="showInviteMemberModal()" title="Thêm thành viên sinh viên vào nhóm">
+                    <button class="btn-action btn-green" onclick="showInviteMemberModal()" title="Thêm thành viên">
                         <i class="fa-solid fa-user-plus"></i> Thêm bạn
                     </button>
                     <button class="btn-action btn-amber" onclick="promptRenameRoom(@ViewBag.RoomID, '@(ViewBag.RoomTitle ?? "")')" title="Đổi tên nhóm/cuộc trò chuyện">
                         <i class="fa-solid fa-pen-to-square"></i> Đổi tên
                     </button>
-                    <button class="btn-action btn-red-outline" onclick="showReportModal(@ViewBag.RoomID, null, null)" title="Tố cáo vi phạm phòng này">
+                    <button class="btn-action btn-red-outline" onclick="showReportModal(@ViewBag.RoomID, null, null)" title="Tố cáo vi phạm này">
                         <i class="fa-solid fa-flag"></i> Tố cáo
                     </button>
-                    <button class="btn-action btn-red" onclick="leaveRoom()" title="Rời khỏi phòng này">
+                    <button class="btn-action btn-red" onclick="leaveRoom()" title="Rời phòng này">
                         <i class="fa-solid fa-right-from-bracket"></i> Rời phòng
                     </button>
                 }
@@ -1027,14 +1407,32 @@
                 {
                     bool isMe = m.SenderID == myId;
                     bool isRevoked = m.Content == "Tin nhắn đã được thu hồi";
-                    string safeContent = (m.Content ?? "").Replace("'", "\\'").Replace("\n", " ");
+                    bool isMsgAnon = string.IsNullOrEmpty(m.Content) || !m.Content.StartsWith("[SHOW_ID]:");
+                    string cleanText = isMsgAnon ? (m.Content ?? "") : (m.Content != null && m.Content.Length >= 10 ? m.Content.Substring(10) : "");
+                    string senderDisplayName = isMsgAnon ? "Ẩn danh" : (m.User?.Username ?? "Sinh viên");
+                    string senderAvatarUrl = isMsgAnon ? null : m.User?.Avatar;
+                    string safeContent = cleanText.Replace("'", "\\'").Replace("\n", " ");
 
                     <div class="msg-wrapper @(isMe ? "me" : "other")" id="msg-@m.MessageID">
+
                         <div class="msg-row">
                             @if (!isMe)
                             {
-                                <div class="avatar-wrapper" onclick="showUserMenu(event, @m.SenderID)">
-                                    <div class="avatar"><i class="fa-solid fa-user-secret"></i></div>
+                                <div class="avatar-wrapper" onclick="showUserMenu(event, @m.SenderID, '@senderDisplayName', '@(senderAvatarUrl ?? "")', @(isMsgAnon ? "true" : "false"))">
+                                    <div class="avatar @(isMsgAnon ? "anon" : "revealed")" title="@(isMsgAnon ? "Người lạ ẩn danh" : senderDisplayName)">
+                                        @if (!isMsgAnon && !string.IsNullOrEmpty(senderAvatarUrl))
+                                        {
+                                            <img src="@senderAvatarUrl" class="avatar-img" alt="@senderDisplayName" onerror="handleAvatarError(this)" />
+                                        }
+                                        else if (!isMsgAnon)
+                                        {
+                                            <span class="avatar-initials">@(senderDisplayName.Length > 0 ? senderDisplayName.Substring(0, 1).ToUpper() : "U")</span>
+                                        }
+                                        else
+                                        {
+                                            <i class="fa-solid fa-user-secret"></i>
+                                        }
+                                    </div>
                                 </div>
                             }
                             <div class="msg-container">
@@ -1059,7 +1457,7 @@
                                             {
                                                 <i class="fa-solid fa-circle-info" style="font-size:11px; opacity:0.5; margin-right:4px;"></i>
                                             }
-                                            @m.Content
+                                            @cleanText
                                         </div>
                                     }
                                     <div class="reaction-badge"></div>
@@ -1096,18 +1494,62 @@
                         </div>
                         <div class="timestamp">
                             @(m.SentAt != null ? Convert.ToDateTime(m.SentAt).ToString("HH:mm") : "")
+                            @if (isMsgAnon)
+                            {
+                                <span class="ts-mode anon" title="Tin nhắn ẩn danh"><i class="fa-solid fa-mask"></i></span>
+                            }
+                            else
+                            {
+                                <span class="ts-mode public" title="Tin nhắn công khai"><i class="fa-solid fa-user-check"></i></span>
+                            }
                         </div>
                     </div>
                 }
             }
         </div>
 
-        <!-- CONTEXT MENU -->
+        <!-- BACKDROP FOR MOBILE / OVERLAY -->
+        <div id="userMenuBackdrop" class="user-menu-backdrop" onclick="closeUserMenu()"></div>
+
+        <!-- CONTEXT MENU / RESPONSIVE ACTION SHEET -->
         <div id="userContextMenu" class="user-context-menu">
-            <ul>
-                <li onclick="handlePrivateChatFromMenu()"><i class="fa-solid fa-paper-plane"></i> Nhắn tin riêng</li>
-                <li onclick="handleReportFromUserMenu()" style="color:rgba(255,100,100,0.95);"><i class="fa-solid fa-flag"></i> Tố cáo người này</li>
+            <div class="user-sheet-handle d-md-none"></div>
+            <div class="user-menu-header">
+                <div class="user-menu-avatar" id="menuTargetAvatar">
+                    <i class="fa-solid fa-user-secret"></i>
+                </div>
+                <div class="user-menu-info">
+                    <div class="user-menu-name" id="menuTargetName">Người lạ</div>
+                    <div class="user-menu-meta" id="menuTargetMeta">
+                        <span class="badge-anon"><i class="fa-solid fa-user-secret me-1"></i>Ẩn danh</span>
+                    </div>
+                </div>
+                <button type="button" class="user-menu-close-btn d-md-none" onclick="closeUserMenu()">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="user-menu-divider"></div>
+            <ul class="user-menu-actions">
+                <li class="action-item action-chat" onclick="handlePrivateChatFromMenu()">
+                    <div class="action-icon chat-icon"><i class="fa-solid fa-paper-plane"></i></div>
+                    <div class="action-details">
+                        <span class="action-title">Nhắn tin riêng</span>
+                        <span class="action-sub">Bắt đầu trò chuyện</span>
+                    </div>
+                    <i class="fa-solid fa-chevron-right action-arrow d-md-none"></i>
+                </li>
+                <li class="action-item action-report" onclick="handleReportFromUserMenu()">
+                    <div class="action-icon report-icon"><i class="fa-solid fa-flag"></i></div>
+                    <div class="action-details">
+                        <span class="action-title">Tố cáo người này</span>
+                        <span class="action-sub">Báo cáo vi phạm cho Quản trị viên</span>
+                    </div>
+                    <i class="fa-solid fa-chevron-right action-arrow d-md-none"></i>
+                </li>
             </ul>
+            <div class="user-menu-footer d-md-none">
+                <button type="button" class="btn-user-menu-cancel" onclick="closeUserMenu()">Đóng</button>
+            </div>
         </div>
 
         <!-- FOOTER -->
@@ -1133,7 +1575,11 @@
             <div class="icon-btn" id="emojiBtn" title="Emoji">
                 <i class="fa-solid fa-face-smile"></i>
             </div>
-            <input id="txtMessage" placeholder="Nhập tin nhắn..." autocomplete="off" />
+            <button type="button" class="anon-toggle-btn active" id="btnToggleAnon" onclick="toggleAnonymousMode()" title="Ẩn danh: BẬT">
+                <i class="fa-solid fa-user-secret"></i>
+                <span class="anon-text">Ẩn danh: BẬT</span>
+            </button>
+            <input id="txtMessage" placeholder="Nhập tin nhắn ẩn danh..." autocomplete="off" />
             <div class="icon-btn send" id="btnSend" title="Gửi">
                 <i class="fa-solid fa-paper-plane"></i>
             </div>
@@ -1240,13 +1686,13 @@
     // ── MODAL THÊM THÀNH VIÊN NGAY TRONG NHÓM ──
     function showInviteMemberModal() {
         Swal.fire({
-            title: 'Thêm thành viên vào nhóm',
+            title: 'Thêm thành viên',
             html: `
             <div style="text-align:left; font-family:'Space Grotesk',sans-serif;">
                 <p style="font-size:13px; color:rgba(255,255,255,0.7); margin-bottom:12px;">
-                    Nhập email sinh viên TDMU để thêm trực tiếp vào nhóm trò chuyện này:
+                    Nhập email sinh viên TDMU để thêm vào nhóm này:
                 </p>
-                <label style="font-size:11px; color:rgba(255,255,255,0.4); letter-spacing:0.08em; font-family:'JetBrains Mono',monospace;">EMAIL SINH VIÊN</label>
+                <label style="font-size:11px; color:rgba(255,255,255,0.4); letter-spacing:0.08em; font-family:'JetBrains Mono',monospace;">EMAIL</label>
                 <input id="swal-invite-email" class="swal2-input" placeholder="example@@student.tdmu.edu.vn" style="margin:6px 0 10px;">
             </div>`,
             showCancelButton: true,
@@ -1282,7 +1728,7 @@
     function showCreateGroupModal() {
         let emailCount = 1;
         Swal.fire({
-            title: 'Tạo nhóm chat 5',
+            title: 'Tạo nhóm 5',
             html: `
             <div style="text-align:left; font-family:'Space Grotesk',sans-serif;">
                 <label style="font-size:11px; color:rgba(255,255,255,0.4); letter-spacing:0.08em; font-family:'JetBrains Mono',monospace;">TÊN NHÓM</label>
@@ -1332,7 +1778,7 @@
         });
     }
 
-    // ── CƠ CHẾ RỜI PHÒNG ──
+    // ── RỜI PHÒNG ──
     function leaveRoom() {
         if (!isPrivatePage) return;
         Swal.fire({
@@ -1445,22 +1891,116 @@
         $('#imageModal').css('display', 'flex');
     }
 
-    let currentTargetUserId = 0;
-    function showUserMenu(event, userId) {
-        if (isPrivatePage) return;
-        event.preventDefault(); event.stopPropagation();
-        currentTargetUserId = userId;
-        const menu = $('#userContextMenu');
-        menu.css({ top: event.clientY+"px", left: event.clientX+"px", display:"block" });
+    // ── CHẾ ĐỘ ẨN DANH / HIỆN DANH TÍNH ──
+    let isAnonymousMode = true; // Mặc định: Chế độ ẩn danh BẬT
+
+    function updateAnonymousToggleUI() {
+        const btn = $('#btnToggleAnon');
+        const input = $('#txtMessage');
+        if (isAnonymousMode) {
+            btn.addClass('active');
+            btn.attr('title', 'Chế độ ẩn danh: BẬT');
+            btn.html('<i class="fa-solid fa-user-secret"></i> <span class="anon-text">Ẩn danh: BẬT</span>');
+            input.attr('placeholder', 'Nhập tin nhắn ẩn danh...');
+        } else {
+            btn.removeClass('active');
+            btn.attr('title', 'Chế độ ẩn danh: TẮT');
+            btn.html('<i class="fa-solid fa-user-check"></i> <span class="anon-text">Hiện danh tính</span>');
+            input.attr('placeholder', 'Nhập tin nhắn công khai...');
+        }
     }
+
+    function toggleAnonymousMode() {
+        isAnonymousMode = !isAnonymousMode;
+        updateAnonymousToggleUI();
+        const modeName = isAnonymousMode ? 'Chế độ Ẩn danh: BẬT' : 'Hiện danh tính thật: BẬT';
+        const modeIcon = isAnonymousMode ? 'info' : 'success';
+        Swal.fire({
+            toast: true,
+            position: 'top-end',
+            icon: modeIcon,
+            title: modeName,
+            text: isAnonymousMode ? 'Tin nhắn của bạn sẽ được ẩn danh hoàn toàn.' : 'Tin nhắn của bạn sẽ hiện tên thật và avatar.',
+            showConfirmButton: false,
+            timer: 2500
+        });
+    }
+
+    let currentTargetUserId = 0;
+    let currentTargetName = "Người lạ";
+    let currentTargetAvatar = "";
+    let currentTargetIsAnon = true;
+
+    function closeUserMenu() {
+        $('#userContextMenu').removeClass('active').hide();
+        $('#userMenuBackdrop').removeClass('active');
+    }
+
+    function showUserMenu(event, userId, displayName, avatarUrl, isAnon) {
+        if (isPrivatePage) return;
+        if (event) {
+            event.preventDefault(); 
+            event.stopPropagation();
+        }
+
+        currentTargetUserId = userId;
+        currentTargetName = displayName || ("Người lạ #" + userId);
+        currentTargetAvatar = avatarUrl || "";
+        currentTargetIsAnon = (isAnon === true || isAnon === "true");
+
+        // Cập nhật thông tin trên header của menu
+        $('#menuTargetName').text(currentTargetName);
+        if (currentTargetIsAnon) {
+            $('#menuTargetAvatar').html('<i class="fa-solid fa-user-secret"></i>');
+            $('#menuTargetMeta').html('<span class="badge-anon"><i class="fa-solid fa-user-secret me-1"></i>Ẩn danh</span>');
+        } else {
+            if (currentTargetAvatar) {
+                $('#menuTargetAvatar').html(`<img src="${currentTargetAvatar}" alt="${currentTargetName}" onerror="handleAvatarError(this)" />`);
+            } else {
+                const initial = currentTargetName.length > 0 ? currentTargetName.charAt(0).toUpperCase() : 'U';
+                $('#menuTargetAvatar').html(`<b>${initial}</b>`);
+            }
+            $('#menuTargetMeta').html('<span class="badge-sv"><i class="fa-solid fa-graduation-cap me-1"></i>SV</span>');
+        }
+
+        const menu = $('#userContextMenu');
+        const backdrop = $('#userMenuBackdrop');
+        const isMobile = $(window).width() <= 768;
+
+        backdrop.addClass('active');
+        menu.show().addClass('active');
+
+        if (!isMobile && event && event.clientX) {
+            const winW = $(window).width();
+            const winH = $(window).height();
+            const menuW = 280;
+            const menuH = 220;
+
+            let left = event.clientX;
+            let top = event.clientY;
+
+            // Xử lý không cho menu tràn màn hình PC
+            if (left + menuW > winW - 14) {
+                left = Math.max(14, winW - menuW - 14);
+            }
+            if (top + menuH > winH - 14) {
+                top = Math.max(14, winH - menuH - 14);
+            }
+
+            menu.css({ top: top + 'px', left: left + 'px', right: 'auto', bottom: 'auto' });
+        } else if (isMobile) {
+            menu.css({ top: '', left: '', right: '', bottom: '' });
+        }
+    }
+
     function handlePrivateChatFromMenu() {
-        $('#userContextMenu').hide();
+        closeUserMenu();
         if (currentTargetUserId > 0) {
-            startPrivateChat(currentTargetUserId, "Người lạ #" + currentTargetUserId);
+            startPrivateChat(currentTargetUserId, currentTargetName);
         }
     }
     function handleReportFromUserMenu() {
-        $('#userContextMenu').hide();
+        closeUserMenu();
         if (currentTargetUserId > 0) {
             showReportModal(roomId, currentTargetUserId, null);
         }
@@ -1473,9 +2013,11 @@
         menu.toggle();
     }
     function startPrivateChat(targetId, targetName) {
+        const titleText = currentTargetIsAnon ? 'Bắt đầu chat riêng ẩn danh?' : `Bắt đầu chat riêng với ${targetName}?`;
+        const bodyText = currentTargetIsAnon ? `Kết nối ẩn danh với ${targetName}?` : `Mở cuộc trò chuyện riêng với ${targetName}?`;
         Swal.fire({
-            title: 'Bắt đầu chat riêng?',
-            text: `Kết nối ẩn danh với ${targetName}?`,
+            title: titleText,
+            text: bodyText,
             icon: 'question',
             showCancelButton: true,
             confirmButtonText: 'Kết nối ngay',
@@ -1484,7 +2026,8 @@
             if (result.isConfirmed) {
                 $.post('/Chat/CreatePrivateRoom', { targetId }, function(res) {
                     if (res.success) {
-                        chat.server.inviteToPrivateChat(parseInt(targetId), myId, "Người lạ", res.roomId);
+                        const myInviteName = isAnonymousMode ? "Người lạ" : ('@Session["Username"]' || "Sinh viên");
+                        chat.server.inviteToPrivateChat(parseInt(targetId), myId, myInviteName, res.roomId);
                         window.location.href = '/Chat/Private/' + res.roomId;
                     } else Swal.fire('Lỗi', res.message, 'error');
                 });
@@ -1533,6 +2076,9 @@
         const input = $('#txtMessage');
         const rId = parseInt(roomId), mId = parseInt(myId);
 
+        // Khởi tạo UI chế độ ẩn danh
+        updateAnonymousToggleUI();
+
         // Nạp danh sách cuộc trò chuyện bên Sidebar
         loadSidebarChatList();
 
@@ -1565,7 +2111,9 @@
             const file = this.files[0]; if (!file) return;
             if (!rId || rId === 0) { alert("Lỗi: Không xác định được phòng chat!"); return; }
             const formData = new FormData();
-            formData.append("roomId", rId); formData.append("file", file);
+            formData.append("roomId", rId);
+            formData.append("file", file);
+            formData.append("isAnonymous", isAnonymousMode);
             $.ajax({
                 url: '/Chat/SendImage', type: 'POST', data: formData,
                 processData: false, contentType: false,
@@ -1579,7 +2127,7 @@
         });
 
         // ── SIGNALR HANDLERS ──
-        chat.client.addNewMessageToPage = function(senderId, message, imageUrl, messageId, replyToId, replyContent) {
+        chat.client.addNewMessageToPage = function(senderId, message, imageUrl, messageId, replyToId, replyContent, isAnonymous, senderName, senderAvatar) {
             if (senderId === 0) {
                 $('#chatBox').append(`<div class="sys-msg"><i>${message}</i></div>`);
                 chatBox.scrollTop = chatBox.scrollHeight;
@@ -1597,8 +2145,41 @@
             const contentHtml = hasImage
                 ? `<div class="msg msg-image"><img src="${imageUrl}" class="chat-img" onclick="viewImage('${imageUrl}')"/></div>`
                 : `<div class="msg msg-text">${safeMsg}</div>`;
+
+            const isAnon = (isAnonymous !== false && isAnonymous !== "false");
+            const displayName = isAnon ? "Ẩn danh" : (senderName || "Sinh viên");
+            const safeDisplayName = $('<div/>').text(displayName).html();
+            const avatarImg = (!isAnon && senderAvatar && senderAvatar !== "null" && senderAvatar !== "") ? senderAvatar : "";
+
+            let senderNameHtml = '';
+            if (!isMe) {
+                if (!isAnon) {
+                    senderNameHtml = `
+                        <div class="msg-sender-name revealed">
+                            <span class="name-text">${safeDisplayName}</span>
+                            <span class="badge-sv">SV TDMU</span>
+                        </div>`;
+                } else {
+                    senderNameHtml = `
+                        <div class="msg-sender-name anon">
+                            <span class="badge-anon"><i class="fa-solid fa-user-secret me-1"></i>Ẩn danh</span>
+                        </div>`;
+                }
+            }
+
+            let avatarInner = '';
+            if (!isAnon && avatarImg) {
+                avatarInner = `<img src="${avatarImg}" class="avatar-img" alt="${safeDisplayName}" onerror="handleAvatarError(this)" />`;
+            } else if (!isAnon) {
+                const initial = displayName.length > 0 ? displayName.charAt(0).toUpperCase() : 'U';
+                avatarInner = `<span class="avatar-initials">${initial}</span>`;
+            } else {
+                avatarInner = `<i class="fa-solid fa-user-secret"></i>`;
+            }
+
             const avatarHtml = !isMe
-                ? `<div class="avatar-wrapper" onclick="showUserMenu(event, ${senderId})"><div class="avatar"><i class="fa-solid fa-user-secret"></i></div></div>` : '';
+                ? `<div class="avatar-wrapper" onclick="showUserMenu(event, ${senderId}, '${safeDisplayName.replace(/'/g, "\\'")}', '${avatarImg.replace(/'/g, "\\'")}', ${isAnon})"><div class="avatar ${isAnon ? 'anon' : 'revealed'}" title="${isAnon ? 'Người lạ ẩn danh' : safeDisplayName}">${avatarInner}</div></div>` : '';
+
             const actionsHtml = msgId > 0 ? `
                 <div class="msg-actions" style="position:relative;">
                     <button class="msg-option-btn" onclick="toggleMsgMenu(event, ${msgId})"><i class="fa-solid fa-ellipsis-vertical"></i></button>
@@ -1611,8 +2192,13 @@
                     </div>
                 </div>` : '';
 
+            const modeBadge = isAnon
+                ? `<span class="ts-mode anon" title="Tin nhắn gửi ẩn danh"><i class="fa-solid fa-mask"></i></span>`
+                : `<span class="ts-mode public" title="Tin nhắn gửi công khai"><i class="fa-solid fa-user-check"></i></span>`;
+
             $('#chatBox').append(`
                 <div class="msg-wrapper ${isMe ? 'me' : 'other'}" ${msgId > 0 ? `id="msg-${msgId}"` : ''}>
+                    ${senderNameHtml}
                     <div class="msg-row">
                         ${avatarHtml}
                         <div class="msg-container">
@@ -1620,7 +2206,7 @@
                             ${actionsHtml}
                         </div>
                     </div>
-                    <div class="timestamp">${getCurrentTime()}</div>
+                    <div class="timestamp">${getCurrentTime()} ${modeBadge}</div>
                 </div>`);
             chatBox.scrollTop = chatBox.scrollHeight;
             loadSidebarChatList();
@@ -1684,9 +2270,26 @@
             const msg = $('#txtMessage').val().trim();
             if (!msg) return;
             $('#txtMessage').val('').focus();
-            $.post('/Chat/SendMessage', { roomId: rId, content: msg, replyToId: replyingToId || null }, function(res) {
-                if (res.success) cancelReply();
-                else {
+            $.post('/Chat/SendMessage', { 
+                roomId: rId, 
+                content: msg, 
+                replyToId: replyingToId || null,
+                isAnonymous: isAnonymousMode
+            }, function(res) {
+                if (res.success) {
+                    cancelReply();
+                    if (res.censored) {
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Nhắc nhở ngôn từ',
+                            text: 'Tin nhắn đã được tự động kiểm duyệt các từ ngữ nhạy cảm.',
+                            toast: true,
+                            position: 'top-end',
+                            showConfirmButton: false,
+                            timer: 4000
+                        });
+                    }
+                } else {
                     $('#txtMessage').val(msg);
                     Swal.fire({ icon:'error', title:'Lỗi', text: res.message||'', toast:true, position:'top-end', showConfirmButton:false, timer:3000 });
                 }
@@ -1702,8 +2305,12 @@
             e.stopPropagation();
             input.val(input.val() + $(this).text()).focus();
         });
+        $('#userContextMenu').click(function(e) {
+            e.stopPropagation();
+        });
         $(document).click(function() {
-            $('#emojiPicker, #userContextMenu, .msg-dropdown').hide();
+            $('#emojiPicker, .msg-dropdown').hide();
+            closeUserMenu();
         });
         setTimeout(() => { chatBox.scrollTop = chatBox.scrollHeight; }, 100);
     });

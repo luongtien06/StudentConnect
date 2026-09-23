@@ -1,374 +1,674 @@
-﻿@{
+﻿@using StudentConnect.Models
+@using System.Collections.Generic
+@using System.Linq
+@{
     ViewBag.Title = "Trang chủ";
+    var latestMarket = ViewBag.LatestMarket as List<MarketPost> ?? new List<MarketPost>();
+    var latestConnect = ViewBag.LatestConnect as List<ConnectPost> ?? new List<ConnectPost>();
 }
 
 <style>
-    @@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
-
-    .home-bg {
+    .home-page {
         font-family: 'Space Grotesk', sans-serif;
-        background: linear-gradient(270deg, #000, #030031, #1d1531);
-        background-size: 400% 400%;
-        animation: gradientShift 25s ease infinite;
-        min-height: 100vh;
-        padding: 2rem 1.5rem 3rem;
+        background: transparent;
+        padding: 0 0 2rem;
         position: relative;
-        overflow: hidden;
-        border-radius: 8px;
-    }
-
-    @@keyframes gradientShift {
-        0% {
-            background-position: 0% 50%;
-        }
-
-        50% {
-            background-position: 100% 50%;
-        }
-
-        100% {
-            background-position: 0% 50%;
-        }
-    }
-
-    .home-bg .grid-bg {
-        position: absolute;
-        inset: 0;
-        background-image: linear-gradient(rgba(0,200,255,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(0,200,255,0.04) 1px, transparent 1px);
-        background-size: 48px 48px;
-        pointer-events: none;
-    }
-
-    .home-bg .orb {
-        position: absolute;
-        border-radius: 50%;
-        filter: blur(80px);
-        pointer-events: none;
-    }
-
-    .home-bg .orb1 {
-        width: 400px;
-        height: 400px;
-        top: -100px;
-        left: -100px;
-        background: rgba(0,80,200,0.18);
-    }
-
-    .home-bg .orb2 {
-        width: 300px;
-        height: 300px;
-        bottom: 0;
-        right: -80px;
-        background: rgba(0,200,100,0.12);
-    }
-
-    .home-bg .orb3 {
-        width: 200px;
-        height: 200px;
-        top: 40%;
-        left: 50%;
-        background: rgba(120,0,255,0.10);
+        overflow: visible;
     }
 
     .home-content {
-        text-align: center;
-        justify-items: center;
+        position: relative;
         z-index: 2;
-        max-width: 1060px;
+        max-width: 1140px;
         margin: 0 auto;
+        text-align: center;
     }
 
-    /* ── BADGE HỆ THỐNG ── */
-    .sys-badge {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        background: rgba(0,200,255,0.08);
-        border: 1px solid rgba(0,200,255,0.22);
-        color: #00c8ff;
-        font-family: 'JetBrains Mono', monospace;
-        font-size: 11px;
-        letter-spacing: 0.08em;
-        padding: 5px 14px;
-        border-radius: 100px;
-        margin-bottom: 1.5rem;
-    }
-
-        .sys-badge::before {
-            content: '';
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            background: #00c8ff;
-            box-shadow: 0 0 8px #00c8ff;
-            animation: blink 2s infinite;
-        }
-
-    @@keyframes blink {
-        0%, 100% {
-            opacity: 1
-        }
-
-        50% {
-            opacity: 0.3
-        }
-    }
-
-    /* ── HERO ── */
-    .hero-title {
-        font-size: clamp(2rem, 5vw, 3.2rem);
+    .home-title {
+        font-size: clamp(1.35rem, 3vw, 1.85rem);
         font-weight: 700;
-        color: #fff;
-        line-height: 1.15;
+        line-height: 1.25;
         letter-spacing: -0.02em;
-        margin-bottom: 0.75rem;
+        margin: 0 0 1.15rem;
+        background: linear-gradient(135deg, #00c8ff 0%, #7b61ff 50%, #00ff94 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
     }
 
-        .hero-title span {
-            background: linear-gradient(135deg, #00c8ff 0%, #7b61ff 50%, #00ff94 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-    .hero-sub p {
-        font-size: 1.2rem;
-        color: #fff;
-        max-width: 600px;
-        line-height: 1.8;
-        margin: 0 auto 3rem;
-        font-weight: 300;
-    }
-
-    .hero-sub {
-        font-size: 1rem;
-        color: rgba(255,255,255,0.45);
-        max-width: 500px;
-        line-height: 1.7;
-        margin-bottom: 3rem;
-        font-weight: 300;
-    }
-
-    /* ── FEATURE CARDS ── */
-    .feature-card {
-        background: rgba(255,255,255,0.03) !important;
-        border: 1px solid rgba(255,255,255,0.08) !important;
-        border-radius: 20px !important;
-        transition: transform 0.3s ease, border-color 0.3s ease, background 0.3s ease !important;
+    .hero-banner {
+        position: relative;
+        text-align: left;
+        border-radius: 24px;
         overflow: hidden;
+        min-height: 360px;
+        border: 1px solid rgba(255,255,255,0.1);
+        background: rgba(4, 10, 24, 0.45);
+        box-shadow: 0 18px 50px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.06);
     }
 
-        .feature-card:hover {
-            transform: translateY(-6px) !important;
-        }
+    .hero-slides { position: relative; min-height: 360px; }
 
-        .feature-card.card-chat:hover {
-            border-color: rgba(0,200,80,0.45) !important;
-            background: rgba(0,200,80,0.05) !important;
-        }
-
-        .feature-card.card-market:hover {
-            border-color: rgba(255,160,0,0.45) !important;
-            background: rgba(255,160,0,0.05) !important;
-        }
-
-        .feature-card.card-connect:hover {
-            border-color: rgba(120,80,255,0.45) !important;
-            background: rgba(120,80,255,0.05) !important;
-        }
-
-    h2 {
-        border-radius: 15px;
+    .hero-slide {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        grid-template-columns: 1.05fr 0.95fr;
+        gap: 1.5rem;
+        padding: 2rem 2.2rem 3.2rem;
+        opacity: 0;
+        visibility: hidden;
+        transform: translateX(24px);
+        transition: opacity 0.28s ease, transform 0.28s ease, visibility 0.28s;
+        pointer-events: none;
     }
 
-    /* ── ICON BOXES ── */
-    .icon-chat {
-        background: rgba(0,200,80,0.15);
-        border: 1px solid rgba(0,200,80,0.25);
+    .hero-slide.is-active {
+        opacity: 1;
+        visibility: visible;
+        transform: translateX(0);
+        pointer-events: auto;
+        position: relative;
     }
 
-    .icon-market {
-        background: rgba(255,160,0,0.12);
-        border: 1px solid rgba(255,160,0,0.25);
+    .hero-slide::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        background:
+            radial-gradient(900px 280px at 18% 10%, var(--accent-soft), transparent 60%),
+            radial-gradient(520px 240px at 92% 80%, var(--accent-soft-2), transparent 70%);
+        z-index: 0;
     }
 
-    .icon-connect {
-        background: rgba(120,80,255,0.15);
-        border: 1px solid rgba(120,80,255,0.25);
+    .slide-chat { --accent: #00e070; --accent-2: #00c8ff; --accent-soft: rgba(0,224,112,0.18); --accent-soft-2: rgba(0,200,255,0.10); }
+    .slide-market { --accent: #ffb830; --accent-2: #ff6b3d; --accent-soft: rgba(255,184,48,0.18); --accent-soft-2: rgba(255,107,61,0.10); }
+    .slide-connect { --accent: #a87fff; --accent-2: #00c8ff; --accent-soft: rgba(168,127,255,0.20); --accent-soft-2: rgba(0,200,255,0.10); }
+
+    .slide-copy, .slide-visual { position: relative; z-index: 1; }
+    .slide-copy {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: flex-start;
+        max-width: 520px;
     }
 
-    /* ── MODULE TAGS ── */
     .mod-tag {
         font-family: 'JetBrains Mono', monospace;
         font-size: 10px;
-        letter-spacing: 0.1em;
+        letter-spacing: 0.12em;
         text-transform: uppercase;
-        padding: 3px 10px;
+        padding: 4px 11px;
         border-radius: 100px;
         display: inline-block;
         margin-bottom: 0.75rem;
-    }
-    /* chat */
-    .tag-chat {
-        background: rgba(0,200,80,0.10);
-        color: #00e070;
-        border: 1px solid rgba(0,200,80,0.22);
-    }
-    /* market */
-    .tag-market {
-        background: rgba(255,160,0,0.10);
-        color: #ffb830;
-        border: 1px solid rgba(255,160,0,0.22);
-    }
-    /* connect */
-    .tag-connect {
-        background: rgba(120,80,255,0.12);
-        color: #a87fff;
-        border: 1px solid rgba(120,80,255,0.22);
-    }
-
-    /* ── CARD TEXT ── */
-    .card-title-tech {
-        font-size: 1.2rem;
-        font-weight: 600;
-        color: #fff;
-        margin-bottom: 0.6rem;
-    }
-
-    .card-desc-tech {
-        font-size: 0.875rem;
-        color: rgba(255,255,255,0.45);
-        line-height: 1.65;
-        margin-bottom: 1.75rem;
-        font-weight: 300;
-    }
-
-    /* ── FEATURE BUTTONS ── */
-    .feature-btn {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        font-size: 0.8rem;
-        font-weight: 500;
-        padding: 9px 20px;
-        border-radius: 100px;
-        text-decoration: none;
         border: 1px solid;
-        transition: all 0.25s ease;
+    }
+    .tag-chat { background: rgba(0,200,80,0.10); color: #00e070; border-color: rgba(0,200,80,0.28); }
+    .tag-market { background: rgba(255,160,0,0.10); color: #ffb830; border-color: rgba(255,160,0,0.28); }
+    .tag-connect { background: rgba(120,80,255,0.12); color: #a87fff; border-color: rgba(120,80,255,0.28); }
+
+    .slide-kicker { font-size: 0.82rem; color: rgba(255,255,255,0.45); margin-bottom: 0.4rem; }
+    .slide-title {
+        font-size: clamp(1.5rem, 3vw, 2.2rem);
+        font-weight: 700; color: #fff; line-height: 1.15;
+        margin-bottom: 0.7rem; letter-spacing: -0.02em;
+    }
+    .slide-title em { font-style: normal; color: var(--accent); }
+    .slide-desc {
+        font-size: 0.95rem; color: rgba(255,255,255,0.55);
+        line-height: 1.65; margin-bottom: 1.2rem; font-weight: 300; max-width: 460px;
+    }
+    .slide-points { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 1.3rem; list-style: none; padding: 0; }
+    .slide-points li {
+        font-size: 12px; color: rgba(255,255,255,0.72);
+        background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 100px; padding: 5px 12px;
+    }
+    .slide-cta {
+        display: inline-flex; align-items: center; gap: 10px;
+        font-size: 0.9rem; font-weight: 600; padding: 11px 20px;
+        border-radius: 100px; text-decoration: none; color: #04140c;
+        background: linear-gradient(135deg, var(--accent), var(--accent-2));
+        box-shadow: 0 10px 28px rgba(0, 200, 255, 0.22);
+        transition: transform 0.2s ease, filter 0.2s ease;
+    }
+    .slide-cta:hover { color: #04140c; transform: translateY(-2px); filter: brightness(1.08); }
+    .slide-cta:hover .cta-arrow { transform: translateX(3px); }
+    .cta-arrow { display: inline-block; transition: transform 0.2s ease; }
+
+    .slide-visual { display: flex; align-items: center; justify-content: center; }
+    .visual-frame {
+        width: min(100%, 400px); border-radius: 20px;
+        border: 1px solid rgba(255,255,255,0.12);
+        background: rgba(8, 14, 28, 0.72);
+        backdrop-filter: blur(16px); padding: 16px;
+    }
+    .visual-top {
+        display: flex; align-items: center; gap: 8px;
+        margin-bottom: 14px; padding-bottom: 10px;
+        border-bottom: 1px solid rgba(255,255,255,0.07);
+        font-family: 'JetBrains Mono', monospace; font-size: 11px; color: rgba(255,255,255,0.4);
+    }
+    .dot { width: 8px; height: 8px; border-radius: 50%; }
+    .dot.r { background: #ff5f57; } .dot.y { background: #febc2e; } .dot.g { background: #28c840; }
+    .chat-row { display: flex; margin-bottom: 10px; }
+    .chat-row.me { justify-content: flex-end; }
+    .bubble { max-width: 78%; padding: 10px 13px; border-radius: 14px; font-size: 13px; line-height: 1.45; color: rgba(255,255,255,0.85); }
+    .bubble.them { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08); border-bottom-left-radius: 4px; }
+    .bubble.me { background: linear-gradient(135deg, rgba(0,224,112,0.28), rgba(0,200,255,0.18)); border: 1px solid rgba(0,224,112,0.28); border-bottom-right-radius: 4px; }
+    .chat-meta { font-size: 10px; color: rgba(255,255,255,0.28); margin-top: 4px; font-family: 'JetBrains Mono', monospace; }
+    .banner-market-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .item-card { border-radius: 14px; overflow: hidden; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.03); }
+    .item-thumb { height: 70px; display: flex; align-items: center; justify-content: center; font-size: 26px; background: linear-gradient(160deg, rgba(255,184,48,0.18), rgba(255,107,61,0.08)); }
+    .item-body { padding: 8px 10px 10px; }
+    .item-name { font-size: 12px; color: #fff; font-weight: 600; margin-bottom: 3px; }
+    .item-price { font-size: 12px; color: #ffb830; font-family: 'JetBrains Mono', monospace; }
+    .connect-list { display: flex; flex-direction: column; gap: 9px; }
+    .place-row { display: flex; gap: 10px; align-items: center; padding: 10px; border-radius: 12px; background: rgba(255,255,255,0.035); border: 1px solid rgba(255,255,255,0.07); }
+    .place-ico { width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; background: rgba(168,127,255,0.16); border: 1px solid rgba(168,127,255,0.25); font-size: 18px; flex-shrink: 0; }
+    .place-name { font-size: 13px; color: #fff; font-weight: 600; }
+    .place-sub { font-size: 11px; color: rgba(255,255,255,0.4); }
+    .place-stars { color: #ffb830; font-size: 11px; margin-left: auto; white-space: nowrap; }
+
+    .banner-footer {
+        position: absolute; left: 2.2rem; right: 2.2rem; bottom: 14px;
+        z-index: 4; display: flex; align-items: center; gap: 12px;
+    }
+    .banner-btn {
+        width: 34px; height: 34px; border-radius: 50%;
+        border: 1px solid rgba(255,255,255,0.14);
+        background: rgba(8,14,28,0.7); color: #fff;
+        display: flex; align-items: center; justify-content: center;
+        cursor: pointer; flex-shrink: 0; font-size: 18px; line-height: 1;
+    }
+    .banner-btn:hover { background: rgba(0,200,255,0.18); border-color: rgba(0,200,255,0.4); }
+    .hero-dots { display: flex; gap: 8px; align-items: center; }
+    .hero-dot {
+        width: 8px; height: 8px; border-radius: 100px; border: 0; padding: 0;
+        background: rgba(255,255,255,0.22); cursor: pointer;
+        transition: width 0.25s, background 0.25s;
+    }
+    .hero-dot.is-active { width: 26px; background: var(--dot-accent, #00c8ff); }
+    .progress-track { flex: 1; height: 3px; max-width: 180px; background: rgba(255,255,255,0.08); border-radius: 10px; overflow: hidden; }
+    .progress-bar { height: 100%; width: 0; background: linear-gradient(90deg, #00c8ff, #7b61ff); }
+    .hero-banner.is-playing .progress-bar { animation: bannerProgress 3.2s linear; }
+    @@keyframes bannerProgress { from { width: 0; } to { width: 100%; } }
+    .hero-banner.is-paused .progress-bar { animation-play-state: paused; }
+
+    .home-feed { text-align: left; margin-top: 2.25rem; }
+    .feed-head {
+        display: flex; align-items: center; justify-content: space-between;
+        gap: 12px; margin-bottom: 1rem;
+    }
+    .feed-head h2 {
+        margin: 0; font-size: 1.15rem; font-weight: 700; color: #fff;
+        display: flex; align-items: center; gap: 8px;
+    }
+    .feed-head a {
+        font-size: 12px; color: #00c8ff; text-decoration: none;
+        border: 1px solid rgba(0,200,255,0.25); border-radius: 100px;
+        padding: 5px 12px;
+    }
+    .feed-head a:hover { background: rgba(0,200,255,0.12); color: #7ee8ff; }
+    .feed-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+    .feed-card {
+        display: flex; flex-direction: column;
+        border-radius: 14px; overflow: hidden; text-decoration: none !important;
+        background: rgba(13,22,38,0.72); border: 1px solid rgba(255,255,255,0.08);
+        transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+        min-height: 100%;
+        min-width: 0;
+    }
+    .feed-card:hover { transform: translateY(-3px); border-color: rgba(0,200,255,0.28); box-shadow: 0 8px 24px rgba(0,0,0,0.3); }
+    .feed-thumb {
+        height: 140px; overflow: hidden;
+        background: rgba(255,255,255,0.04);
+        display: flex; align-items: center; justify-content: center;
+        color: rgba(255,255,255,0.35); font-size: 28px;
+        position: relative;
+    }
+    .feed-thumb img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s ease; }
+    .feed-card:hover .feed-thumb img { transform: scale(1.05); }
+    .feed-body { padding: 11px 12px 13px; display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 0; }
+    .feed-cat { font-size: 10px; letter-spacing: .06em; text-transform: uppercase; color: #8b94a5; font-family: 'JetBrains Mono', monospace; }
+    .feed-name { font-size: 14px; font-weight: 600; color: #fff; line-height: 1.35;
+        display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; word-break: break-word; }
+    .feed-price { font-size: 13px; font-weight: 700; color: #ffb830; margin-top: 2px; }
+    .feed-meta { font-size: 11px; color: rgba(255,255,255,0.38); margin-top: auto; padding-top: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .feed-empty {
+        grid-column: 1 / -1; text-align: center; padding: 2rem 1rem;
+        color: rgba(255,255,255,0.45); border: 1px dashed rgba(255,255,255,0.12); border-radius: 14px;
+        font-size: 13px;
     }
 
-    /* Chat */
-    .btn-chat {
-        color: #00e070;
-        border-color: rgba(0,200,80,0.35);
-        background: rgba(0,200,80,0.08);
+    .feed-nav {
+        display: flex; align-items: center; gap: 10px; margin-top: 16px; justify-content: center;
     }
-
-        .btn-chat:hover {
-            color: #6effa8;
-            border-color: rgba(0,200,80,0.7);
-            background: rgba(0,200,80,0.18);
-        }
-
-    /* Market */
-    .btn-market {
-        color: #ffb830;
-        border-color: rgba(255,160,0,0.35);
-        background: rgba(255,160,0,0.08);
+    .feed-nav-btn {
+        width: 38px; height: 38px; border-radius: 50%;
+        border: 1px solid rgba(255,255,255,0.14);
+        background: rgba(13,22,38,0.85); color: rgba(255,255,255,0.7);
+        display: inline-flex; align-items: center; justify-content: center;
+        cursor: pointer; font-size: 16px; transition: all 0.2s ease;
+        user-select: none;
     }
-
-        .btn-market:hover {
-            color: #ffd475;
-            border-color: rgba(255,160,0,0.7);
-            background: rgba(255,160,0,0.18);
-        }
-
-    /* Connect */
-    .btn-connect {
-        color: #a87fff;
-        border-color: rgba(120,80,255,0.35);
-        background: rgba(120,80,255,0.08);
+    .feed-nav-btn:hover:not(:disabled) {
+        background: rgba(0,200,255,0.2); border-color: rgba(0,200,255,0.5); color: #fff;
+        transform: scale(1.06);
     }
-
-        .btn-connect:hover {
-            color: #c8b0ff;
-            border-color: rgba(120,80,255,0.7);
-            background: rgba(120,80,255,0.18);
-        }
-
-    /* ── STATS ── */
-    .stats-bar {
-        display: flex;
-        gap: 2rem;
-        margin-top: 3.5rem;
-        padding-top: 2rem;
-        border-top: 1px solid rgba(255,255,255,0.06);
-    }
-
-    .stat-num {
+    .feed-nav-btn:active:not(:disabled) { transform: scale(0.96); }
+    .feed-nav-btn:disabled { opacity: 0.25; cursor: not-allowed; }
+    .feed-nav-info {
+        font-size: 12px; color: rgba(255,255,255,0.5);
         font-family: 'JetBrains Mono', monospace;
-        font-size: 1.35rem;
-        font-weight: 600;
-        color: #fff;
-        display: block;
+        min-width: 70px; text-align: center;
+        user-select: none;
     }
+    .feed-grid.is-loading { opacity: 0.35; pointer-events: none; transition: opacity 0.18s ease; }
 
-    .stat-label {
-        font-size: 0.75rem;
-        color: rgba(255,255,255,0.3);
-        letter-spacing: 0.05em;
+    /* ── RESPONSIVE: PC 4 ITEMS / ROW, TABLET & MOBILE 2 COLS X 2 ROWS = 4 ITEMS ── */
+    @@media (max-width: 992px) {
+        .feed-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+    }
+    @@media (max-width: 900px) {
+        .hero-slide { grid-template-columns: 1fr; padding: 1.5rem 1.3rem 3.2rem; }
+        .hero-slides, .hero-banner { min-height: auto; }
+        .slide-visual { display: none; }
+        .banner-footer { left: 1.3rem; right: 1.3rem; }
+    }
+    @@media (max-width: 560px) {
+        .feed-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+        .feed-thumb { height: 110px; font-size: 24px; }
+        .feed-body { padding: 9px 10px 10px; gap: 3px; }
+        .feed-name { font-size: 12.5px; line-height: 1.3; }
+        .feed-price { font-size: 12px; }
+        .feed-meta { font-size: 10px; padding-top: 4px; }
+        .feed-cat { font-size: 9px; }
+        .feed-head h2 { font-size: 1.05rem; }
+        .feed-head a { font-size: 11px; padding: 4px 10px; }
+        .feed-nav-btn { width: 34px; height: 34px; font-size: 14px; }
+        .feed-nav-info { font-size: 11px; min-width: 60px; }
+    }
+    @@media (prefers-reduced-motion: reduce) {
+        .hero-slide, .progress-bar { animation: none !important; transition: none !important; }
     }
 </style>
 
-<div class="home-bg">
-    <div class="grid-bg"></div>
-    <div class="orb orb1"></div>
-    <div class="orb orb2"></div>
-    <div class="orb orb3"></div>
-
+<div class="home-page">
     <div class="home-content">
-        <div class="sys-badge">HỆ SINH THÁI TDMU </div>
+        <h1 class="home-title">Nền tảng kết nối sinh viên TDMU</h1>
 
-        <h1 class="hero-title">
-            Kết nối sinh viên<br><span>Đại học Thủ Dầu Một</span>
-        </h1>
-        <p class="hero-sub">Nền tảng trao đổi, mua bán và kết nối dành riêng cho cộng đồng sinh viên TDMU.</p>
+        <div class="hero-banner is-playing" id="homeBanner" aria-roledescription="carousel" aria-label="Ba chức năng chính">
+            <div class="hero-slides">
+                <article class="hero-slide slide-chat is-active" data-accent="#00e070" aria-hidden="false">
+                    <div class="slide-copy">
+                        <span class="mod-tag tag-chat">TRÒ CHUYỆN</span>
+                        <p class="slide-kicker">Không khoảng cách. Không áp lực</p>
+                        <h2 class="slide-title">Trò chuyện <em>công khai / ẩn danh</em> an toàn</h2>
+                        <p class="slide-desc">Ghép ngẫu nhiên, lập nhóm, trò chuyện riêng.</p>
+                        <ul class="slide-points">
+                            <li>Phòng</li>
+                            <li>Tạo nhóm / ghép đôi</li>
+                            <li>Sảnh công cộng</li>
+                        </ul>
+                        <a href="@Url.Action("Index", "Chat")" class="slide-cta">Bắt đầu<span class="cta-arrow">→</span></a>
+                    </div>
+                    <div class="slide-visual" aria-hidden="true">
+                        <div class="visual-frame">
+                            <div class="visual-top"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span> room · anonymous</div>
+                            <div class="chat-row"><div><div class="bubble them">Có ai đi chơi đêm nay không?</div><div class="chat-meta">Ẩn danh · 21:04</div></div></div>
+                            <div class="chat-row me"><div><div class="bubble me">Tạo nhóm chat nào!</div></div></div>
+                            <div class="chat-row"><div><div class="bubble them">Ok, gửi mail add vào✨</div></div></div>
+                        </div>
+                    </div>
+                </article>
 
-        <div class="row g-4">
-            <div class="col-md-4">
-                <div class="card feature-card card-chat h-100">
-                    <div class="card-body px-4 pt-4 pb-3">
-                        <h2 class="icon-box icon-chat">💬</h2>
-                        <span class="mod-tag tag-chat">MODULE 01</span>
-                        <h4 class="card-title-tech">Trò Chuyện Ẩn Danh</h4>
-                        <p class="card-desc-tech">Trò chuyện an toàn, giấu kín danh tính. Tìm kiếm người bạn tâm giao hoặc thảo luận tự do.</p>
-                        <a href="@Url.Action("Index", "Chat")" class="feature-btn btn-chat">Bắt đầu thôi →</a>
+                <article class="hero-slide slide-market" data-accent="#ffb830" aria-hidden="true">
+                    <div class="slide-copy">
+                        <span class="mod-tag tag-market">CHỢ SINH VIÊN</span>
+                        <p class="slide-kicker">Đồ cũ tốt. Giá sinh viên. Gặp mặt ngay trong trường.</p>
+                        <h2 class="slide-title">Chợ sinh viên — <em>mua bán</em> gần bạn nhất</h2>
+                        <p class="slide-desc">Đăng tin sách, đồ điện tử, vật dụng ký túc. Lưu wishlist, chat trực tiếp người bán và hẹn giao trong khuôn viên trường.</p>
+                        <ul class="slide-points">
+                            <li>Đăng tin nhanh</li>
+                            <li>Chọn đồ tốt</li>
+                            <li>Thương lượng giá cả</li>
+                        </ul>
+                        <a href="@Url.Action("Index", "Market")" class="slide-cta">Vào chợ<span class="cta-arrow">→</span></a>
                     </div>
-                </div>
+                    <div class="slide-visual" aria-hidden="true">
+                        <div class="visual-frame">
+                            <div class="visual-top"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span> marketplace · live</div>
+                            <div class="banner-market-grid">
+                                <div class="item-card"><div class="item-thumb">📚</div><div class="item-body"><div class="item-name">Giáo trình CSDL</div><div class="item-price">45.000đ</div></div></div>
+                                <div class="item-card"><div class="item-thumb">🎧</div><div class="item-body"><div class="item-name">Tai nghe cũ</div><div class="item-price">120.000đ</div></div></div>
+                                <div class="item-card"><div class="item-thumb">🚲</div><div class="item-body"><div class="item-name">Xe đạp campus</div><div class="item-price">1.2tr</div></div></div>
+                                <div class="item-card"><div class="item-thumb">💻</div><div class="item-body"><div class="item-name">Laptop học tập</div><div class="item-price">4.5tr</div></div></div>
+                            </div>
+                        </div>
+                    </div>
+                </article>
+
+                <article class="hero-slide slide-connect" data-accent="#a87fff" aria-hidden="true">
+                    <div class="slide-copy">
+                        <span class="mod-tag tag-connect">KẾT NỐI</span>
+                        <p class="slide-kicker">Quán ăn, cafe, việc làm được review bởi chính sinh viên.</p>
+                        <h2 class="slide-title">Kết nối, <em>khám phá</em> đời sống quanh trường</h2>
+                        <p class="slide-desc">Đánh giá địa điểm, chia sẻ tin part-time và tìm cộng đồng cùng sở thích. Mọi gợi ý đều đến từ người đang học tại đây.</p>
+                        <ul class="slide-points">
+                            <li>Review địa điểm</li>
+                            <li>Chia sẻ kinh nghiệm</li>
+                            <li>Cộng đồng TDMU</li>
+                        </ul>
+                        <a href="@Url.Action("Index", "Connect")" class="slide-cta">Khám phá<span class="cta-arrow">→</span></a>
+                    </div>
+                    <div class="slide-visual" aria-hidden="true">
+                        <div class="visual-frame">
+                            <div class="visual-top"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span> connect · nearby</div>
+                            <div class="connect-list">
+                                <div class="place-row"><div class="place-ico">☕</div><div><div class="place-name">Cafe cuối tuần</div><div class="place-sub">Cách cổng A · 4 phút</div></div><div class="place-stars">★★★★★</div></div>
+                                <div class="place-row"><div class="place-ico">🍜</div><div><div class="place-name">Cơm tấm sinh viên</div><div class="place-sub">Giá từ 25k</div></div><div class="place-stars">★★★★☆</div></div>
+                                <div class="place-row"><div class="place-ico">💼</div><div><div class="place-name">Part-time barista</div><div class="place-sub">Tuyển gấp · ca tối</div></div><div class="place-stars">HOT</div></div>
+                            </div>
+                        </div>
+                    </div>
+                </article>
             </div>
-            <div class="col-md-4">
-                <div class="card feature-card card-market h-100">
-                    <div class="card-body px-4 pt-4 pb-3">
-                        <h2 class="icon-box icon-market">🛒</h2>
-                        <span class="mod-tag tag-market">MODULE 02</span>
-                        <h4 class="card-title-tech">Chợ Sinh Viên</h4>
-                        <p class="card-desc-tech">Mua bán đồ cũ, chia sẻ thông tin, tìm đồ thất lạc. Đánh giá uy tín người dùng.</p>
-                        <a href="@Url.Action("Index", "Market")" class="feature-btn btn-market">Đi chợ thôi →</a>
-                    </div>
+
+            <div class="banner-footer">
+                <button type="button" class="banner-btn" id="bannerPrev" aria-label="Banner trước">‹</button>
+                <div class="hero-dots" role="tablist" aria-label="Chọn banner">
+                    <button type="button" class="hero-dot is-active" data-index="0" aria-label="Chat ẩn danh"></button>
+                    <button type="button" class="hero-dot" data-index="1" aria-label="Chợ sinh viên"></button>
+                    <button type="button" class="hero-dot" data-index="2" aria-label="Kết nối TDMU"></button>
                 </div>
-            </div>
-            <div class="col-md-4">
-                <div class="card feature-card card-connect h-100">
-                    <div class="card-body px-4 pt-4 pb-3">
-                        <h2 class="icon-box icon-connect">🤝</h2>
-                        <span class="mod-tag tag-connect">MODULE 03</span>
-                        <h4 class="card-title-tech">Kết Nối TDMU</h4>
-                        <p class="card-desc-tech">Review địa điểm ăn uống, cafe. Cập nhật thông tin tuyển dụng part-time quanh trường.</p>
-                        <a href="@Url.Action("Index", "Connect")" class="feature-btn btn-connect">Khám phá ngay →</a>
-                    </div>
-                </div>
+                <button type="button" class="banner-btn" id="bannerNext" aria-label="Banner sau">›</button>
+                <div class="progress-track" aria-hidden="true"><div class="progress-bar" id="bannerProgress"></div></div>
             </div>
         </div>
 
+        <section class="home-feed" id="sectionMarket">
+            <div class="feed-head">
+                <h2>🛒 Bán đồ mới nhất</h2>
+                <a href="@Url.Action("Index", "Market")">Xem chợ →</a>
+            </div>
+            <div class="feed-grid" id="marketGrid">
+                @if (latestMarket.Any())
+                {
+                    foreach (var item in latestMarket)
+                    {
+                        string img = item.MarketImages != null && item.MarketImages.Any()
+                            ? item.MarketImages.First().ImageUrl
+                            : (item.MainImage ?? "");
+                        <a class="feed-card" href="@Url.Action("Details", "Market", new { id = item.PostID })">
+                            <div class="feed-thumb">
+                                @if (!string.IsNullOrEmpty(img))
+                                {<img src="@img" alt="@item.Title" loading="lazy" onerror="this.onerror=null;this.parentElement.innerHTML='<span>🛒</span>';" />}
+                                else
+                                {<span>🛒</span>}
+                            </div>
+                            <div class="feed-body">
+                                <div class="feed-cat">@(item.MarketCategory?.CategoryName ?? "Chợ")</div>
+                                <div class="feed-name">@item.Title</div>
+                                <div class="feed-price">@((item.Price ?? 0).ToString("N0")) VNĐ</div>
+                                <div class="feed-meta">@(item.User?.Username ?? "Ẩn danh") · @(item.CreatedAt?.ToString("dd/MM") ?? "")</div>
+                            </div>
+                        </a>
+                    }
+                }
+                else
+                {
+                    <div class="feed-empty">Chưa có tin bán đồ nào.</div>
+                }
+            </div>
+            <div class="feed-nav" id="marketNav">
+                <button type="button" class="feed-nav-btn" id="marketPrev" title="Trang trước" disabled><i class="bi bi-chevron-left"></i></button>
+                <span class="feed-nav-info" id="marketInfo">1 / 1</span>
+                <button type="button" class="feed-nav-btn" id="marketNext" title="Trang sau"><i class="bi bi-chevron-right"></i></button>
+            </div>
+        </section>
+
+        <section class="home-feed" id="sectionConnect">
+            <div class="feed-head">
+                <h2>🤝 Chia sẻ mới nhất</h2>
+                <a href="@Url.Action("Index", "Connect")">Xem kết nối →</a>
+            </div>
+            <div class="feed-grid" id="connectGrid">
+                @if (latestConnect.Any())
+                {
+                    foreach (var item in latestConnect)
+                    {
+                        <a class="feed-card" href="@Url.Action("Details", "Connect", new { id = item.PostID })">
+                            <div class="feed-thumb">
+                                @if (!string.IsNullOrEmpty(item.MainImage))
+                                {<img src="@item.MainImage" alt="@item.Title" loading="lazy" onerror="this.onerror=null;this.parentElement.innerHTML='<span>🤝</span>';" />}
+                                else
+                                {<span>🤝</span>}
+                            </div>
+                            <div class="feed-body">
+                                <div class="feed-cat">@(item.ConnectCategory?.CategoryName ?? "Kết nối")</div>
+                                <div class="feed-name">@item.Title</div>
+                                <div class="feed-meta">@(item.User?.Username ?? "Ẩn danh") · @(item.CreatedAt?.ToString("dd/MM") ?? "")</div>
+                            </div>
+                        </a>
+                    }
+                }
+                else
+                {
+                    <div class="feed-empty">Chưa có bài chia sẻ nào.</div>
+                }
+            </div>
+            <div class="feed-nav" id="connectNav">
+                <button type="button" class="feed-nav-btn" id="connectPrev" title="Trang trước" disabled><i class="bi bi-chevron-left"></i></button>
+                <span class="feed-nav-info" id="connectInfo">1 / 1</span>
+                <button type="button" class="feed-nav-btn" id="connectNext" title="Trang sau"><i class="bi bi-chevron-right"></i></button>
+            </div>
+        </section>
     </div>
 </div>
+
+<script>
+    (function () {
+        var root = document.getElementById('homeBanner');
+        if (!root) return;
+        var slides = Array.prototype.slice.call(root.querySelectorAll('.hero-slide'));
+        var dots = Array.prototype.slice.call(root.querySelectorAll('.hero-dot'));
+        var progress = document.getElementById('bannerProgress');
+        var idx = 0, timer = null, INTERVAL = 3200;
+        var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+        function setAccent(i) {
+            var accent = slides[i].getAttribute('data-accent') || '#00c8ff';
+            dots.forEach(function (d) { d.style.setProperty('--dot-accent', accent); });
+        }
+        function restartProgress() {
+            if (!progress) return;
+            root.classList.remove('is-playing');
+            void progress.offsetWidth;
+            if (!reduceMotion) root.classList.add('is-playing');
+        }
+        function go(n) {
+            slides[idx].classList.remove('is-active');
+            slides[idx].setAttribute('aria-hidden', 'true');
+            dots[idx].classList.remove('is-active');
+            idx = (n + slides.length) % slides.length;
+            slides[idx].classList.add('is-active');
+            slides[idx].setAttribute('aria-hidden', 'false');
+            dots[idx].classList.add('is-active');
+            setAccent(idx);
+            restartProgress();
+        }
+        function next() { go(idx + 1); }
+        function prev() { go(idx - 1); }
+        function start() {
+            stop();
+            if (reduceMotion) return;
+            timer = setInterval(next, INTERVAL);
+            restartProgress();
+        }
+        function stop() { if (timer) { clearInterval(timer); timer = null; } }
+
+        document.getElementById('bannerNext').addEventListener('click', function () { next(); start(); });
+        document.getElementById('bannerPrev').addEventListener('click', function () { prev(); start(); });
+        dots.forEach(function (dot) {
+            dot.addEventListener('click', function () {
+                go(parseInt(this.getAttribute('data-index'), 10));
+                start();
+            });
+        });
+        root.addEventListener('mouseenter', function () { stop(); root.classList.add('is-paused'); });
+        root.addEventListener('mouseleave', function () { root.classList.remove('is-paused'); start(); });
+        setAccent(0);
+        start();
+    })();
+</script>
+
+<script>
+    // ── AJAX FEED PAGINATION ──
+    (function () {
+        var PAGE_SIZE = 4;
+        var marketUrl = '@Url.Action("GetLatestMarket", "Home")';
+        var connectUrl = '@Url.Action("GetLatestConnect", "Home")';
+        var marketDetailTpl = '@Url.Action("Details", "Market", new { id = 999999 })';
+        var connectDetailTpl = '@Url.Action("Details", "Connect", new { id = 999999 })';
+
+        var totalMarket = @(((int?)ViewBag.TotalMarket) ?? 0);
+        var totalConnect = @(((int?)ViewBag.TotalConnect) ?? 0);
+
+        var marketPage = 0;
+        var connectPage = 0;
+        var marketPages = Math.max(1, Math.ceil(totalMarket / PAGE_SIZE));
+        var connectPages = Math.max(1, Math.ceil(totalConnect / PAGE_SIZE));
+        var isMarketLoading = false;
+        var isConnectLoading = false;
+
+        function escHtml(s) {
+            return $('<div>').text(s || '').html();
+        }
+
+        function formatPrice(n) {
+            return Number(n).toLocaleString('vi-VN');
+        }
+
+        function renderMarketCards(items) {
+            var html = '';
+            if (items && items.length > 0) {
+                items.forEach(function (p) {
+                    var detailUrl = marketDetailTpl.replace('999999', p.PostID);
+                    var thumbHtml = p.Image
+                        ? '<img src="' + escHtml(p.Image) + '" alt="' + escHtml(p.Title) + '" loading="lazy" onerror="this.onerror=null;this.parentElement.innerHTML=\'<span>🛒</span>\';" />'
+                        : '<span>🛒</span>';
+                    html += '<a class="feed-card" href="' + detailUrl + '">'
+                         + '<div class="feed-thumb">' + thumbHtml + '</div>'
+                         + '<div class="feed-body">'
+                         + '<div class="feed-cat">' + escHtml(p.Category) + '</div>'
+                         + '<div class="feed-name">' + escHtml(p.Title) + '</div>'
+                         + '<div class="feed-price">' + formatPrice(p.Price) + ' VNĐ</div>'
+                         + '<div class="feed-meta">' + escHtml(p.Username) + ' · ' + escHtml(p.CreatedAt) + '</div>'
+                         + '</div></a>';
+                });
+            } else {
+                html = '<div class="feed-empty">Chưa có tin bán đồ nào.</div>';
+            }
+            return html;
+        }
+
+        function renderConnectCards(items) {
+            var html = '';
+            if (items && items.length > 0) {
+                items.forEach(function (p) {
+                    var detailUrl = connectDetailTpl.replace('999999', p.PostID);
+                    var thumbHtml = p.Image
+                        ? '<img src="' + escHtml(p.Image) + '" alt="' + escHtml(p.Title) + '" loading="lazy" onerror="this.onerror=null;this.parentElement.innerHTML=\'<span>🤝</span>\';" />'
+                        : '<span>🤝</span>';
+                    html += '<a class="feed-card" href="' + detailUrl + '">'
+                         + '<div class="feed-thumb">' + thumbHtml + '</div>'
+                         + '<div class="feed-body">'
+                         + '<div class="feed-cat">' + escHtml(p.Category) + '</div>'
+                         + '<div class="feed-name">' + escHtml(p.Title) + '</div>'
+                         + '<div class="feed-meta">' + escHtml(p.Username) + ' · ' + escHtml(p.CreatedAt) + '</div>'
+                         + '</div></a>';
+                });
+            } else {
+                html = '<div class="feed-empty">Chưa có bài chia sẻ nào.</div>';
+            }
+            return html;
+        }
+
+        function updateNav(prefix, page, totalPages) {
+            $('#' + prefix + 'Info').text((page + 1) + ' / ' + totalPages);
+            $('#' + prefix + 'Prev').prop('disabled', page <= 0);
+            $('#' + prefix + 'Next').prop('disabled', page >= totalPages - 1);
+            if (totalPages > 1) {
+                $('#' + prefix + 'Nav').show();
+            } else {
+                $('#' + prefix + 'Nav').hide();
+            }
+        }
+
+        function loadMarket(page) {
+            if (isMarketLoading) return;
+            isMarketLoading = true;
+            var $grid = $('#marketGrid');
+            $grid.addClass('is-loading');
+            $.ajax({
+                url: marketUrl,
+                data: { skip: page * PAGE_SIZE, take: PAGE_SIZE },
+                type: 'GET',
+                dataType: 'json',
+                success: function (res) {
+                    if (res && res.success) {
+                        totalMarket = res.total;
+                        marketPages = Math.max(1, Math.ceil(totalMarket / PAGE_SIZE));
+                        marketPage = page;
+                        $grid.html(renderMarketCards(res.items));
+                        updateNav('market', marketPage, marketPages);
+                    }
+                },
+                complete: function () {
+                    isMarketLoading = false;
+                    $grid.removeClass('is-loading');
+                }
+            });
+        }
+
+        function loadConnect(page) {
+            if (isConnectLoading) return;
+            isConnectLoading = true;
+            var $grid = $('#connectGrid');
+            $grid.addClass('is-loading');
+            $.ajax({
+                url: connectUrl,
+                data: { skip: page * PAGE_SIZE, take: PAGE_SIZE },
+                type: 'GET',
+                dataType: 'json',
+                success: function (res) {
+                    if (res && res.success) {
+                        totalConnect = res.total;
+                        connectPages = Math.max(1, Math.ceil(totalConnect / PAGE_SIZE));
+                        connectPage = page;
+                        $grid.html(renderConnectCards(res.items));
+                        updateNav('connect', connectPage, connectPages);
+                    }
+                },
+                complete: function () {
+                    isConnectLoading = false;
+                    $grid.removeClass('is-loading');
+                }
+            });
+        }
+
+        // Initial nav state
+        updateNav('market', 0, marketPages);
+        updateNav('connect', 0, connectPages);
+
+        // Button events
+        $('#marketPrev').on('click', function () { if (marketPage > 0) loadMarket(marketPage - 1); });
+        $('#marketNext').on('click', function () { if (marketPage < marketPages - 1) loadMarket(marketPage + 1); });
+        $('#connectPrev').on('click', function () { if (connectPage > 0) loadConnect(connectPage - 1); });
+        $('#connectNext').on('click', function () { if (connectPage < connectPages - 1) loadConnect(connectPage + 1); });
+    })();
+</script>

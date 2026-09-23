@@ -404,20 +404,32 @@ namespace StudentConnect.Controllers
         {
             if (Session["UserID"] == null) return RedirectToAction("Login", "User");
 
+            if (ImageFile != null && ImageFile.ContentLength > 0)
+            {
+                if (ImageFile.ContentLength > 25 * 1024 * 1024)
+                {
+                    ModelState.AddModelError("MainImage", "Kích thước ảnh không được vượt quá 25MB.");
+                }
+
+                string ext = System.IO.Path.GetExtension(ImageFile.FileName).ToLower();
+                var allowedExts = new[] { ".jpg", ".png", ".jpeg", ".webp", ".gif" };
+                if (!allowedExts.Contains(ext))
+                {
+                    ModelState.AddModelError("MainImage", "Định dạng ảnh không hợp lệ. Vui lòng chọn ảnh (.jpg, .jpeg, .png, .webp).");
+                }
+            }
+
             if (ModelState.IsValid)
             {
                 if (ImageFile != null && ImageFile.ContentLength > 0)
                 {
                     string ext = System.IO.Path.GetExtension(ImageFile.FileName).ToLower();
-                    if (ext == ".jpg" || ext == ".png" || ext == ".jpeg" || ext == ".webp")
-                    {
-                        string fileName = Guid.NewGuid().ToString() + ext;
-                        string relativePath = "/Content/Uploads/Connect/" + fileName;
-                        string fullPath = Server.MapPath("~" + relativePath);
-                        System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(fullPath));
-                        ImageFile.SaveAs(fullPath);
-                        post.MainImage = relativePath;
-                    }
+                    string fileName = Guid.NewGuid().ToString() + ext;
+                    string relativePath = "/Content/Uploads/Connect/" + fileName;
+                    string fullPath = Server.MapPath("~" + relativePath);
+                    System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(fullPath));
+                    ImageFile.SaveAs(fullPath);
+                    post.MainImage = relativePath;
                 }
                 else
                 {
@@ -454,17 +466,34 @@ namespace StudentConnect.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public ActionResult Edit(ConnectPost updatedPost, HttpPostedFileBase ImageFile)
+        public ActionResult Edit(ConnectPost updatedPost, HttpPostedFileBase ImageFile, HttpPostedFileBase uploadImage)
         {
             if (Session["UserID"] == null) return RedirectToAction("Login", "User");
             int currentUserId = (int)Session["UserID"];
+
+            var fileToSave = ImageFile ?? uploadImage;
+
+            if (fileToSave != null && fileToSave.ContentLength > 0)
+            {
+                if (fileToSave.ContentLength > 25 * 1024 * 1024)
+                {
+                    ModelState.AddModelError("MainImage", "Kích thước ảnh không được vượt quá 25MB.");
+                }
+
+                string ext = System.IO.Path.GetExtension(fileToSave.FileName).ToLower();
+                var allowedExts = new[] { ".jpg", ".png", ".jpeg", ".webp", ".gif" };
+                if (!allowedExts.Contains(ext))
+                {
+                    ModelState.AddModelError("MainImage", "Định dạng ảnh không hợp lệ. Vui lòng chọn ảnh (.jpg, .jpeg, .png, .webp).");
+                }
+            }
 
             if (ModelState.IsValid)
             {
                 var existingPost = db.ConnectPosts.Find(updatedPost.PostID);
                 if (existingPost == null || existingPost.UserID != currentUserId) return HttpNotFound();
 
-                if (ImageFile != null && ImageFile.ContentLength > 0)
+                if (fileToSave != null && fileToSave.ContentLength > 0)
                 {
                     if (!string.IsNullOrEmpty(existingPost.MainImage) && existingPost.MainImage != "/Content/Images/default-connect.jpg")
                     {
@@ -472,15 +501,13 @@ namespace StudentConnect.Controllers
                         if (System.IO.File.Exists(oldFilePath)) System.IO.File.Delete(oldFilePath);
                     }
 
-                    string ext = System.IO.Path.GetExtension(ImageFile.FileName).ToLower();
-                    if (ext == ".jpg" || ext == ".png" || ext == ".jpeg" || ext == ".webp")
-                    {
-                        string fileName = Guid.NewGuid().ToString() + ext;
-                        string relativePath = "/Content/Uploads/Connect/" + fileName;
-                        string fullPath = Server.MapPath("~" + relativePath);
-                        ImageFile.SaveAs(fullPath);
-                        existingPost.MainImage = relativePath;
-                    }
+                    string ext = System.IO.Path.GetExtension(fileToSave.FileName).ToLower();
+                    string fileName = Guid.NewGuid().ToString() + ext;
+                    string relativePath = "/Content/Uploads/Connect/" + fileName;
+                    string fullPath = Server.MapPath("~" + relativePath);
+                    System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(fullPath));
+                    fileToSave.SaveAs(fullPath);
+                    existingPost.MainImage = relativePath;
                 }
 
                 existingPost.Title = updatedPost.Title;

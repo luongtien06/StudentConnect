@@ -1,12 +1,11 @@
-using StudentConnect.Helpers;
+﻿using StudentConnect.Helpers;
 using StudentConnect.Models;
 using System;
+using System.Data.Entity;
 using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Mail;
-using System.Security.Cryptography;
-using System.Text;
 using System.Text.RegularExpressions;
 using System.Web;
 using System.Web.Mvc;
@@ -150,13 +149,13 @@ namespace StudentConnect.Controllers
 
                     MailMessage mail = new MailMessage();
                     mail.To.Add(email);
-                    mail.From = new MailAddress(fromEmail, "Hệ thống TDMU EcoSystem");
-                    mail.Subject = "Mã xác minh khôi phục mật khẩu - TDMU EcoSystem";
+                    mail.From = new MailAddress(fromEmail, "Nền tảng kết nối cộng đồng sinh viên TDMU");
+                    mail.Subject = "Mã xác minh khôi phục mật khẩu";
                     mail.Body = $"Xin chào <b>{user.Username}</b>,<br><br>" +
                                 $"Bạn vừa yêu cầu đặt lại mật khẩu. Đây là mã xác minh (OTP) của bạn:<br><br>" +
                                 $"<h2 style='color:blue; letter-spacing: 5px;'>{otp}</h2><br>" +
                                 $"Vui lòng không chia sẻ mã này cho bất kỳ ai. Mã này dùng để xác minh tài khoản của bạn.<br><br>" +
-                                $"Trân trọng,<br>Đội ngũ TDMU EcoSystem.";
+                                $"Trân trọng,<br>Đội ngũ phát triển Nền tảng kết nối cộng đồng sinh viên TDMU.";
                     mail.IsBodyHtml = true;
 
                     SmtpClient smtp = new SmtpClient("smtp.gmail.com");
@@ -252,10 +251,20 @@ namespace StudentConnect.Controllers
             if (Session["UserID"] == null) return RedirectToAction("Login", "User");
 
             int userId = (int)Session["UserID"];
-            var user = db.Users.Find(userId);
-
+            var user = LoadProfileUser(userId);
             if (user == null) return RedirectToAction("Login", "User");
             return View(user);
+        }
+
+        private User LoadProfileUser(int userId)
+        {
+            return db.Users
+                .Include(u => u.MarketPosts)
+                .Include(u => u.MarketPosts.Select(p => p.MarketImages))
+                .Include(u => u.MarketPosts.Select(p => p.MarketCategory))
+                .Include(u => u.ConnectPosts)
+                .Include(u => u.ConnectPosts.Select(p => p.ConnectCategory))
+                .FirstOrDefault(u => u.UserID == userId);
         }
 
         [HttpPost, ValidateAntiForgeryToken]
@@ -285,15 +294,19 @@ namespace StudentConnect.Controllers
 
             if (!ModelState.IsValid)
             {
-                user.Username = model.Username;
-                user.PhoneNumber = model.PhoneNumber;
-
                 TempData["Error"] = ModelState.Values
                     .SelectMany(v => v.Errors)
                     .Select(e => e.ErrorMessage)
                     .FirstOrDefault();
 
-                return View("Profile", user);
+                var profileUser = LoadProfileUser(currentUserId);
+                if (profileUser != null)
+                {
+                    profileUser.Username = model.Username;
+                    profileUser.PhoneNumber = model.PhoneNumber;
+                    profileUser.Email = model.Email;
+                }
+                return View("Profile", profileUser ?? user);
             }
 
             try

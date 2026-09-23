@@ -1,4 +1,5 @@
-using Microsoft.AspNet.SignalR;
+﻿using Microsoft.AspNet.SignalR;
+using StudentConnect.Helpers;
 using StudentConnect.Hubs;
 using StudentConnect.Models;
 using System;
@@ -80,9 +81,12 @@ namespace StudentConnect.Controllers
                        .Distinct()
                        .ToList();
 
-            var replyMessages = db.ChatMessages
+            var rawReplies = db.ChatMessages
                                   .Where(m => replyIds.Contains(m.MessageID))
-                                  .ToDictionary(m => m.MessageID, m => m.Content);
+                                  .Select(m => new { m.MessageID, m.Content })
+                                  .ToList();
+            var replyMessages = rawReplies
+                                  .ToDictionary(m => m.MessageID, m => m.Content != null && m.Content.StartsWith("[SHOW_ID]:") ? m.Content.Substring(10) : (m.Content ?? ""));
 
             ViewBag.ReplyMessages = replyMessages;
             return View(messages);
@@ -124,7 +128,7 @@ namespace StudentConnect.Controllers
         }
 
         [HttpPost]
-        public JsonResult SendMessage(int roomId, string content, int? replyToId = null)
+        public JsonResult SendMessage(int roomId, string content, int? replyToId = null, bool isAnonymous = true)
         {
             if (Session["UserID"] == null)
                 return Json(new { success = false, message = "Hết phiên làm việc." });
@@ -142,18 +146,36 @@ namespace StudentConnect.Controllers
             if (!isMember)
                 return Json(new { success = false, message = "Bạn không có quyền tham gia phòng này." });
 
+            // Kiểm duyệt từ ngữ nhạy cảm / xúc phạm qua WordModerationHelper
+            var modResult = WordModerationHelper.Moderate(content);
+            string cleanContent = modResult.CleanText;
+
+            // Xử lý chế độ ẩn danh
+            var me = db.Users.Find(myId);
+            string myName = me?.Username ?? "Sinh viên";
+            string myAvatar = me?.Avatar;
+
+            string displaySenderName = isAnonymous ? "Ẩn danh" : myName;
+            string displaySenderAvatar = isAnonymous ? null : myAvatar;
+            string storedContent = isAnonymous ? cleanContent : "[SHOW_ID]:" + cleanContent;
+
             string replyContent = null;
             if (replyToId.HasValue)
             {
                 var replyMsg = db.ChatMessages.Find(replyToId.Value);
-                replyContent = replyMsg?.Content;
+                if (replyMsg != null)
+                {
+                    replyContent = replyMsg.Content != null && replyMsg.Content.StartsWith("[SHOW_ID]:")
+                        ? replyMsg.Content.Substring(10)
+                        : replyMsg.Content;
+                }
             }
 
             var msg = new ChatMessage
             {
                 RoomID = roomId,
                 SenderID = myId,
-                Content = content,
+                Content = storedContent,
                 SentAt = DateTime.Now,
                 ReplyToID = replyToId
             };
@@ -162,14 +184,20 @@ namespace StudentConnect.Controllers
 
             var hubContext = GlobalHost.ConnectionManager.GetHubContext<ChatHub>();
             hubContext.Clients.Group(roomId.ToString())
-                      .addNewMessageToPage(myId, content, null, msg.MessageID, replyToId, replyContent);
+                      .addNewMessageToPage(myId, cleanContent, null, msg.MessageID, replyToId, replyContent, isAnonymous, displaySenderName, displaySenderAvatar);
             hubContext.Clients.Group(roomId.ToString()).triggerReloadChatList(roomId);
 
-            return Json(new { success = true });
+            return Json(new
+            {
+                success = true,
+                censored = modResult.HasViolation,
+                violations = modResult.Violations,
+                message = modResult.HasViolation ? "Tin nhắn đã được tự động kiểm duyệt các từ ngữ nhạy cảm." : null
+            });
         }
 
         [HttpPost]
-        public JsonResult SendImage(int roomId, HttpPostedFileBase file)
+        public JsonResult SendImage(int roomId, HttpPostedFileBase file, bool isAnonymous = true)
         {
             if (Session["UserID"] == null)
                 return Json(new { success = false, message = "Hết phiên làm việc." });
@@ -210,11 +238,19 @@ namespace StudentConnect.Controllers
 
                 file.SaveAs(fullPath);
 
+                var me = db.Users.Find(myId);
+                string myName = me?.Username ?? "Sinh viên";
+                string myAvatar = me?.Avatar;
+
+                string displaySenderName = isAnonymous ? "Ẩn danh" : myName;
+                string displaySenderAvatar = isAnonymous ? null : myAvatar;
+                string storedContent = isAnonymous ? "[Hình ảnh]" : "[SHOW_ID]:[Hình ảnh]";
+
                 var msg = new ChatMessage
                 {
                     RoomID = roomId,
                     SenderID = myId,
-                    Content = "[Hình ảnh]",
+                    Content = storedContent,
                     ImageUrl = relativePath,
                     SentAt = DateTime.Now
                 };
@@ -223,7 +259,7 @@ namespace StudentConnect.Controllers
 
                 // Gửi SignalR real-time cho mọi người trong phòng
                 var hubContext = GlobalHost.ConnectionManager.GetHubContext<ChatHub>();
-                hubContext.Clients.Group(roomId.ToString()).addNewMessageToPage(myId, "[Hình ảnh]", relativePath, msg.MessageID);
+                hubContext.Clients.Group(roomId.ToString()).addNewMessageToPage(myId, "[Hình ảnh]", relativePath, msg.MessageID, null, null, isAnonymous, displaySenderName, displaySenderAvatar);
 
                 return Json(new { success = true, imgUrl = relativePath });
             }
@@ -355,13 +391,28 @@ namespace StudentConnect.Controllers
 
                 string resolvedName = GetRoomDisplayName(room, myId);
 
+                string lastMsgText = "Bắt đầu cuộc trò chuyện...";
+                if (lastMsg != null)
+                {
+                    if (!string.IsNullOrEmpty(lastMsg.ImageUrl))
+                    {
+                        lastMsgText = "[Hình ảnh]";
+                    }
+                    else if (!string.IsNullOrEmpty(lastMsg.Content))
+                    {
+                        lastMsgText = lastMsg.Content.StartsWith("[SHOW_ID]:")
+                            ? lastMsg.Content.Substring(10)
+                            : lastMsg.Content;
+                    }
+                }
+
                 var item = new ChatListItemViewModel
                 {
                     RoomID = room.RoomID,
                     RoomType = room.RoomType,
                     RoomName = resolvedName,
                     LastMsgAt = lastMsg?.SentAt ?? room.CreatedAt,
-                    LastMessage = lastMsg != null ? (string.IsNullOrEmpty(lastMsg.ImageUrl) ? lastMsg.Content : "[Hình ảnh]") : "Bắt đầu cuộc trò chuyện...",
+                    LastMessage = lastMsgText,
                     MemberCount = room.ChatParticipants.Count,
                     IsCurrent = (currentRoomId.HasValue && currentRoomId.Value == room.RoomID)
                 };
@@ -636,9 +687,12 @@ namespace StudentConnect.Controllers
                                    .Select(m => m.ReplyToID.Value)
                                    .Distinct()
                                    .ToList();
-            var replyMessages = db.ChatMessages
+            var rawReplies = db.ChatMessages
                                   .Where(m => replyIds.Contains(m.MessageID))
-                                  .ToDictionary(m => m.MessageID, m => m.Content);
+                                  .Select(m => new { m.MessageID, m.Content })
+                                  .ToList();
+            var replyMessages = rawReplies
+                                  .ToDictionary(m => m.MessageID, m => m.Content != null && m.Content.StartsWith("[SHOW_ID]:") ? m.Content.Substring(10) : (m.Content ?? ""));
             ViewBag.ReplyMessages = replyMessages;
             return View("Index", messages);
         }

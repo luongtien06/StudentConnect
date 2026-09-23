@@ -1,4 +1,4 @@
-@{
+﻿@{
     string controller = ViewContext.RouteData.Values["controller"].ToString();
     int currentUserId = Session["UserID"] != null ? (int)Session["UserID"] : 0;
 }
@@ -761,7 +761,7 @@
     <a class="tnav-brand" href="@Url.Action("Index", "Home")">
         <div class="tnav-brand-icon">TDMU</div>
         <div class="tnav-brand-text">
-            <span class="tnav-brand-name">TDMU_ECOSYSTEM</span>
+            <span class="tnav-brand-name">TDMU</span>
         </div>
     </a>
 
@@ -771,9 +771,9 @@
 
     <div class="tnav-links">
         <a class="tnav-link @(controller == "Home"    ? "is-active" : "")" href="@Url.Action("Index", "Home")"><span class="tnav-icon">⌂</span> Trang chủ</a>
-        <a class="tnav-link @(controller == "Chat"    ? "is-active" : "")" href="@Url.Action("Index", "Chat")"><span class="tnav-icon">💬</span> Chat Ẩn Danh</a>
+        <a class="tnav-link @(controller == "Chat"    ? "is-active" : "")" href="@Url.Action("Index", "Chat")"><span class="tnav-icon">💬</span> Trò chuyện</a>
         <a class="tnav-link @(controller == "Market"  ? "is-active" : "")" href="@Url.Action("Index", "Market")"><span class="tnav-icon">🛒</span> Chợ Sinh Viên</a>
-        <a class="tnav-link @(controller == "Connect" ? "is-active" : "")" href="@Url.Action("Index", "Connect")"><span class="tnav-icon">🤝</span> Kết Nối TDMU</a>
+        <a class="tnav-link @(controller == "Connect" ? "is-active" : "")" href="@Url.Action("Index", "Connect")"><span class="tnav-icon">🤝</span> Kết Nối</a>
     </div>
 
     <div class="tnav-right">

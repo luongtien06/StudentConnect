@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Web;
@@ -16,6 +16,22 @@ namespace StudentConnect
             FilterConfig.RegisterGlobalFilters(GlobalFilters.Filters);
             RouteConfig.RegisterRoutes(RouteTable.Routes);
             BundleConfig.RegisterBundles(BundleTable.Bundles);
+        }
+
+        protected void Application_Error(object sender, EventArgs e)
+        {
+            var exception = Server.GetLastError();
+            if (exception is HttpException httpEx)
+            {
+                if (httpEx.WebEventCode == System.Web.Management.WebEventCodes.RuntimeErrorPostTooLarge
+                    || (httpEx.Message != null && httpEx.Message.Contains("Maximum request length exceeded")))
+                {
+                    Server.ClearError();
+                    Response.Clear();
+                    string returnUrl = Request.UrlReferrer != null ? Request.UrlReferrer.ToString() : "/Connect/Index";
+                    Response.Redirect(returnUrl + (returnUrl.Contains("?") ? "&" : "?") + "uploadError=tooLarge");
+                }
+            }
         }
     }
 }
