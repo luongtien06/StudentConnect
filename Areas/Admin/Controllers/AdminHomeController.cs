@@ -1,4 +1,4 @@
-using StudentConnect.Models;
+﻿using StudentConnect.Models;
 using System.Linq;
 using System.Web.Mvc;
 
@@ -50,6 +50,7 @@ namespace StudentConnect.Areas.Admin.Controllers
 
         // Debug helper: create a test report notification to verify admin inbox
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public JsonResult TestCreateReport()
         {
             try
@@ -107,6 +108,7 @@ namespace StudentConnect.Areas.Admin.Controllers
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public JsonResult MarkReportRead(int id)
         {
             var notif = db.Notifications.Find(id);
@@ -119,6 +121,7 @@ namespace StudentConnect.Areas.Admin.Controllers
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public JsonResult MarkAllReportsRead()
         {
             string adminEmail = Session["AdminEmail"] as string;
@@ -136,6 +139,7 @@ namespace StudentConnect.Areas.Admin.Controllers
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public JsonResult DeleteAllReports()
         {
             string adminEmail = Session["AdminEmail"] as string;
@@ -153,6 +157,7 @@ namespace StudentConnect.Areas.Admin.Controllers
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public JsonResult DeleteReport(int id)
         {
             string adminEmail = Session["AdminEmail"] as string;

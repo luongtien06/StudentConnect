@@ -38,5 +38,15 @@ namespace StudentConnect.Models
         public virtual DbSet<Review> Reviews { get; set; }
         public virtual DbSet<User> Users { get; set; }
         public virtual DbSet<Notification> Notifications { get; set; }
+        public virtual DbSet<Follow> Follows { get; set; }
+        public virtual DbSet<Friendship> Friendships { get; set; }
+        public virtual DbSet<PostComment> PostComments { get; set; }
+        public virtual DbSet<PostLike> PostLikes { get; set; }
+        public virtual DbSet<PostMedia> PostMedias { get; set; }
+        public virtual DbSet<Post> Posts { get; set; }
+        public virtual DbSet<PostShare> PostShares { get; set; }
+        public virtual DbSet<Story> Stories { get; set; }
+        public virtual DbSet<StoryView> StoryViews { get; set; }
+        public virtual DbSet<UserProfile> UserProfiles { get; set; }
     }
 }

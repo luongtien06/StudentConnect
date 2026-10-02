@@ -1,4 +1,4 @@
-@model IEnumerable<StudentConnect.Models.Notification>
+﻿@model IEnumerable<StudentConnect.Models.Notification>
 @{
     ViewBag.Title = "Thông báo của tôi";
     Layout = "~/Views/Shared/_Layout.cshtml";
@@ -231,13 +231,13 @@
             @if (Model.Any(n => !n.IsRead))
             {
                 <a href="#" class="mark-all-btn" id="markAllBtn">
-                    <i class="bi bi-check2-all"></i> Đánh dấu tất cả đã đọc
+                    <i class="bi bi-check2-all"></i> Đánh đã đọc
                 </a>
             }
             @if (Model.Any())
             {
                 <a href="#" class="mark-all-btn" id="deleteAllPageBtn" style="color:#ff4d4d; border-color:rgba(255,77,77,0.3); background:rgba(255,77,77,0.06);">
-                    <i class="bi bi-trash"></i> Xóa tất cả
+                    <i class="bi bi-trash"></i>
                 </a>
             }
         </div>

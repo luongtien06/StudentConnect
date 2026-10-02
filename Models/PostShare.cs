@@ -12,20 +12,15 @@ namespace StudentConnect.Models
     using System;
     using System.Collections.Generic;
     
-    public partial class Notification
+    public partial class PostShare
     {
-        public int NotificationID { get; set; }
+        public int ShareID { get; set; }
+        public int PostID { get; set; }
         public int UserID { get; set; }
-        public string Message { get; set; }
-        public string Type { get; set; }
-        public string Url { get; set; }
-        public bool IsRead { get; set; }
-        public System.DateTime CreatedAt { get; set; }
-        public Nullable<int> SenderID { get; set; }
-        public Nullable<int> RefID { get; set; }
-        public string RefType { get; set; }
+        public string Content { get; set; }
+        public Nullable<System.DateTime> CreatedAt { get; set; }
     
+        public virtual Post Post { get; set; }
         public virtual User User { get; set; }
-        public virtual User User1 { get; set; }
     }
 }

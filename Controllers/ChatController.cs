@@ -273,40 +273,57 @@ namespace StudentConnect.Controllers
         [HttpPost]
         public JsonResult RevokeMessage(int messageId)
         {
-            if (Session["UserID"] == null) return Json(new { success = false });
-
-            int myId = (int)Session["UserID"];
-            var msg = db.ChatMessages.Find(messageId);
-
-            if (msg != null && msg.SenderID == myId)
-            {
-                if (msg.SentAt.HasValue && (DateTime.Now - msg.SentAt.Value).TotalMinutes > 10)
-                {
-                    return Json(new { success = false, message = "Quá thời gian thu hồi (tối đa 10 phút)." });
-                }
-                msg.Content = "Tin nhắn đã được thu hồi";
-                msg.ImageUrl = null;
-                db.SaveChanges();
-
-                var hubContext = GlobalHost.ConnectionManager.GetHubContext<ChatHub>();
-                hubContext.Clients.Group((msg.RoomID ?? 0).ToString()).onMessageRevoked(messageId);
-
-                return Json(new { success = true });
-            }
-
-            return Json(new { success = false, message = "Bạn không có quyền thu hồi tin nhắn này." });
-        }
-
-        [HttpPost]
-        public JsonResult DeleteMessage(int messageId)
-        {
-            if (Session["UserID"] == null) return Json(new { success = false });
+            if (Session["UserID"] == null) return Json(new { success = false, message = "Hết phiên làm việc." });
 
             int myId = (int)Session["UserID"];
             var msg = db.ChatMessages.Find(messageId);
 
             if (msg == null || msg.SenderID != myId)
-                return Json(new { success = false, message = "Không thể xóa tin nhắn." });
+            {
+                return Json(new { success = false, message = "Bạn không có quyền thu hồi tin nhắn này." });
+            }
+
+            if (!msg.SentAt.HasValue)
+            {
+                return Json(new { success = false, message = "Không xác định thời gian gửi tin nhắn, không thể thu hồi." });
+            }
+
+            if ((DateTime.Now - msg.SentAt.Value).TotalMinutes > 10)
+            {
+                return Json(new { success = false, message = "Quá thời gian thu hồi (tối đa 10 phút)." });
+            }
+
+            msg.Content = "Tin nhắn đã được thu hồi";
+            msg.ImageUrl = null;
+            db.SaveChanges();
+
+            var hubContext = GlobalHost.ConnectionManager.GetHubContext<ChatHub>();
+            hubContext.Clients.Group((msg.RoomID ?? 0).ToString()).onMessageRevoked(messageId);
+
+            return Json(new { success = true });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public JsonResult DeleteMessage(int messageId)
+        {
+            if (Session["UserID"] == null) return Json(new { success = false, message = "Hết phiên làm việc." });
+
+            int myId = (int)Session["UserID"];
+            var msg = db.ChatMessages.Find(messageId);
+
+            if (msg == null || msg.SenderID != myId)
+                return Json(new { success = false, message = "Bạn không có quyền xóa tin nhắn này." });
+
+            if (!msg.SentAt.HasValue)
+            {
+                return Json(new { success = false, message = "Không xác định thời gian gửi tin nhắn, không thể xóa." });
+            }
+
+            if ((DateTime.Now - msg.SentAt.Value).TotalMinutes > 5)
+            {
+                return Json(new { success = false, message = "Chỉ có thể xóa tin nhắn trong vòng 5 phút kể từ khi gửi." });
+            }
 
             int roomId = msg.RoomID ?? 0;
 
@@ -339,13 +356,13 @@ namespace StudentConnect.Controllers
 
             // 2. Kiểm tra xem phòng có tin nhắn đổi tên mới nhất không
             var renameMsg = db.ChatMessages
-                              .Where(m => m.RoomID == room.RoomID && m.Content.StartsWith("[SYSTEM_RENAME]:"))
+                              .Where(m => m.RoomID == room.RoomID && m.Content.StartsWith("[SYSTEM_RENAME]"))
                               .OrderByDescending(m => m.SentAt)
                               .FirstOrDefault();
 
             if (renameMsg != null)
             {
-                string customName = renameMsg.Content.Substring(15).Trim();
+                string customName = renameMsg.Content.Substring("[SYSTEM_RENAME]".Length).Trim();
                 if (!string.IsNullOrEmpty(customName)) return customName;
             }
 
@@ -385,7 +402,9 @@ namespace StudentConnect.Controllers
             foreach (var room in rooms)
             {
                 var lastMsg = db.ChatMessages
-                                .Where(m => m.RoomID == room.RoomID && !m.Content.StartsWith("[SYSTEM_RENAME]:"))
+                                .Where(m => m.RoomID == room.RoomID
+                                    && !m.Content.StartsWith("[SYSTEM_RENAME]")
+                                    && !m.Content.StartsWith("[SYSTEM_NOTICE_RENAME]"))
                                 .OrderByDescending(m => m.SentAt)
                                 .FirstOrDefault();
 
@@ -460,24 +479,24 @@ namespace StudentConnect.Controllers
             {
                 RoomID = roomId,
                 SenderID = myId,
-                Content = "[SYSTEM_RENAME]:" + cleanName,
+                Content = "[SYSTEM_RENAME]" + cleanName,
                 SentAt = DateTime.Now
             };
             db.ChatMessages.Add(renameMsg);
 
-            string myName = Session["Username"]?.ToString() ?? "Thành viên";
+            string renameSystemText = $"Cuộc trò chuyện được đổi tên thành: \"{cleanName}\"";
             var notifyMsg = new ChatMessage
             {
                 RoomID = roomId,
                 SenderID = null,
-                Content = $"{myName} đã đổi tên cuộc trò chuyện thành: \"{cleanName}\"",
+                Content = "[SYSTEM_NOTICE_RENAME]" + renameSystemText,
                 SentAt = DateTime.Now.AddMilliseconds(5)
             };
             db.ChatMessages.Add(notifyMsg);
             db.SaveChanges();
 
             var hubContext = GlobalHost.ConnectionManager.GetHubContext<ChatHub>();
-            hubContext.Clients.Group(roomId.ToString()).addNewMessageToPage(0, notifyMsg.Content, null, notifyMsg.MessageID);
+            hubContext.Clients.Group(roomId.ToString()).addNewMessageToPage(0, renameSystemText, null, notifyMsg.MessageID);
             hubContext.Clients.Group(roomId.ToString()).onRoomRenamed(roomId, cleanName);
             hubContext.Clients.All.triggerReloadChatList(roomId);
 
@@ -541,6 +560,7 @@ namespace StudentConnect.Controllers
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public JsonResult DeleteConversation(int roomId)
         {
             if (Session["UserID"] == null)
@@ -555,38 +575,38 @@ namespace StudentConnect.Controllers
                 return Json(new { success = false, message = "Không thể xóa sảnh chung." });
 
             var participant = db.ChatParticipants.FirstOrDefault(p => p.RoomID == roomId && p.UserID == myId);
-            if (participant != null)
+            if (participant == null)
+                return Json(new { success = false, message = "Bạn không thuộc cuộc trò chuyện này." });
+
+            int remaining = db.ChatParticipants.Count(p => p.RoomID == roomId && p.UserID != myId);
+            db.ChatParticipants.Remove(participant);
+
+            if (remaining == 0)
             {
-                int remaining = db.ChatParticipants.Count(p => p.RoomID == roomId && p.UserID != myId);
-                db.ChatParticipants.Remove(participant);
-
-                if (remaining == 0)
-                {
-                    room.IsActive = false;
-                    var msgs = db.ChatMessages.Where(m => m.RoomID == roomId).ToList();
-                    db.ChatMessages.RemoveRange(msgs);
-                }
-                else
-                {
-                    string myName = Session["Username"]?.ToString() ?? "Một bạn";
-                    var notifyMsg = new ChatMessage
-                    {
-                        RoomID = roomId,
-                        SenderID = null,
-                        Content = $"{myName} đã rời khỏi cuộc trò chuyện.",
-                        SentAt = DateTime.Now
-                    };
-                    db.ChatMessages.Add(notifyMsg);
-
-                    var hubContext = GlobalHost.ConnectionManager.GetHubContext<ChatHub>();
-                    hubContext.Clients.Group(roomId.ToString()).addNewMessageToPage(0, notifyMsg.Content, null);
-                }
-
-                db.SaveChanges();
-
-                var hubContextAll = GlobalHost.ConnectionManager.GetHubContext<ChatHub>();
-                hubContextAll.Clients.All.triggerReloadChatList(roomId);
+                room.IsActive = false;
+                var msgs = db.ChatMessages.Where(m => m.RoomID == roomId).ToList();
+                db.ChatMessages.RemoveRange(msgs);
             }
+            else
+            {
+                string myName = Session["Username"]?.ToString() ?? "Một bạn";
+                var notifyMsg = new ChatMessage
+                {
+                    RoomID = roomId,
+                    SenderID = null,
+                    Content = $"{myName} đã rời khỏi cuộc trò chuyện.",
+                    SentAt = DateTime.Now
+                };
+                db.ChatMessages.Add(notifyMsg);
+
+                var hubContext = GlobalHost.ConnectionManager.GetHubContext<ChatHub>();
+                hubContext.Clients.Group(roomId.ToString()).addNewMessageToPage(0, notifyMsg.Content, null);
+            }
+
+            db.SaveChanges();
+
+            var hubContextAll = GlobalHost.ConnectionManager.GetHubContext<ChatHub>();
+            hubContextAll.Clients.All.triggerReloadChatList(roomId);
 
             return Json(new { success = true });
         }
@@ -678,7 +698,8 @@ namespace StudentConnect.Controllers
                 ViewBag.WaitingForPair = memberCount < 2;
             }
             var messages = db.ChatMessages
-                             .Where(m => m.RoomID == room.RoomID && !m.Content.StartsWith("[SYSTEM_RENAME]:"))
+                             .Where(m => m.RoomID == room.RoomID
+                                 && !m.Content.StartsWith("[SYSTEM_RENAME]"))
                              .OrderByDescending(m => m.SentAt)
                              .Take(100)
                              .OrderBy(m => m.SentAt)
@@ -866,7 +887,7 @@ namespace StudentConnect.Controllers
                     {
                         RoomID = newRoom.RoomID,
                         SenderID = myId,
-                        Content = "[SYSTEM_RENAME]:" + cleanGroupName,
+                        Content = "[SYSTEM_RENAME]" + cleanGroupName,
                         SentAt = DateTime.Now
                     };
                     db.ChatMessages.Add(renameMsg);

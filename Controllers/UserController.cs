@@ -1,6 +1,7 @@
-﻿using StudentConnect.Helpers;
+using StudentConnect.Helpers;
 using StudentConnect.Models;
 using System;
+using System.Collections.Generic;
 using System.Data.Entity;
 using System.IO;
 using System.Linq;
@@ -12,9 +13,8 @@ using System.Web.Mvc;
 
 namespace StudentConnect.Controllers
 {
-    public class UserController : Controller
+    public class UserController : BaseController
     {
-        TDMUEcoSystemEntities db = new TDMUEcoSystemEntities();
 
         // ==========================================
         // 1. ĐĂNG KÝ TÀI KHOẢN
@@ -70,6 +70,7 @@ namespace StudentConnect.Controllers
 
                 Session["UserID"] = taiKhoanMoi.UserID;
                 Session["Username"] = taiKhoanMoi.Username;
+                Session["Avatar"] = taiKhoanMoi.SafeAvatar;
                 return RedirectToAction("Index", "Home");
             }
             return View(taiKhoanMoi);
@@ -100,6 +101,7 @@ namespace StudentConnect.Controllers
 
                     Session["UserID"] = checkUser.UserID;
                     Session["Username"] = checkUser.Username;
+                    Session["Avatar"] = checkUser.SafeAvatar;
                     return RedirectToAction("Index", "Home");
                 }
                 else
@@ -245,102 +247,475 @@ namespace StudentConnect.Controllers
             return View();
         }
 
-        // profile
-        public new ActionResult Profile()
+        // PROFILE CÁ NHÂN VÀ MẠNG XÃ HỘI
+        public new ActionResult Profile(int? id)
         {
-            if (Session["UserID"] == null) return RedirectToAction("Login", "User");
+            int currentUserId = Session["UserID"] as int? ?? 0;
+            if (currentUserId == 0 && (!id.HasValue || id.Value <= 0))
+            {
+                return RedirectToAction("Login", "User");
+            }
 
-            int userId = (int)Session["UserID"];
-            var user = LoadProfileUser(userId);
-            if (user == null) return RedirectToAction("Login", "User");
-            return View(user);
-        }
-
-        private User LoadProfileUser(int userId)
-        {
-            return db.Users
-                .Include(u => u.MarketPosts)
+            int targetUserId = id.HasValue && id.Value > 0 ? id.Value : currentUserId;
+            var targetUser = db.Users
+                .Include(u => u.UserProfiles)
                 .Include(u => u.MarketPosts.Select(p => p.MarketImages))
                 .Include(u => u.MarketPosts.Select(p => p.MarketCategory))
-                .Include(u => u.ConnectPosts)
                 .Include(u => u.ConnectPosts.Select(p => p.ConnectCategory))
-                .FirstOrDefault(u => u.UserID == userId);
+                .FirstOrDefault(u => u.UserID == targetUserId);
+
+            if (targetUser == null)
+            {
+                return RedirectToAction("Index", "Home");
+            }
+
+            var userProfile = targetUser.UserProfiles?.FirstOrDefault();
+
+            // Quan hệ với người đang xem
+            int? friendshipId = null;
+            var relStatus = currentUserId > 0 
+                ? SocialHelper.GetRelationshipStatus(currentUserId, targetUserId, db, out friendshipId)
+                : UserRelationshipStatus.None;
+
+            bool isFollowing = currentUserId > 0 && db.Follows.Any(f => f.FollowerID == currentUserId && f.FollowingID == targetUserId);
+
+            // Thống kê bạn bè & tương tác
+            var friendIds = SocialHelper.GetFriendIds(targetUserId, db);
+            int friendCount = friendIds.Count;
+            int followerCount = db.Follows.Count(f => f.FollowingID == targetUserId);
+            int followingCount = db.Follows.Count(f => f.FollowerID == targetUserId);
+            int postCount = db.Posts.Count(p => p.UserID == targetUserId);
+
+            // Bạn bè xem trước (tối đa 9 người)
+            var friendsPreview = db.Users
+                .Where(u => friendIds.Contains(u.UserID))
+                .Take(9)
+                .ToList()
+                .Select(u => new UserProfilePreviewItem
+                {
+                    UserID = u.UserID,
+                    Username = u.DisplayName,
+                    Avatar = u.SafeAvatar,
+                    Faculty = u.UserProfiles?.FirstOrDefault()?.Faculty,
+                    MutualFriendsCount = (currentUserId > 0 && currentUserId != u.UserID) 
+                        ? SocialHelper.GetMutualFriendsCount(currentUserId, u.UserID, db) 
+                        : 0
+                })
+                .ToList();
+
+            // Tin 24h đang còn hiệu lực
+            var now = DateTime.Now;
+            var activeStories = db.Stories
+                .Where(s => s.UserID == targetUserId && s.ExpiresAt > now)
+                .OrderBy(s => s.CreatedAt)
+                .ToList()
+                .Select(s => new StoryItemViewModel
+                {
+                    StoryID = s.StoryID,
+                    UserID = s.UserID,
+                    MediaUrl = s.MediaUrl,
+                    Caption = s.Caption,
+                    CreatedAt = s.CreatedAt,
+                    ExpiresAt = s.ExpiresAt,
+                    TimeAgo = SocialHelper.FormatTimeAgo(s.CreatedAt),
+                    ViewCount = s.StoryViews?.Count ?? 0,
+                    HasViewed = currentUserId > 0 && s.StoryViews.Any(v => v.ViewerID == currentUserId),
+                    IsOwner = currentUserId == targetUserId
+                })
+                .ToList();
+
+            // Danh sách ảnh gần đây từ bài viết
+            var recentPhotos = db.PostMedias
+                .Where(m => m.Post.UserID == targetUserId && m.MediaType == "image")
+                .OrderByDescending(m => m.Post.CreatedAt)
+                .Take(9)
+                .Select(m => m.MediaUrl)
+                .ToList();
+
+            // Dòng thời gian bài viết (kiểm tra tài khoản riêng tư)
+            var postsVm = new List<PostItemViewModel>();
+            bool isOwner = currentUserId == targetUserId;
+            bool isFriend = relStatus == UserRelationshipStatus.Friends;
+            bool canViewTimeline = isOwner || !targetUser.IsPrivate || isFriend;
+
+            if (canViewTimeline)
+            {
+                var rawPosts = db.Posts
+                    .Include(p => p.User)
+                    .Include(p => p.User.UserProfiles)
+                    .Include(p => p.PostMedias)
+                    .Include(p => p.PostLikes)
+                    .Include(p => p.PostComments.Select(c => c.User))
+                    .Where(p => p.UserID == targetUserId)
+                    .OrderByDescending(p => p.CreatedAt)
+                    .ToList();
+
+                postsVm = rawPosts
+                    .Where(p => SocialHelper.CanViewPost(p, currentUserId, db, friendIds))
+                    .Select(p => SocialHelper.MapToPostViewModel(p, currentUserId))
+                    .ToList();
+
+                // Lấy các bài viết mà người này đã chia sẻ
+                var rawShares = db.PostShares
+                    .Include(s => s.User)
+                    .Include(s => s.User.UserProfiles)
+                    .Include(s => s.Post)
+                    .Include(s => s.Post.User)
+                    .Include(s => s.Post.User.UserProfiles)
+                    .Include(s => s.Post.PostMedias)
+                    .Include(s => s.Post.PostLikes)
+                    .Include(s => s.Post.PostComments.Select(c => c.User))
+                    .Where(s => s.UserID == targetUserId)
+                    .OrderByDescending(s => s.CreatedAt)
+                    .ToList();
+
+                var sharedPostsVm = rawShares
+                    .Where(s => s.Post != null && SocialHelper.CanViewPost(s.Post, currentUserId, db, friendIds))
+                    .Select(s => SocialHelper.MapShareToPostViewModel(s, currentUserId))
+                    .Where(vmItem => vmItem != null)
+                    .ToList();
+
+                // Trộn bài viết tự đăng và bài viết đã chia sẻ theo thứ tự thời gian
+                postsVm = postsVm.Concat(sharedPostsVm)
+                    .OrderByDescending(p => p.CreatedAt)
+                    .ToList();
+            }
+
+            if (currentUserId > 0)
+            {
+                try
+                {
+                    var hiddenPostIds = db.Database.SqlQuery<int>(
+                        "SELECT PostID FROM UserHiddenPosts WHERE UserID = @uid",
+                        new System.Data.SqlClient.SqlParameter("@uid", currentUserId)).ToList();
+                    postsVm = postsVm.Where(p => !hiddenPostIds.Contains(p.PostID)).ToList();
+                }
+                catch { }
+            }
+
+            var vm = new SocialProfileViewModel
+            {
+                UserID = targetUser.UserID,
+                Username = targetUser.DisplayName,
+                Email = targetUser.Email,
+                PhoneNumber = targetUser.PhoneNumber,
+                Avatar = targetUser.SafeAvatar,
+                IsTDMUStudent = targetUser.IsTDMUStudent,
+                IsPrivate = targetUser.IsPrivate,
+                CreatedAt = targetUser.CreatedAt,
+
+                ProfileID = userProfile?.ProfileID,
+                CoverPhoto = !string.IsNullOrEmpty(userProfile?.CoverPhoto) ? userProfile.CoverPhoto : "/Content/Images/default-cover.jpg",
+                Bio = userProfile?.Bio,
+                Faculty = userProfile?.Faculty,
+                Major = userProfile?.Major,
+                StudentYear = userProfile?.StudentYear,
+                Hometown = userProfile?.Hometown,
+
+                RelationshipStatus = isOwner ? UserRelationshipStatus.Self : relStatus,
+                FriendshipID = friendshipId,
+                IsFollowing = isFollowing,
+
+                FriendCount = friendCount,
+                MutualFriendCount = (currentUserId > 0 && currentUserId != targetUserId) 
+                    ? SocialHelper.GetMutualFriendsCount(currentUserId, targetUserId, db) 
+                    : 0,
+                FollowerCount = followerCount,
+                FollowingCount = followingCount,
+                PostCount = postCount,
+
+                FriendsPreview = friendsPreview,
+                RecentPhotos = recentPhotos,
+                Posts = postsVm,
+                ActiveStories = activeStories,
+                Highlights = StoryHelper.GetHighlights(targetUserId)
+            };
+
+            ViewBag.MarketPosts = targetUser.MarketPosts?.OrderByDescending(p => p.CreatedAt).ToList() ?? new List<MarketPost>();
+            ViewBag.ConnectPosts = targetUser.ConnectPosts?.OrderByDescending(p => p.CreatedAt).ToList() ?? new List<ConnectPost>();
+            ViewBag.IsOwner = isOwner;
+
+            return View(vm);
         }
 
-        [HttpPost, ValidateAntiForgeryToken]
-        public ActionResult UpdateProfile(User model, HttpPostedFileBase avatarFile)
+        // ==========================================
+        // QUẢN LÝ KẾT BẠN & THEO DÕI
+        // ==========================================
+
+        [HttpPost]
+        public ActionResult SendFriendRequest(int targetId, string message = null)
         {
-            if (Session["UserID"] == null) return RedirectToAction("Login", "User");
+            if (Session["UserID"] == null)
+                return Json(new { success = false, message = "Vui lòng đăng nhập để kết bạn!" });
+
+            int currentUserId = (int)Session["UserID"];
+            if (currentUserId == targetId)
+                return Json(new { success = false, message = "Bạn không thể tự kết bạn với chính mình!" });
+
+            var existing = db.Friendships.FirstOrDefault(f =>
+                (f.RequesterID == currentUserId && f.ReceiverID == targetId) ||
+                (f.RequesterID == targetId && f.ReceiverID == currentUserId));
+
+            if (existing != null)
+            {
+                if (existing.Status == FriendshipStatus.Accepted)
+                    return Json(new { success = false, message = "Hai bạn đã là bạn bè rồi!" });
+                if (existing.Status == FriendshipStatus.Pending)
+                    return Json(new { success = false, message = "Đang chờ chấp nhận lời mời kết bạn!" });
+
+                existing.RequesterID = currentUserId;
+                existing.ReceiverID = targetId;
+                existing.Status = FriendshipStatus.Pending;
+                existing.CreatedAt = DateTime.Now;
+            }
+            else
+            {
+                existing = new Friendship
+                {
+                    RequesterID = currentUserId,
+                    ReceiverID = targetId,
+                    Status = FriendshipStatus.Pending,
+                    CreatedAt = DateTime.Now
+                };
+                db.Friendships.Add(existing);
+            }
+
+            db.SaveChanges();
+
+            var sender = db.Users.Find(currentUserId);
+            var senderName = sender?.DisplayName ?? "Ai đó";
+            var notifContent = string.IsNullOrWhiteSpace(message)
+                ? $"{senderName} đã gửi cho bạn một lời mời kết bạn."
+                : $"{senderName} đã gửi cho bạn một lời mời kết bạn: \"{message}\"";
+            CreateNotification(targetId, "friend_request", notifContent, $"/User/Profile/{currentUserId}");
+
+            return Json(new { success = true, status = "PendingSent", friendshipId = existing.FriendshipID, message = "Đã gửi lời mời kết bạn!" });
+        }
+
+        [HttpPost]
+        public ActionResult AcceptFriendRequest(int? friendshipId, int? targetId)
+        {
+            if (Session["UserID"] == null)
+                return Json(new { success = false, message = "Vui lòng đăng nhập!" });
+
+            int currentUserId = (int)Session["UserID"];
+            Friendship friendship = null;
+
+            if (friendshipId.HasValue && friendshipId.Value > 0)
+            {
+                friendship = db.Friendships.Find(friendshipId.Value);
+            }
+            else if (targetId.HasValue)
+            {
+                friendship = db.Friendships.FirstOrDefault(f => f.RequesterID == targetId.Value && f.ReceiverID == currentUserId);
+            }
+
+            if (friendship == null || friendship.ReceiverID != currentUserId)
+                return Json(new { success = false, message = "Không tìm thấy lời mời kết bạn hợp lệ!" });
+
+            friendship.Status = FriendshipStatus.Accepted;
+            db.SaveChanges();
+
+            var user = db.Users.Find(currentUserId);
+            CreateNotification(friendship.RequesterID, "friend_accepted", $"{user?.DisplayName ?? "Ai đó"} đã chấp nhận lời mời kết bạn của bạn.", $"/User/Profile/{currentUserId}");
+
+            return Json(new { success = true, status = "Friends", message = "Đã trở thành bạn bè!" });
+        }
+
+        [HttpPost]
+        public ActionResult DeclineFriendRequest(int? friendshipId, int? targetId)
+        {
+            if (Session["UserID"] == null)
+                return Json(new { success = false, message = "Vui lòng đăng nhập!" });
+
+            int currentUserId = (int)Session["UserID"];
+            Friendship friendship = null;
+
+            if (friendshipId.HasValue && friendshipId.Value > 0)
+            {
+                friendship = db.Friendships.Find(friendshipId.Value);
+            }
+            else if (targetId.HasValue)
+            {
+                friendship = db.Friendships.FirstOrDefault(f => 
+                    (f.RequesterID == targetId.Value && f.ReceiverID == currentUserId) ||
+                    (f.RequesterID == currentUserId && f.ReceiverID == targetId.Value));
+            }
+
+            if (friendship != null)
+            {
+                db.Friendships.Remove(friendship);
+                db.SaveChanges();
+            }
+
+            return Json(new { success = true, status = "None", message = "Đã từ chối/hủy lời mời kết bạn." });
+        }
+
+        [HttpPost]
+        public ActionResult Unfriend(int targetId)
+        {
+            if (Session["UserID"] == null)
+                return Json(new { success = false, message = "Vui lòng đăng nhập!" });
+
+            int currentUserId = (int)Session["UserID"];
+            var friendship = db.Friendships.FirstOrDefault(f =>
+                (f.RequesterID == currentUserId && f.ReceiverID == targetId) ||
+                (f.RequesterID == targetId && f.ReceiverID == currentUserId));
+
+            if (friendship != null)
+            {
+                db.Friendships.Remove(friendship);
+                db.SaveChanges();
+            }
+
+            return Json(new { success = true, status = "None", message = "Đã hủy kết bạn." });
+        }
+
+        [HttpPost]
+        public ActionResult ToggleFollow(int targetId)
+        {
+            if (Session["UserID"] == null)
+                return Json(new { success = false, message = "Vui lòng đăng nhập!" });
+
+            int currentUserId = (int)Session["UserID"];
+            if (currentUserId == targetId)
+                return Json(new { success = false, message = "Không thể theo dõi chính mình!" });
+
+            var follow = db.Follows.FirstOrDefault(f => f.FollowerID == currentUserId && f.FollowingID == targetId);
+            bool isFollowing;
+
+            if (follow != null)
+            {
+                db.Follows.Remove(follow);
+                isFollowing = false;
+            }
+            else
+            {
+                follow = new Follow
+                {
+                    FollowerID = currentUserId,
+                    FollowingID = targetId,
+                    CreatedAt = DateTime.Now
+                };
+                db.Follows.Add(follow);
+                isFollowing = true;
+
+                var sender = db.Users.Find(currentUserId);
+                CreateNotification(targetId, "follow", $"{sender?.DisplayName ?? "Ai đó"} đã bắt đầu theo dõi bạn.", $"/User/Profile/{currentUserId}");
+            }
+
+            db.SaveChanges();
+            int newFollowerCount = db.Follows.Count(f => f.FollowingID == targetId);
+
+            return Json(new { success = true, isFollowing = isFollowing, followerCount = newFollowerCount, message = isFollowing ? "Đã theo dõi!" : "Đã bỏ theo dõi." });
+        }
+
+        [HttpPost]
+        public ActionResult TogglePrivacy()
+        {
+            if (Session["UserID"] == null)
+                return Json(new { success = false, message = "Vui lòng đăng nhập!" });
 
             int currentUserId = (int)Session["UserID"];
             var user = db.Users.Find(currentUserId);
+            if (user == null)
+                return Json(new { success = false, message = "Không tìm thấy người dùng!" });
 
-            if (user == null) return RedirectToAction("Login", "User");
+            user.IsPrivate = !user.IsPrivate;
+            db.SaveChanges();
 
-            string email = (model.Email ?? "").Trim().ToLower();
+            return Json(new { success = true, isPrivate = user.IsPrivate, message = user.IsPrivate ? "Đã bật chế độ tài khoản Riêng tư." : "Đã tắt chế độ Riêng tư (Công khai)." });
+        }
 
-            if (user.IsTDMUStudent && !email.EndsWith("@student.tdmu.edu.vn"))
-            {
-                TempData["Error"] = "Cập nhật thất bại: Bạn bắt buộc phải sử dụng email sinh viên TDMU (@student.tdmu.edu.vn).";
-                return RedirectToAction("Profile");
-            }
+        // ==========================================
+        // CẬP NHẬT TRANG CÁ NHÂN MẠNG XÃ HỘI
+        // ==========================================
 
-            bool emailTaken = db.Users.Any(u => u.Email == email && u.UserID != currentUserId);
-            if (emailTaken)
-            {
-                ModelState.AddModelError("Email",
-                    "Email này đã được sử dụng bởi một tài khoản khác.");
-            }
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public ActionResult UpdateSocialProfile(UpdateProfileInputModel model, HttpPostedFileBase avatarFile, HttpPostedFileBase coverFile)
+        {
+            if (Session["UserID"] == null)
+                return Json(new { success = false, message = "Vui lòng đăng nhập!" });
 
-            if (!ModelState.IsValid)
-            {
-                TempData["Error"] = ModelState.Values
-                    .SelectMany(v => v.Errors)
-                    .Select(e => e.ErrorMessage)
-                    .FirstOrDefault();
-
-                var profileUser = LoadProfileUser(currentUserId);
-                if (profileUser != null)
-                {
-                    profileUser.Username = model.Username;
-                    profileUser.PhoneNumber = model.PhoneNumber;
-                    profileUser.Email = model.Email;
-                }
-                return View("Profile", profileUser ?? user);
-            }
+            int currentUserId = (int)Session["UserID"];
+            var user = db.Users.Find(currentUserId);
+            if (user == null)
+                return Json(new { success = false, message = "Không tìm thấy người dùng!" });
 
             try
             {
-                user.Username = model.Username;
-                user.Email = email;
-                user.PhoneNumber = model.PhoneNumber;
+                bool isFullForm = Request.Form["isProfileFormSubmit"] == "true";
 
-                if (avatarFile != null && avatarFile.ContentLength > 0)
+                // Chỉ cập nhật thông tin cá nhân và IsPrivate khi submit từ form chỉnh sửa hồ sơ
+                if (isFullForm)
+                {
+                    user.IsPrivate = model.IsPrivate;
+
+                    var profile = db.UserProfiles.FirstOrDefault(p => p.UserID == currentUserId);
+                    if (profile == null)
+                    {
+                        profile = new UserProfile { UserID = currentUserId };
+                        db.UserProfiles.Add(profile);
+                    }
+
+                    profile.Bio = model.Bio?.Trim();
+                    profile.Faculty = model.Faculty?.Trim();
+                    profile.Major = model.Major?.Trim();
+                    profile.StudentYear = model.StudentYear;
+                    profile.Hometown = model.Hometown?.Trim();
+                }
+
+                // Avatar
+                var effectiveAvatarFile = avatarFile ?? model.AvatarFile;
+                if (effectiveAvatarFile != null && effectiveAvatarFile.ContentLength > 0)
                 {
                     string dir = Server.MapPath("~/Content/Uploads/Avatars/");
                     if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
 
-                    string ext = Path.GetExtension(avatarFile.FileName).ToLower();
-                    string fileName = "avatar_" + currentUserId + ext;
-                    string fullPath = Path.Combine(dir, fileName);
-
-                    avatarFile.SaveAs(fullPath);
-
+                    string ext = Path.GetExtension(effectiveAvatarFile.FileName).ToLower();
+                    string fileName = $"avatar_{currentUserId}_{DateTime.Now.Ticks}{ext}";
+                    effectiveAvatarFile.SaveAs(Path.Combine(dir, fileName));
                     user.Avatar = "/Content/Uploads/Avatars/" + fileName;
                 }
 
+                // Cover photo
+                var effectiveCoverFile = coverFile ?? model.CoverFile;
+                if (effectiveCoverFile != null && effectiveCoverFile.ContentLength > 0)
+                {
+                    var profile = db.UserProfiles.FirstOrDefault(p => p.UserID == currentUserId);
+                    if (profile == null)
+                    {
+                        profile = new UserProfile { UserID = currentUserId };
+                        db.UserProfiles.Add(profile);
+                    }
+
+                    string dir = Server.MapPath("~/Content/Uploads/Covers/");
+                    if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
+
+                    string ext = Path.GetExtension(effectiveCoverFile.FileName).ToLower();
+                    string fileName = $"cover_{currentUserId}_{DateTime.Now.Ticks}{ext}";
+                    effectiveCoverFile.SaveAs(Path.Combine(dir, fileName));
+                    profile.CoverPhoto = "/Content/Uploads/Covers/" + fileName;
+                }
+
                 db.SaveChanges();
+                Session["Avatar"] = user.SafeAvatar;
 
-                Session["Username"] = user.Username;
+                var currentProfile = db.UserProfiles.FirstOrDefault(p => p.UserID == currentUserId);
 
-                TempData["Success"] = "Cập nhật thông tin thành công!";
+                return Json(new { 
+                    success = true, 
+                    message = "Cập nhật trang cá nhân thành công!",
+                    avatar = user.SafeAvatar,
+                    coverPhoto = currentProfile?.CoverPhoto ?? "/Content/Images/default-cover.jpg",
+                    isPrivate = user.IsPrivate
+                });
             }
             catch (Exception ex)
             {
-                TempData["Error"] = "Có lỗi xảy ra: " + ex.Message;
+                return Json(new { success = false, message = "Lỗi khi cập nhật: " + ex.Message });
             }
-
-            return RedirectToAction("Profile");
         }
     }
 }

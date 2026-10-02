@@ -12,18 +12,13 @@ namespace StudentConnect.Models
     using System;
     using System.Collections.Generic;
     
-    public partial class Notification
+    public partial class Friendship
     {
-        public int NotificationID { get; set; }
-        public int UserID { get; set; }
-        public string Message { get; set; }
-        public string Type { get; set; }
-        public string Url { get; set; }
-        public bool IsRead { get; set; }
-        public System.DateTime CreatedAt { get; set; }
-        public Nullable<int> SenderID { get; set; }
-        public Nullable<int> RefID { get; set; }
-        public string RefType { get; set; }
+        public int FriendshipID { get; set; }
+        public int RequesterID { get; set; }
+        public int ReceiverID { get; set; }
+        public string Status { get; set; }
+        public Nullable<System.DateTime> CreatedAt { get; set; }
     
         public virtual User User { get; set; }
         public virtual User User1 { get; set; }

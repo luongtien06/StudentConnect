@@ -1,17 +1,23 @@
-﻿@using StudentConnect.Models
+﻿@model List<StudentConnect.Models.HomeFeedItemViewModel>
+@using StudentConnect.Models
 @using System.Collections.Generic
 @using System.Linq
 @{
     ViewBag.Title = "Trang chủ";
-    var latestMarket = ViewBag.LatestMarket as List<MarketPost> ?? new List<MarketPost>();
-    var latestConnect = ViewBag.LatestConnect as List<ConnectPost> ?? new List<ConnectPost>();
+    var currentUser = ViewBag.CurrentUser as User;
+    var feedItems = Model ?? new List<HomeFeedItemViewModel>();
+    string currentAvatar = currentUser?.SafeAvatar ?? "/Content/Images/default-avatar.png";
+    string currentUsername = currentUser?.DisplayName ?? "Bạn";
 }
 
+@Html.AntiForgeryToken()
+
 <style>
+    /* ── BASE & HERO BANNER ── */
     .home-page {
         font-family: 'Space Grotesk', sans-serif;
         background: transparent;
-        padding: 0 0 2rem;
+        padding: 0 0 3rem;
         position: relative;
         overflow: visible;
     }
@@ -21,41 +27,28 @@
         z-index: 2;
         max-width: 1140px;
         margin: 0 auto;
-        text-align: center;
-    }
-
-    .home-title {
-        font-size: clamp(1.35rem, 3vw, 1.85rem);
-        font-weight: 700;
-        line-height: 1.25;
-        letter-spacing: -0.02em;
-        margin: 0 0 1.15rem;
-        background: linear-gradient(135deg, #00c8ff 0%, #7b61ff 50%, #00ff94 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
     }
 
     .hero-banner {
         position: relative;
         text-align: left;
-        border-radius: 24px;
+        border-radius: 20px;
         overflow: hidden;
-        min-height: 360px;
+        min-height: 280px;
         border: 1px solid rgba(255,255,255,0.1);
         background: rgba(4, 10, 24, 0.45);
-        box-shadow: 0 18px 50px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.06);
+        box-shadow: 0 14px 40px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.06);
     }
 
-    .hero-slides { position: relative; min-height: 360px; }
+    .hero-slides { position: relative; min-height: 280px; }
 
     .hero-slide {
         position: absolute;
         inset: 0;
         display: grid;
-        grid-template-columns: 1.05fr 0.95fr;
-        gap: 1.5rem;
-        padding: 2rem 2.2rem 3.2rem;
+        grid-template-columns: 1.15fr 0.85fr;
+        gap: 1.2rem;
+        padding: 1.4rem 1.8rem 2.8rem;
         opacity: 0;
         visibility: hidden;
         transform: translateX(24px);
@@ -112,27 +105,27 @@
 
     .slide-kicker { font-size: 0.82rem; color: rgba(255,255,255,0.45); margin-bottom: 0.4rem; }
     .slide-title {
-        font-size: clamp(1.5rem, 3vw, 2.2rem);
-        font-weight: 700; color: #fff; line-height: 1.15;
-        margin-bottom: 0.7rem; letter-spacing: -0.02em;
+        font-size: clamp(1.25rem, 2.4vw, 1.8rem);
+        font-weight: 700; color: #fff; line-height: 1.18;
+        margin-bottom: 0.5rem; letter-spacing: -0.02em;
     }
     .slide-title em { font-style: normal; color: var(--accent); }
     .slide-desc {
-        font-size: 0.95rem; color: rgba(255,255,255,0.55);
-        line-height: 1.65; margin-bottom: 1.2rem; font-weight: 300; max-width: 460px;
+        font-size: 0.86rem; color: rgba(255,255,255,0.55);
+        line-height: 1.5; margin-bottom: 0.9rem; font-weight: 300; max-width: 440px;
     }
-    .slide-points { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 1.3rem; list-style: none; padding: 0; }
+    .slide-points { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 1rem; list-style: none; padding: 0; }
     .slide-points li {
-        font-size: 12px; color: rgba(255,255,255,0.72);
+        font-size: 11px; color: rgba(255,255,255,0.72);
         background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08);
-        border-radius: 100px; padding: 5px 12px;
+        border-radius: 100px; padding: 4px 10px;
     }
     .slide-cta {
-        display: inline-flex; align-items: center; gap: 10px;
-        font-size: 0.9rem; font-weight: 600; padding: 11px 20px;
+        display: inline-flex; align-items: center; gap: 8px;
+        font-size: 0.82rem; font-weight: 600; padding: 8px 16px;
         border-radius: 100px; text-decoration: none; color: #04140c;
         background: linear-gradient(135deg, var(--accent), var(--accent-2));
-        box-shadow: 0 10px 28px rgba(0, 200, 255, 0.22);
+        box-shadow: 0 8px 20px rgba(0, 200, 255, 0.2);
         transition: transform 0.2s ease, filter 0.2s ease;
     }
     .slide-cta:hover { color: #04140c; transform: translateY(-2px); filter: brightness(1.08); }
@@ -141,37 +134,37 @@
 
     .slide-visual { display: flex; align-items: center; justify-content: center; }
     .visual-frame {
-        width: min(100%, 400px); border-radius: 20px;
+        width: min(100%, 350px); border-radius: 16px;
         border: 1px solid rgba(255,255,255,0.12);
         background: rgba(8, 14, 28, 0.72);
-        backdrop-filter: blur(16px); padding: 16px;
+        backdrop-filter: blur(16px); padding: 12px;
     }
     .visual-top {
         display: flex; align-items: center; gap: 8px;
-        margin-bottom: 14px; padding-bottom: 10px;
+        margin-bottom: 10px; padding-bottom: 8px;
         border-bottom: 1px solid rgba(255,255,255,0.07);
-        font-family: 'JetBrains Mono', monospace; font-size: 11px; color: rgba(255,255,255,0.4);
+        font-family: 'JetBrains Mono', monospace; font-size: 10px; color: rgba(255,255,255,0.4);
     }
-    .dot { width: 8px; height: 8px; border-radius: 50%; }
+    .dot { width: 7px; height: 7px; border-radius: 50%; }
     .dot.r { background: #ff5f57; } .dot.y { background: #febc2e; } .dot.g { background: #28c840; }
-    .chat-row { display: flex; margin-bottom: 10px; }
+    .chat-row { display: flex; margin-bottom: 8px; }
     .chat-row.me { justify-content: flex-end; }
-    .bubble { max-width: 78%; padding: 10px 13px; border-radius: 14px; font-size: 13px; line-height: 1.45; color: rgba(255,255,255,0.85); }
+    .bubble { max-width: 80%; padding: 8px 11px; border-radius: 12px; font-size: 12px; line-height: 1.4; color: rgba(255,255,255,0.85); }
     .bubble.them { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08); border-bottom-left-radius: 4px; }
     .bubble.me { background: linear-gradient(135deg, rgba(0,224,112,0.28), rgba(0,200,255,0.18)); border: 1px solid rgba(0,224,112,0.28); border-bottom-right-radius: 4px; }
-    .chat-meta { font-size: 10px; color: rgba(255,255,255,0.28); margin-top: 4px; font-family: 'JetBrains Mono', monospace; }
-    .banner-market-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-    .item-card { border-radius: 14px; overflow: hidden; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.03); }
-    .item-thumb { height: 70px; display: flex; align-items: center; justify-content: center; font-size: 26px; background: linear-gradient(160deg, rgba(255,184,48,0.18), rgba(255,107,61,0.08)); }
-    .item-body { padding: 8px 10px 10px; }
-    .item-name { font-size: 12px; color: #fff; font-weight: 600; margin-bottom: 3px; }
-    .item-price { font-size: 12px; color: #ffb830; font-family: 'JetBrains Mono', monospace; }
-    .connect-list { display: flex; flex-direction: column; gap: 9px; }
-    .place-row { display: flex; gap: 10px; align-items: center; padding: 10px; border-radius: 12px; background: rgba(255,255,255,0.035); border: 1px solid rgba(255,255,255,0.07); }
-    .place-ico { width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; background: rgba(168,127,255,0.16); border: 1px solid rgba(168,127,255,0.25); font-size: 18px; flex-shrink: 0; }
-    .place-name { font-size: 13px; color: #fff; font-weight: 600; }
-    .place-sub { font-size: 11px; color: rgba(255,255,255,0.4); }
-    .place-stars { color: #ffb830; font-size: 11px; margin-left: auto; white-space: nowrap; }
+    .chat-meta { font-size: 9.5px; color: rgba(255,255,255,0.28); margin-top: 3px; font-family: 'JetBrains Mono', monospace; }
+    .banner-market-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .item-card { border-radius: 12px; overflow: hidden; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.03); }
+    .item-thumb { height: 54px; display: flex; align-items: center; justify-content: center; font-size: 22px; background: linear-gradient(160deg, rgba(255,184,48,0.18), rgba(255,107,61,0.08)); }
+    .item-body { padding: 6px 8px 8px; }
+    .item-name { font-size: 11px; color: #fff; font-weight: 600; margin-bottom: 2px; }
+    .item-price { font-size: 11px; color: #ffb830; font-family: 'JetBrains Mono', monospace; }
+    .connect-list { display: flex; flex-direction: column; gap: 7px; }
+    .place-row { display: flex; gap: 8px; align-items: center; padding: 7px 9px; border-radius: 10px; background: rgba(255,255,255,0.035); border: 1px solid rgba(255,255,255,0.07); }
+    .place-ico { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; background: rgba(168,127,255,0.16); border: 1px solid rgba(168,127,255,0.25); font-size: 15px; flex-shrink: 0; }
+    .place-name { font-size: 12px; color: #fff; font-weight: 600; }
+    .place-sub { font-size: 10px; color: rgba(255,255,255,0.4); }
+    .place-stars { color: #ffb830; font-size: 10px; margin-left: auto; white-space: nowrap; }
 
     .banner-footer {
         position: absolute; left: 2.2rem; right: 2.2rem; bottom: 14px;
@@ -198,109 +191,575 @@
     @@keyframes bannerProgress { from { width: 0; } to { width: 100%; } }
     .hero-banner.is-paused .progress-bar { animation-play-state: paused; }
 
-    .home-feed { text-align: left; margin-top: 2.25rem; }
-    .feed-head {
-        display: flex; align-items: center; justify-content: space-between;
-        gap: 12px; margin-bottom: 1rem;
+    /* =========================================================================
+       UNIFIED FACEBOOK-STYLE NEWSFEED STYLES
+       ========================================================================= */
+    .home-feed-wrap {
+        max-width: 680px;
+        margin: 2rem auto 0;
+        text-align: left;
     }
-    .feed-head h2 {
-        margin: 0; font-size: 1.15rem; font-weight: 700; color: #fff;
-        display: flex; align-items: center; gap: 8px;
+
+    /* Filter Pills Bar */
+    .feed-filter-bar {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 1.25rem;
+        overflow-x: auto;
+        padding-bottom: 4px;
+        scrollbar-width: none;
     }
-    .feed-head a {
-        font-size: 12px; color: #00c8ff; text-decoration: none;
-        border: 1px solid rgba(0,200,255,0.25); border-radius: 100px;
-        padding: 5px 12px;
-    }
-    .feed-head a:hover { background: rgba(0,200,255,0.12); color: #7ee8ff; }
-    .feed-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
-    .feed-card {
-        display: flex; flex-direction: column;
-        border-radius: 14px; overflow: hidden; text-decoration: none !important;
-        background: rgba(13,22,38,0.72); border: 1px solid rgba(255,255,255,0.08);
-        transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
-        min-height: 100%;
-        min-width: 0;
-    }
-    .feed-card:hover { transform: translateY(-3px); border-color: rgba(0,200,255,0.28); box-shadow: 0 8px 24px rgba(0,0,0,0.3); }
-    .feed-thumb {
-        height: 140px; overflow: hidden;
-        background: rgba(255,255,255,0.04);
-        display: flex; align-items: center; justify-content: center;
-        color: rgba(255,255,255,0.35); font-size: 28px;
-        position: relative;
-    }
-    .feed-thumb img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s ease; }
-    .feed-card:hover .feed-thumb img { transform: scale(1.05); }
-    .feed-body { padding: 11px 12px 13px; display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 0; }
-    .feed-cat { font-size: 10px; letter-spacing: .06em; text-transform: uppercase; color: #8b94a5; font-family: 'JetBrains Mono', monospace; }
-    .feed-name { font-size: 14px; font-weight: 600; color: #fff; line-height: 1.35;
-        display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; word-break: break-word; }
-    .feed-price { font-size: 13px; font-weight: 700; color: #ffb830; margin-top: 2px; }
-    .feed-meta { font-size: 11px; color: rgba(255,255,255,0.38); margin-top: auto; padding-top: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .feed-empty {
-        grid-column: 1 / -1; text-align: center; padding: 2rem 1rem;
-        color: rgba(255,255,255,0.45); border: 1px dashed rgba(255,255,255,0.12); border-radius: 14px;
+    .feed-filter-bar::-webkit-scrollbar { display: none; }
+    .feed-filter-pill {
+        background: rgba(13, 22, 38, 0.7);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        color: rgba(255, 255, 255, 0.7);
+        padding: 7px 16px;
+        border-radius: 20px;
         font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        white-space: nowrap;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .feed-filter-pill:hover {
+        background: rgba(0, 200, 255, 0.15);
+        color: #fff;
+        border-color: rgba(0, 200, 255, 0.3);
+    }
+    .feed-filter-pill.active {
+        background: linear-gradient(135deg, #00c8ff, #7b61ff);
+        color: #000;
+        border-color: transparent;
+        font-weight: 700;
+        box-shadow: 0 4px 15px rgba(0, 200, 255, 0.25);
     }
 
-    .feed-nav {
-        display: flex; align-items: center; gap: 10px; margin-top: 16px; justify-content: center;
+    /* Quick Create Card */
+    .feed-create-card {
+        background: rgba(13, 22, 38, 0.85);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 16px;
+        padding: 16px;
+        margin-bottom: 20px;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
     }
-    .feed-nav-btn {
-        width: 38px; height: 38px; border-radius: 50%;
+    .create-input-row {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        margin-bottom: 12px;
+    }
+    .create-user-avatar {
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        object-fit: cover;
+        flex-shrink: 0;
+        border: 2px solid rgba(0, 200, 255, 0.4);
+    }
+    .create-fake-input {
+        flex: 1;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 24px;
+        padding: 10px 18px;
+        font-size: 13.5px;
+        color: rgba(255, 255, 255, 0.6);
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    .create-fake-input:hover {
+        background: rgba(255, 255, 255, 0.08);
+        border-color: #00c8ff;
+        color: #fff;
+    }
+    .create-options-row {
+        display: flex;
+        justify-content: space-between;
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+        padding-top: 10px;
+    }
+    .btn-create-opt {
+        background: none;
+        border: none;
+        color: rgba(255, 255, 255, 0.8);
+        font-size: 13px;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        padding: 6px 12px;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    .btn-create-opt:hover {
+        background: rgba(255, 255, 255, 0.07);
+        color: #fff;
+    }
+
+    /* Feed Post Cards */
+    .feed-post-card {
+        background: rgba(13, 22, 38, 0.85);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 16px;
+        overflow: hidden;
+        margin-bottom: 20px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        transition: border-color 0.2s ease;
+    }
+    .feed-post-card:hover {
+        border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    /* Card Header */
+    .post-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 14px 18px;
+    }
+    .post-author-group {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+    .post-author-avatar {
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 2px solid rgba(255, 255, 255, 0.1);
+    }
+    .post-author-name {
+        font-size: 14px;
+        font-weight: 700;
+        color: #fff;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: wrap;
+    }
+    .post-meta-line {
+        font-size: 11.5px;
+        color: rgba(255, 255, 255, 0.5);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin-top: 2px;
+    }
+    .feed-type-badge {
+        font-size: 11px;
+        font-weight: 700;
+        padding: 3px 9px;
+        border-radius: 100px;
+        display: inline-flex;
+        align-items: center;
+    }
+    .badge-market {
+        background: rgba(255, 82, 82, 0.18);
+        color: #ff5252;
+        border: 1px solid rgba(255, 82, 82, 0.35);
+    }
+    .badge-connect {
+        background: rgba(0, 200, 255, 0.18);
+        color: #00e0ff;
+        border: 1px solid rgba(0, 200, 255, 0.35);
+    }
+    .badge-social {
+        background: rgba(123, 97, 255, 0.18);
+        color: #b39eff;
+        border: 1px solid rgba(123, 97, 255, 0.35);
+    }
+
+    /* Post Content Text */
+    .post-body-content {
+        padding: 0 18px 14px;
+        font-size: 14.5px;
+        line-height: 1.55;
+        color: rgba(255, 255, 255, 0.9);
+        white-space: pre-line;
+        word-break: break-word;
+    }
+    .shared-post-preview {
+        margin: 0 18px 14px;
+        padding: 12px 14px;
         border: 1px solid rgba(255,255,255,0.14);
-        background: rgba(13,22,38,0.85); color: rgba(255,255,255,0.7);
-        display: inline-flex; align-items: center; justify-content: center;
-        cursor: pointer; font-size: 16px; transition: all 0.2s ease;
-        user-select: none;
+        border-left: 3px solid #00c8ff;
+        border-radius: 6px;
+        background: rgba(255,255,255,0.025);
     }
-    .feed-nav-btn:hover:not(:disabled) {
-        background: rgba(0,200,255,0.2); border-color: rgba(0,200,255,0.5); color: #fff;
-        transform: scale(1.06);
-    }
-    .feed-nav-btn:active:not(:disabled) { transform: scale(0.96); }
-    .feed-nav-btn:disabled { opacity: 0.25; cursor: not-allowed; }
-    .feed-nav-info {
-        font-size: 12px; color: rgba(255,255,255,0.5);
-        font-family: 'JetBrains Mono', monospace;
-        min-width: 70px; text-align: center;
-        user-select: none;
-    }
-    .feed-grid.is-loading { opacity: 0.35; pointer-events: none; transition: opacity 0.18s ease; }
+    .shared-post-author { color: #fff; font-size: 13px; font-weight: 700; text-decoration: none; }
+    .shared-post-author:hover { color: #00c8ff; }
+    .shared-post-content { margin-top: 8px; color: rgba(255,255,255,0.82); white-space: pre-line; overflow-wrap: anywhere; }
+    .shared-post-media { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 6px; margin-top: 8px; }
+    .shared-post-media img, .shared-post-media video { width: 100%; max-height: 220px; object-fit: cover; border-radius: 4px; }
 
-    /* ── RESPONSIVE: PC 4 ITEMS / ROW, TABLET & MOBILE 2 COLS X 2 ROWS = 4 ITEMS ── */
-    @@media (max-width: 992px) {
-        .feed-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+    /* Market Product Info Box */
+    .market-product-body {
+        padding: 0 18px 14px;
     }
+    .market-product-title {
+        font-size: 17px;
+        font-weight: 800;
+        color: #fff;
+        margin-bottom: 8px;
+    }
+    .market-tags-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-bottom: 10px;
+    }
+    .market-price-tag {
+        background: linear-gradient(135deg, rgba(255, 82, 82, 0.25), rgba(255, 184, 48, 0.2));
+        border: 1px solid rgba(255, 82, 82, 0.45);
+        color: #ff5252;
+        font-weight: 800;
+        font-size: 15px;
+        padding: 4px 12px;
+        border-radius: 8px;
+    }
+    .market-cat-tag {
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        color: #00c8ff;
+        font-size: 12px;
+        padding: 4px 10px;
+        border-radius: 6px;
+    }
+    .market-condition-tag {
+        background: rgba(0, 224, 112, 0.1);
+        border: 1px solid rgba(0, 224, 112, 0.25);
+        color: #00e070;
+        font-size: 12px;
+        padding: 4px 10px;
+        border-radius: 6px;
+    }
+    .market-location-text {
+        font-size: 12.5px;
+        color: rgba(255, 255, 255, 0.55);
+        margin-bottom: 8px;
+    }
+
+    /* Connect Topic Box */
+    .connect-topic-body {
+        padding: 0 18px 14px;
+    }
+    .connect-topic-title {
+        font-size: 17px;
+        font-weight: 800;
+        color: #fff;
+        margin-bottom: 8px;
+    }
+    .connect-cat-tag {
+        background: rgba(0, 200, 255, 0.12);
+        border: 1px solid rgba(0, 200, 255, 0.3);
+        color: #00c8ff;
+        font-size: 12px;
+        padding: 4px 10px;
+        border-radius: 6px;
+        margin-bottom: 8px;
+        display: inline-block;
+    }
+
+    /* Post Media Grid */
+    .post-media-grid {
+        display: grid;
+        gap: 4px;
+        background: #000;
+        margin-bottom: 8px;
+    }
+    .post-media-grid.count-1 { grid-template-columns: 1fr; }
+    .post-media-grid.count-2 { grid-template-columns: 1fr 1fr; }
+    .post-media-grid.count-3 { grid-template-columns: 2fr 1fr; }
+    .post-media-grid.count-4 { grid-template-columns: 1fr 1fr; }
+
+    .post-media-item {
+        position: relative;
+        overflow: hidden;
+        max-height: 480px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #050a14;
+    }
+    .post-media-item img, .post-media-item video {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+        cursor: pointer;
+        transition: transform 0.3s ease;
+    }
+    .post-media-item:hover img {
+        transform: scale(1.02);
+    }
+
+    /* Single Large Featured Image (Market / Connect) */
+    .feed-featured-img-wrap {
+        width: 100%;
+        max-height: 440px;
+        overflow: hidden;
+        background: #000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .feed-featured-img {
+        width: 100%;
+        height: 100%;
+        max-height: 440px;
+        object-fit: cover;
+        cursor: pointer;
+        transition: transform 0.3s ease;
+    }
+    .feed-featured-img:hover {
+        transform: scale(1.02);
+    }
+
+    /* Shared Post Inner Box */
+    .shared-original-post-box {
+        background: rgba(0, 0, 0, 0.35);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 12px;
+        padding: 12px;
+        margin: 0 18px 14px;
+        transition: border-color 0.2s ease;
+    }
+    .shared-original-post-box:hover {
+        border-color: rgba(0, 200, 255, 0.35);
+    }
+
+    /* Stats Bar */
+    .post-stats-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 8px 18px;
+        font-size: 12.5px;
+        color: rgba(255, 255, 255, 0.55);
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .top-reactions-icons {
+        display: flex;
+        align-items: center;
+        gap: 2px;
+    }
+    .reaction-emoji-badge { font-size: 15px; }
+
+    /* Action Buttons Row */
+    .post-actions-row {
+        display: flex;
+        justify-content: space-around;
+        padding: 6px 14px;
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        position: relative;
+        background: rgba(255, 255, 255, 0.015);
+    }
+    .btn-post-action {
+        flex: 1;
+        background: none;
+        border: none;
+        color: rgba(255, 255, 255, 0.65);
+        font-size: 13.5px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 8px 0;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        text-decoration: none;
+    }
+    .btn-post-action:hover {
+        background: rgba(255, 255, 255, 0.07);
+        color: #fff;
+    }
+    .btn-post-action.reacted { color: #00c8ff; }
+
+    /* Facebook-style Reaction Popover */
+    .reaction-popup-container {
+        position: relative;
+        display: flex;
+        flex: 1;
+        align-items: stretch;
+    }
+    .reaction-popover {
+        position: absolute;
+        bottom: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #111d30;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+        border-radius: 30px;
+        padding: 6px 12px;
+        display: none;
+        align-items: center;
+        gap: 8px;
+        z-index: 50;
+    }
+    .reaction-popup-container:hover .reaction-popover,
+    .reaction-popup-container:focus-within .reaction-popover,
+    .reaction-popup-container.is-open .reaction-popover {
+        display: flex;
+        animation: popUpAnim 0.15s ease-out;
+    }
+    @@keyframes popUpAnim {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+    .reaction-picker-toggle {
+        width: 28px;
+        border: 0;
+        border-radius: 0 8px 8px 0;
+        color: var(--c-muted);
+        background: transparent;
+        cursor: pointer;
+    }
+    .reaction-btn-icon {
+        background: none;
+        border: none;
+        font-size: 24px;
+        cursor: pointer;
+        transition: transform 0.15s ease;
+        padding: 2px 4px;
+    }
+    .reaction-btn-icon:hover {
+        transform: scale(1.35) translateY(-4px);
+    }
+
+    /* Comments Box */
+    .post-comments-box {
+        padding: 14px 18px;
+        background: rgba(8, 14, 28, 0.5);
+    }
+    .comment-item {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 12px;
+    }
+    .comment-avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        object-fit: cover;
+        flex-shrink: 0;
+    }
+    .comment-bubble {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 14px;
+        padding: 8px 14px;
+        max-width: 88%;
+    }
+    .comment-author-name {
+        font-size: 12.5px;
+        font-weight: 700;
+        color: #fff;
+        margin-bottom: 2px;
+    }
+    .comment-text {
+        font-size: 13px;
+        color: rgba(255, 255, 255, 0.85);
+        word-break: break-word;
+    }
+    .comment-meta {
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.4);
+        margin-top: 4px;
+        display: flex;
+        gap: 12px;
+    }
+    .comment-action-link {
+        color: rgba(255, 255, 255, 0.4);
+        text-decoration: none;
+        cursor: pointer;
+    }
+    .comment-action-link:hover { color: #00c8ff; }
+
+    .comment-input-row {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        margin-top: 10px;
+    }
+    .comment-input-field {
+        flex: 1;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 20px;
+        padding: 8px 16px;
+        font-size: 13px;
+        color: #fff;
+        outline: none;
+        transition: border-color 0.2s ease;
+    }
+    .comment-input-field:focus {
+        border-color: #00c8ff;
+    }
+    .btn-send-comment {
+        background: #00c8ff;
+        border: none;
+        color: #000;
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: transform 0.2s ease;
+    }
+    .btn-send-comment:hover { transform: scale(1.08); background: #fff; }
+
+    /* Empty State */
+    .feed-empty-state {
+        text-align: center;
+        padding: 3rem 1.5rem;
+        background: rgba(13, 22, 38, 0.6);
+        border: 1px dashed rgba(255, 255, 255, 0.15);
+        border-radius: 16px;
+        color: rgba(255, 255, 255, 0.5);
+    }
+
+    /* ── RESPONSIVE ── */
     @@media (max-width: 900px) {
         .hero-slide { grid-template-columns: 1fr; padding: 1.5rem 1.3rem 3.2rem; }
         .hero-slides, .hero-banner { min-height: auto; }
         .slide-visual { display: none; }
         .banner-footer { left: 1.3rem; right: 1.3rem; }
     }
-    @@media (max-width: 560px) {
-        .feed-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
-        .feed-thumb { height: 110px; font-size: 24px; }
-        .feed-body { padding: 9px 10px 10px; gap: 3px; }
-        .feed-name { font-size: 12.5px; line-height: 1.3; }
-        .feed-price { font-size: 12px; }
-        .feed-meta { font-size: 10px; padding-top: 4px; }
-        .feed-cat { font-size: 9px; }
-        .feed-head h2 { font-size: 1.05rem; }
-        .feed-head a { font-size: 11px; padding: 4px 10px; }
-        .feed-nav-btn { width: 34px; height: 34px; font-size: 14px; }
-        .feed-nav-info { font-size: 11px; min-width: 60px; }
-    }
-    @@media (prefers-reduced-motion: reduce) {
-        .hero-slide, .progress-bar { animation: none !important; transition: none !important; }
+    @@media (max-width: 576px) {
+        .feed-create-card { padding: 12px; border-radius: 12px; }
+        .create-options-row { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+        .btn-create-opt { padding: 6px 8px; font-size: 11.5px; justify-content: center; }
+        .feed-post-card { border-radius: 12px; margin-bottom: 16px; }
+        .post-header { padding: 12px 14px; }
+        .post-body-content, .market-product-body, .connect-topic-body { padding: 0 14px 12px; }
+        .post-actions-row { padding: 4px 8px; }
+        .btn-post-action { font-size: 12px; padding: 6px 2px; gap: 4px; }
+        .post-comments-box { padding: 12px 14px; }
+        .comment-bubble { max-width: 92%; }
     }
 </style>
 
 <div class="home-page">
     <div class="home-content">
-        <h1 class="home-title">Nền tảng kết nối sinh viên TDMU</h1>
 
+        <!-- ==========================================
+             1. HERO BANNER
+             ========================================== -->
         <div class="hero-banner is-playing" id="homeBanner" aria-roledescription="carousel" aria-label="Ba chức năng chính">
             <div class="hero-slides">
                 <article class="hero-slide slide-chat is-active" data-accent="#00e070" aria-hidden="false">
@@ -331,7 +790,7 @@
                         <span class="mod-tag tag-market">CHỢ SINH VIÊN</span>
                         <p class="slide-kicker">Đồ cũ tốt. Giá sinh viên. Gặp mặt ngay trong trường.</p>
                         <h2 class="slide-title">Chợ sinh viên — <em>mua bán</em> gần bạn nhất</h2>
-                        <p class="slide-desc">Đăng tin sách, đồ điện tử, vật dụng ký túc. Lưu wishlist, chat trực tiếp người bán và hẹn giao trong khuôn viên trường.</p>
+                        <p class="slide-desc">Đăng tin sách, đồ điện tử, vật dụng ký túc, trao đổi trực tiếp người bán và hẹn giao trong khuôn viên trường.</p>
                         <ul class="slide-points">
                             <li>Đăng tin nhanh</li>
                             <li>Chọn đồ tốt</li>
@@ -390,87 +849,522 @@
             </div>
         </div>
 
-        <section class="home-feed" id="sectionMarket">
-            <div class="feed-head">
-                <h2>🛒 Bán đồ mới nhất</h2>
-                <a href="@Url.Action("Index", "Market")">Xem chợ →</a>
-            </div>
-            <div class="feed-grid" id="marketGrid">
-                @if (latestMarket.Any())
-                {
-                    foreach (var item in latestMarket)
-                    {
-                        string img = item.MarketImages != null && item.MarketImages.Any()
-                            ? item.MarketImages.First().ImageUrl
-                            : (item.MainImage ?? "");
-                        <a class="feed-card" href="@Url.Action("Details", "Market", new { id = item.PostID })">
-                            <div class="feed-thumb">
-                                @if (!string.IsNullOrEmpty(img))
-                                {<img src="@img" alt="@item.Title" loading="lazy" onerror="this.onerror=null;this.parentElement.innerHTML='<span>🛒</span>';" />}
-                                else
-                                {<span>🛒</span>}
-                            </div>
-                            <div class="feed-body">
-                                <div class="feed-cat">@(item.MarketCategory?.CategoryName ?? "Chợ")</div>
-                                <div class="feed-name">@item.Title</div>
-                                <div class="feed-price">@((item.Price ?? 0).ToString("N0")) VNĐ</div>
-                                <div class="feed-meta">@(item.User?.Username ?? "Ẩn danh") · @(item.CreatedAt?.ToString("dd/MM") ?? "")</div>
-                            </div>
-                        </a>
-                    }
-                }
-                else
-                {
-                    <div class="feed-empty">Chưa có tin bán đồ nào.</div>
-                }
-            </div>
-            <div class="feed-nav" id="marketNav">
-                <button type="button" class="feed-nav-btn" id="marketPrev" title="Trang trước" disabled><i class="bi bi-chevron-left"></i></button>
-                <span class="feed-nav-info" id="marketInfo">1 / 1</span>
-                <button type="button" class="feed-nav-btn" id="marketNext" title="Trang sau"><i class="bi bi-chevron-right"></i></button>
-            </div>
-        </section>
+        <!-- ==========================================
+             2. KHAY TIN 24H (TDMU STORIES TRAY)
+             ========================================== -->
+        <div class="mt-4">
+            @Html.Action("StoryTrayPartial", "Story")
+        </div>
 
-        <section class="home-feed" id="sectionConnect">
-            <div class="feed-head">
-                <h2>🤝 Chia sẻ mới nhất</h2>
-                <a href="@Url.Action("Index", "Connect")">Xem kết nối →</a>
+        <!-- ==========================================
+             3. BẢNG TIN TỔNG HỢP (FACEBOOK-STYLE MIXED FEED)
+             ========================================== -->
+        <div class="home-feed-wrap">
+
+            <!-- Filter Pills Bar -->
+            <div class="feed-filter-bar">
+                <button type="button" class="feed-filter-pill active" onclick="filterFeed('all', this)">
+                    <i class="fa-solid fa-layer-group"></i> Tất cả
+                </button>
+                <button type="button" class="feed-filter-pill" onclick="filterFeed('social', this)">
+                    <i class="fa-solid fa-newspaper"></i> Bài viết
+                </button>
+                <button type="button" class="feed-filter-pill" onclick="filterFeed('market', this)">
+                    <i class="fa-solid fa-store"></i> Chợ sinh viên
+                </button>
+                <button type="button" class="feed-filter-pill" onclick="filterFeed('connect', this)">
+                    <i class="fa-solid fa-handshake"></i> Kết nối
+                </button>
             </div>
-            <div class="feed-grid" id="connectGrid">
-                @if (latestConnect.Any())
-                {
-                    foreach (var item in latestConnect)
-                    {
-                        <a class="feed-card" href="@Url.Action("Details", "Connect", new { id = item.PostID })">
-                            <div class="feed-thumb">
-                                @if (!string.IsNullOrEmpty(item.MainImage))
-                                {<img src="@item.MainImage" alt="@item.Title" loading="lazy" onerror="this.onerror=null;this.parentElement.innerHTML='<span>🤝</span>';" />}
-                                else
-                                {<span>🤝</span>}
-                            </div>
-                            <div class="feed-body">
-                                <div class="feed-cat">@(item.ConnectCategory?.CategoryName ?? "Kết nối")</div>
-                                <div class="feed-name">@item.Title</div>
-                                <div class="feed-meta">@(item.User?.Username ?? "Ẩn danh") · @(item.CreatedAt?.ToString("dd/MM") ?? "")</div>
-                            </div>
+
+            <!-- Quick Create Post Box (if logged in) -->
+            @if (currentUser != null)
+            {
+                <div class="feed-create-card">
+                    <div class="create-input-row">
+                        <a href="@Url.Action("Profile", "User", new { id = currentUser.UserID })">
+                            <img src="@currentAvatar" class="create-user-avatar" alt="@currentUsername" onerror="this.src='/Content/Images/default-avatar.png';" />
                         </a>
+                        <div class="create-fake-input" data-bs-toggle="modal" data-bs-target="#createPostModal">
+                            @currentUsername ơi, bạn đang nghĩ gì thế?
+                        </div>
+                    </div>
+                    <div class="create-options-row">
+                        <button type="button" class="btn-create-opt text-success" data-bs-toggle="modal" data-bs-target="#createPostModal">
+                            <i class="fa-solid fa-images fa-lg"></i>
+                            <span>Ảnh / Video</span>
+                        </button>
+                        <button type="button" class="btn-create-opt text-warning" data-bs-toggle="modal" data-bs-target="#createStoryModal">
+                            <i class="fa-solid fa-circle-play fa-lg"></i>
+                            <span>Tạo tin 24h</span>
+                        </button>
+                        <a href="@Url.Action("Create", "Market")" class="btn-create-opt text-danger text-decoration-none" title="Đăng bán đồ trên Chợ">
+                            <i class="fa-solid fa-store fa-lg"></i>
+                            <span>Bán đồ Chợ</span>
+                        </a>
+                        <a href="@Url.Action("Create", "Connect")" class="btn-create-opt text-info text-decoration-none" title="Tạo bài kết nối sinh viên">
+                            <i class="fa-solid fa-handshake fa-lg"></i>
+                            <span>Tạo kết nối</span>
+                        </a>
+                    </div>
+                </div>
+            }
+
+            <!-- Unified Mixed Stream -->
+            <div id="homeFeedList">
+                @if (feedItems.Any())
+                {
+                    foreach (var item in feedItems)
+                    {
+                        if (item.ItemType == HomeFeedItemType.SocialPost && item.SocialPost != null)
+                        {
+                            var post = item.SocialPost;
+                            <article class="feed-post-card feed-item-card social-post-card" data-type="social" data-post-id="@post.PostID" id="@(post.SharedPost != null ? "share-" + post.SharedPost.ShareID : "post-" + post.PostID)">
+                                <!-- Header -->
+                                <div class="post-header">
+                                    <div class="post-author-group">
+                                        <a href="@Url.Action("Profile", "User", new { id = post.UserID })">
+                                            <img src="@post.AuthorAvatar" class="post-author-avatar" alt="@post.AuthorUsername" onerror="this.src='/Content/Images/default-avatar.png';" />
+                                        </a>
+                                        <div>
+                                            <h4 class="post-author-name">
+                                                <a href="@Url.Action("Profile", "User", new { id = post.UserID })" class="text-white text-decoration-none">
+                                                    @post.AuthorUsername
+                                                </a>
+                                                @if (post.IsTDMUStudent)
+                                                {
+                                                    <i class="fa-solid fa-circle-check text-info" style="font-size: 11px;" title="Sinh viên TDMU"></i>
+                                                }
+                                            </h4>
+                                            <div class="post-meta-line">
+                                                <span class="feed-type-badge badge-social me-1">Bài viết</span>
+                                                <span>·</span>
+                                                <span>@post.TimeAgo</span>
+                                                <span>·</span>
+                                                <i class="@post.PrivacyIcon" title="@post.PrivacyLabel"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="dropdown">
+                                        <button class="btn btn-sm btn-link text-muted p-1" type="button" data-bs-toggle="dropdown">
+                                            <i class="fa-solid fa-ellipsis"></i>
+                                        </button>
+                                        <ul class="dropdown-menu dropdown-menu-dark dropdown-menu-end">
+                                            <li><a class="dropdown-item" href="@Url.Action("Profile", "User", new { id = post.UserID })#post-@post.PostID"><i class="fa-solid fa-arrow-up-right-from-square me-2"></i>Xem chi tiết</a></li>
+                                            <li><a class="dropdown-item" href="javascript:void(0)" onclick="copyShareLink('@Url.Action("Profile", "User", new { id = post.UserID })#post-@post.PostID')"><i class="fa-solid fa-link me-2"></i>Sao chép liên kết</a></li>
+                                            @if (post.CanDelete)
+                                            {
+                                                <li><hr class="dropdown-divider"></li>
+                                                if (post.CanEdit)
+                                                {
+                                                    <li><a class="dropdown-item" href="javascript:void(0)" data-content="@post.Content" data-privacy="@post.Privacy" onclick="editPostAjax(@post.PostID, this)"><i class="fa-solid fa-pen-to-square me-2"></i>Sửa bài viết</a></li>
+                                                }
+                                                <li><a class="dropdown-item text-danger" href="javascript:void(0)" onclick="@(post.SharedPost != null ? "deleteShareAjax(" + post.SharedPost.ShareID + ")" : "deletePostAjax(" + post.PostID + ")")"><i class="fa-solid fa-trash-can me-2"></i>@(post.SharedPost != null ? "Xóa bài chia sẻ" : "Xóa bài viết")</a></li>
+                                            }
+                                            else
+                                            {
+                                                <li><hr class="dropdown-divider"></li>
+                                                <li><a class="dropdown-item" href="javascript:void(0)" onclick="sharePostAjax(@post.PostID)"><i class="fa-solid fa-share-nodes me-2"></i>Chia sẻ bài viết</a></li>
+                                                if (post.IsHidden)
+                                                {
+                                                    <li><a class="dropdown-item" href="javascript:void(0)" onclick="unhidePostAjax(@post.PostID)"><i class="fa-solid fa-eye me-2"></i>Hiện lại bài viết</a></li>
+                                                }
+                                                else
+                                                {
+                                                    <li><a class="dropdown-item" href="javascript:void(0)" onclick="hidePostAjax(@post.PostID)"><i class="fa-solid fa-eye-slash me-2"></i>Ẩn bài viết</a></li>
+                                                }
+                                            }
+                                        </ul>
+                                    </div>
+                                </div>
+
+                                <!-- Post Content -->
+                                @if (!string.IsNullOrEmpty(post.Content))
+                                {
+                                    <div class="post-body-content">
+                                        @post.Content
+                                    </div>
+                                }
+                                @if (post.SharedPost != null)
+                                {
+                                    @Html.Partial("~/Views/Shared/_SharedPostPreview.cshtml", post.SharedPost)
+                                }
+
+                                <!-- Post Media -->
+                                @if (post.MediaList != null && post.MediaList.Any())
+                                {
+                                    int count = Math.Min(post.MediaList.Count, 4);
+                                    <div class="post-media-grid count-@count">
+                                        @foreach (var media in post.MediaList)
+                                        {
+                                            <div class="post-media-item">
+                                                @if (media.MediaType == "video")
+                                                {
+                                                    <video src="@media.MediaUrl" controls></video>
+                                                }
+                                                else
+                                                {
+                                                    <img src="@media.MediaUrl" alt="Media" onclick="window.open('@media.MediaUrl', '_blank');" />
+                                                }
+                                            </div>
+                                        }
+                                    </div>
+                                }
+
+                                <!-- Post Stats Bar -->
+                                <div class="post-stats-bar">
+                                    <div class="top-reactions-icons" id="topReactionsWrap-@post.PostID">
+                                        @if (post.TopReactions != null && post.TopReactions.Any())
+                                        {
+                                            foreach (var r in post.TopReactions)
+                                            {
+                                                <span class="reaction-emoji-badge">@r.Emoji</span>
+                                            }
+                                        }
+                                        <span class="ms-1" id="likeCount-@post.PostID">@(post.LikeCount > 0 ? post.LikeCount.ToString() : "")</span>
+                                    </div>
+                                    <div>
+                                        <span id="commentCount-@post.PostID">@post.CommentCount bình luận</span>
+                                    </div>
+                                </div>
+
+                                <!-- Action Buttons with Facebook-style Reaction Popover -->
+                                <div class="post-actions-row">
+                                    <div class="reaction-popup-container">
+                                        <div class="reaction-popover">
+                                            <button type="button" class="reaction-btn-icon" onclick="toggleReactionAjax(@post.PostID, 'Like')" title="Thích">👍</button>
+                                            <button type="button" class="reaction-btn-icon" onclick="toggleReactionAjax(@post.PostID, 'Love')" title="Yêu thích">❤️</button>
+                                            <button type="button" class="reaction-btn-icon" onclick="toggleReactionAjax(@post.PostID, 'Haha')" title="Haha">😆</button>
+                                            <button type="button" class="reaction-btn-icon" onclick="toggleReactionAjax(@post.PostID, 'Wow')" title="Wow">😮</button>
+                                            <button type="button" class="reaction-btn-icon" onclick="toggleReactionAjax(@post.PostID, 'Sad')" title="Buồn">😢</button>
+                                            <button type="button" class="reaction-btn-icon" onclick="toggleReactionAjax(@post.PostID, 'Angry')" title="Phẫn nộ">😡</button>
+                                        </div>
+                                        <button type="button" class="btn-post-action @(!string.IsNullOrEmpty(post.CurrentUserReaction) ? "reacted" : "")" id="btnReaction-@post.PostID" onclick="toggleReactionAjax(@post.PostID, 'Like')">
+                                            <span id="reactionIcon-@post.PostID">
+                                                @if (post.CurrentUserReactionMeta != null)
+                                                {
+                                                    <span>@post.CurrentUserReactionMeta.Emoji</span>
+                                                }
+                                                else
+                                                {
+                                                    <i class="fa-regular fa-thumbs-up"></i>
+                                                }
+                                            </span>
+                                            <span id="reactionLabel-@post.PostID" style="color: @(post.CurrentUserReactionMeta?.Color ?? "inherit")">
+                                                @(post.CurrentUserReactionMeta?.Label ?? "Thích")
+                                            </span>
+                                        </button>
+                                        <button type="button" class="reaction-picker-toggle" onclick="toggleReactionPicker(event, this)" aria-label="Chọn cảm xúc" title="Chọn cảm xúc"><i class="fa-solid fa-chevron-up"></i></button>
+                                    </div>
+
+                                    <button type="button" class="btn-post-action" onclick="$('#commentInput-@post.PostID').focus();">
+                                        <i class="fa-regular fa-message"></i>
+                                        <span>Bình luận</span>
+                                    </button>
+
+                                    <button type="button" class="btn-post-action" onclick="sharePostAjax(@post.PostID)">
+                                        <i class="fa-solid fa-share-nodes"></i>
+                                        <span>Chia sẻ</span>
+                                    </button>
+                                </div>
+
+                                <!-- Comments Section -->
+                                <div class="post-comments-box">
+                                    <div class="comments-list" id="commentsList-@post.PostID">
+                                        @if (post.Comments != null && post.Comments.Any())
+                                        {
+                                            foreach (var c in post.Comments)
+                                            {
+                                                <div class="comment-item" id="comment-@c.CommentID">
+                                                    <img src="@c.AuthorAvatar" class="comment-avatar" alt="@c.AuthorUsername" onerror="this.src='/Content/Images/default-avatar.png';" />
+                                                    <div class="comment-bubble">
+                                                        <div class="comment-author-name">@c.AuthorUsername</div>
+                                                        <div class="comment-text">@c.Content</div>
+                                                        <div class="comment-meta">
+                                                            <span>@c.TimeAgo</span>
+                                                            @if (c.CanDelete)
+                                                            {
+                                                                <span>·</span>
+                                                                <a class="comment-action-link text-danger" onclick="deleteCommentAjax(@c.CommentID, @post.PostID)">Xóa</a>
+                                                            }
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            }
+                                        }
+                                    </div>
+
+                                    @if (currentUser != null)
+                                    {
+                                        <div class="comment-input-row">
+                                            <img src="@currentAvatar" class="comment-avatar" alt="@currentUsername" />
+                                            <input type="text" class="comment-input-field" id="commentInput-@post.PostID" placeholder="Viết bình luận..." onkeydown="if(event.key==='Enter') addCommentAjax(@post.PostID);" />
+                                            <button type="button" class="btn-send-comment" onclick="addCommentAjax(@post.PostID);" title="Gửi bình luận">
+                                                <i class="fa-solid fa-paper-plane fa-sm"></i>
+                                            </button>
+                                        </div>
+                                    }
+                                </div>
+                            </article>
+                        }
+                        else if (item.ItemType == HomeFeedItemType.MarketPost && item.MarketPost != null)
+                        {
+                            var m = item.MarketPost;
+                            var seller = m.User;
+                            string sellerAvatar = seller?.SafeAvatar ?? "/Content/Images/default-avatar.png";
+                            string sellerName = seller?.DisplayName ?? "Sinh viên TDMU";
+                            string img = m.MarketImages != null && m.MarketImages.Any()
+                                ? m.MarketImages.First().ImageUrl
+                                : (m.MainImage ?? "");
+
+                            <article class="feed-post-card feed-item-card" data-type="market" id="market-@m.PostID">
+                                <!-- Header -->
+                                <div class="post-header">
+                                    <div class="post-author-group">
+                                        <a href="@Url.Action("Profile", "User", new { id = m.UserID })">
+                                            <img src="@sellerAvatar" class="post-author-avatar" alt="@sellerName" onerror="this.src='/Content/Images/default-avatar.png';" />
+                                        </a>
+                                        <div>
+                                            <h4 class="post-author-name">
+                                                <a href="@Url.Action("Profile", "User", new { id = m.UserID })" class="text-white text-decoration-none">
+                                                    @sellerName
+                                                </a>
+                                                <span class="text-muted fw-normal small">đã đăng bán món đồ</span>
+                                            </h4>
+                                            <div class="post-meta-line">
+                                                <span class="feed-type-badge badge-market me-1"><i class="fa-solid fa-store me-1"></i>Chợ sinh viên</span>
+                                                <span>·</span>
+                                                <span>@(m.CreatedAt.HasValue ? StudentConnect.Helpers.SocialHelper.FormatTimeAgo(m.CreatedAt) : "")</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="dropdown">
+                                        <button class="btn btn-sm btn-link text-muted p-1" type="button" data-bs-toggle="dropdown">
+                                            <i class="fa-solid fa-ellipsis"></i>
+                                        </button>
+                                        <ul class="dropdown-menu dropdown-menu-dark dropdown-menu-end">
+                                            <li><a class="dropdown-item" href="@Url.Action("Details", "Market", new { id = m.PostID })"><i class="fa-solid fa-arrow-up-right-from-square me-2"></i>Xem chi tiết</a></li>
+                                            <li><a class="dropdown-item" href="javascript:void(0)" onclick="copyShareLink('@Url.Action("Details", "Market", new { id = m.PostID })')"><i class="fa-solid fa-link me-2"></i>Sao chép liên kết</a></li>
+                                        </ul>
+                                    </div>
+                                </div>
+
+                                <!-- Product Info -->
+                                <div class="market-product-body">
+                                    <h3 class="market-product-title">
+                                        <a href="@Url.Action("Details", "Market", new { id = m.PostID })" class="text-white text-decoration-none">
+                                            @m.Title
+                                        </a>
+                                    </h3>
+
+                                    <div class="market-tags-row">
+                                        <span class="market-price-tag">@((m.Price ?? 0).ToString("N0")) VNĐ</span>
+                                        <span class="market-cat-tag">@(m.MarketCategory?.CategoryName ?? "Chợ sinh viên")</span>
+                                        @if (!string.IsNullOrEmpty(m.Condition))
+                                        {
+                                            <span class="market-condition-tag"><i class="fa-solid fa-circle-check me-1"></i>@m.Condition</span>
+                                        }
+                                    </div>
+
+                                    @if (!string.IsNullOrEmpty(m.ExchangeLocation))
+                                    {
+                                        <div class="market-location-text">
+                                            <i class="fa-solid fa-location-dot text-danger me-1"></i> @m.ExchangeLocation
+                                        </div>
+                                    }
+
+                                    @if (!string.IsNullOrEmpty(m.Description))
+                                    {
+                                        <div class="post-body-content p-0 mb-2 text-white-50">
+                                            @(m.Description.Length > 200 ? m.Description.Substring(0, 200) + "..." : m.Description)
+                                        </div>
+                                    }
+                                </div>
+
+                                <!-- Featured Image -->
+                                @if (!string.IsNullOrEmpty(img))
+                                {
+                                    <a href="@Url.Action("Details", "Market", new { id = m.PostID })" class="feed-featured-img-wrap d-block">
+                                        <img src="@img" class="feed-featured-img" alt="@m.Title" onerror="this.src='/Content/Images/default-market.jpg';" />
+                                    </a>
+                                }
+
+                                <!-- Actions Bar -->
+                                <div class="post-actions-row">
+                                    <a href="@Url.Action("Details", "Market", new { id = m.PostID })" class="btn-post-action text-info">
+                                        <i class="fa-solid fa-cart-shopping"></i>
+                                        <span>Xem món đồ</span>
+                                    </a>
+                                    <button type="button" class="btn-post-action text-warning" onclick="startDirectMessage(@m.UserID)">
+                                        <i class="fa-solid fa-comment-dots"></i>
+                                        <span>Nhắn người bán</span>
+                                    </button>
+                                    <button type="button" class="btn-post-action text-muted" onclick="copyShareLink('@Url.Action("Details", "Market", new { id = m.PostID })')">
+                                        <i class="fa-solid fa-share-nodes"></i>
+                                        <span>Chia sẻ</span>
+                                    </button>
+                                </div>
+                            </article>
+                        }
+                        else if (item.ItemType == HomeFeedItemType.ConnectPost && item.ConnectPost != null)
+                        {
+                            var c = item.ConnectPost;
+                            var author = c.User;
+                            string authorAvatar = author?.SafeAvatar ?? "/Content/Images/default-avatar.png";
+                            string authorName = author?.DisplayName ?? "Sinh viên TDMU";
+
+                            <article class="feed-post-card feed-item-card" data-type="connect" id="connect-@c.PostID">
+                                <!-- Header -->
+                                <div class="post-header">
+                                    <div class="post-author-group">
+                                        <a href="@Url.Action("Profile", "User", new { id = c.UserID })">
+                                            <img src="@authorAvatar" class="post-author-avatar" alt="@authorName" onerror="this.src='/Content/Images/default-avatar.png';" />
+                                        </a>
+                                        <div>
+                                            <h4 class="post-author-name">
+                                                <a href="@Url.Action("Profile", "User", new { id = c.UserID })" class="text-white text-decoration-none">
+                                                    @authorName
+                                                </a>
+                                                <span class="text-muted fw-normal small">đã chia sẻ một kết nối</span>
+                                            </h4>
+                                            <div class="post-meta-line">
+                                                <span class="feed-type-badge badge-connect me-1"><i class="fa-solid fa-handshake me-1"></i>Kết nối</span>
+                                                <span>·</span>
+                                                <span>@(c.CreatedAt.HasValue ? StudentConnect.Helpers.SocialHelper.FormatTimeAgo(c.CreatedAt) : "")</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="dropdown">
+                                        <button class="btn btn-sm btn-link text-muted p-1" type="button" data-bs-toggle="dropdown">
+                                            <i class="fa-solid fa-ellipsis"></i>
+                                        </button>
+                                        <ul class="dropdown-menu dropdown-menu-dark dropdown-menu-end">
+                                            <li><a class="dropdown-item" href="@Url.Action("Details", "Connect", new { id = c.PostID })"><i class="fa-solid fa-arrow-up-right-from-square me-2"></i>Xem chi tiết</a></li>
+                                            <li><a class="dropdown-item" href="javascript:void(0)" onclick="copyShareLink('@Url.Action("Details", "Connect", new { id = c.PostID })')"><i class="fa-solid fa-link me-2"></i>Sao chép liên kết</a></li>
+                                        </ul>
+                                    </div>
+                                </div>
+
+                                <!-- Connect Body -->
+                                <div class="connect-topic-body">
+                                    <h3 class="connect-topic-title">
+                                        <a href="@Url.Action("Details", "Connect", new { id = c.PostID })" class="text-white text-decoration-none">
+                                            @c.Title
+                                        </a>
+                                    </h3>
+
+                                    <span class="connect-cat-tag">
+                                        <i class="fa-solid fa-tag me-1"></i>@(c.ConnectCategory?.CategoryName ?? "Kết nối sinh viên")
+                                    </span>
+
+                                    @if (!string.IsNullOrEmpty(c.Description))
+                                    {
+                                        <div class="post-body-content p-0 mb-2 text-white-50">
+                                            @(c.Description.Length > 220 ? c.Description.Substring(0, 220) + "..." : c.Description)
+                                        </div>
+                                    }
+                                </div>
+
+                                <!-- Featured Image -->
+                                @if (!string.IsNullOrEmpty(c.MainImage))
+                                {
+                                    <a href="@Url.Action("Details", "Connect", new { id = c.PostID })" class="feed-featured-img-wrap d-block">
+                                        <img src="@c.MainImage" class="feed-featured-img" alt="@c.Title" onerror="this.src='/Content/Images/default-avatar.png';" />
+                                    </a>
+                                }
+
+                                <!-- Actions Bar -->
+                                <div class="post-actions-row">
+                                    <a href="@Url.Action("Details", "Connect", new { id = c.PostID })" class="btn-post-action text-info">
+                                        <i class="fa-solid fa-handshake"></i>
+                                        <span>Xem bài viết</span>
+                                    </a>
+                                    <button type="button" class="btn-post-action text-warning" onclick="startDirectMessage(@c.UserID)">
+                                        <i class="fa-solid fa-comment-dots"></i>
+                                        <span>Nhắn tác giả</span>
+                                    </button>
+                                    <button type="button" class="btn-post-action text-muted" onclick="copyShareLink('@Url.Action("Details", "Connect", new { id = c.PostID })')">
+                                        <i class="fa-solid fa-share-nodes"></i>
+                                        <span>Chia sẻ</span>
+                                    </button>
+                                </div>
+                            </article>
+                        }
                     }
                 }
                 else
                 {
-                    <div class="feed-empty">Chưa có bài chia sẻ nào.</div>
+                    <div class="feed-empty-state">
+                        <i class="fa-solid fa-newspaper fa-3x mb-3 text-muted"></i>
+                        <h4 class="text-white h5">Chưa có bài viết nào trên bảng tin</h4>
+                        <p class="small mb-3">Hãy là người đầu tiên chia sẻ cảm nghĩ, bán món đồ hoặc tạo bài kết nối!</p>
+                        @if (currentUser != null)
+                        {
+                            <button type="button" class="btn btn-sm btn-info text-dark fw-bold rounded-pill px-4" data-bs-toggle="modal" data-bs-target="#createPostModal">
+                                <i class="fa-solid fa-plus me-1"></i> Tạo bài viết ngay
+                            </button>
+                        }
+                    </div>
                 }
             </div>
-            <div class="feed-nav" id="connectNav">
-                <button type="button" class="feed-nav-btn" id="connectPrev" title="Trang trước" disabled><i class="bi bi-chevron-left"></i></button>
-                <span class="feed-nav-info" id="connectInfo">1 / 1</span>
-                <button type="button" class="feed-nav-btn" id="connectNext" title="Trang sau"><i class="bi bi-chevron-right"></i></button>
-            </div>
-        </section>
+
+        </div>
+
     </div>
 </div>
 
+<!-- ==========================================
+     MODAL: TẠO BÀI VIẾT MỚI (CREATE POST MODAL)
+     ========================================== -->
+@if (currentUser != null)
+{
+    <div class="modal fade" id="createPostModal" tabindex="-1" aria-hidden="true" style="z-index: 1060;">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content bg-dark text-white border-secondary">
+                <div class="modal-header border-secondary">
+                    <h5 class="modal-title"><i class="fa-solid fa-pen-to-square text-info me-2"></i>Tạo bài viết</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="d-flex align-items-center gap-2 mb-3">
+                        <img src="@currentAvatar" class="rounded-circle" style="width: 40px; height: 40px; object-fit: cover;" alt="@currentUsername" />
+                        <div>
+                            <div class="fw-bold small">@currentUsername</div>
+                            <select class="form-select form-select-sm bg-black text-white border-secondary py-0 px-2" id="createPostPrivacy" style="width: auto; font-size: 11px;">
+                                <option value="Public">🌐 Công khai</option>
+                                <option value="Friends">👥 Bạn bè</option>
+                                <option value="OnlyMe">🔒 Chỉ mình tôi</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <textarea class="form-control bg-black text-white border-secondary mb-3" id="createPostContent" rows="4" placeholder="@currentUsername ơi, bạn đang nghĩ gì thế?"></textarea>
+
+                    <div class="p-3 border border-secondary rounded mb-2 d-flex align-items-center justify-content-between">
+                        <span class="small text-muted">Thêm vào bài viết:</span>
+                        <button type="button" class="btn btn-sm btn-outline-success" onclick="$('#postFileInput').click();">
+                            <i class="fa-solid fa-image me-1"></i> Ảnh / Video
+                        </button>
+                        <input type="file" id="postFileInput" multiple accept="image/*,video/*" style="display:none;" />
+                    </div>
+
+                    <div id="postFilePreviewWrap" class="d-flex gap-2 flex-wrap mb-2"></div>
+                </div>
+                <div class="modal-footer border-secondary">
+                    <button type="button" class="btn btn-info text-dark fw-bold w-100" id="btnSubmitPost" onclick="submitNewPost();">
+                        Đăng bài
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
 <script>
+    // ── 1. BANNER CAROUSEL ──
     (function () {
         var root = document.getElementById('homeBanner');
         if (!root) return;
@@ -524,151 +1418,395 @@
         setAccent(0);
         start();
     })();
-</script>
 
-<script>
-    // ── AJAX FEED PAGINATION ──
-    (function () {
-        var PAGE_SIZE = 4;
-        var marketUrl = '@Url.Action("GetLatestMarket", "Home")';
-        var connectUrl = '@Url.Action("GetLatestConnect", "Home")';
-        var marketDetailTpl = '@Url.Action("Details", "Market", new { id = 999999 })';
-        var connectDetailTpl = '@Url.Action("Details", "Connect", new { id = 999999 })';
+    // ── 2. FILTER PILLS CLIENT-SIDE ──
+    function filterFeed(type, btn) {
+        $('.feed-filter-pill').removeClass('active');
+        $(btn).addClass('active');
 
-        var totalMarket = @(((int?)ViewBag.TotalMarket) ?? 0);
-        var totalConnect = @(((int?)ViewBag.TotalConnect) ?? 0);
-
-        var marketPage = 0;
-        var connectPage = 0;
-        var marketPages = Math.max(1, Math.ceil(totalMarket / PAGE_SIZE));
-        var connectPages = Math.max(1, Math.ceil(totalConnect / PAGE_SIZE));
-        var isMarketLoading = false;
-        var isConnectLoading = false;
-
-        function escHtml(s) {
-            return $('<div>').text(s || '').html();
-        }
-
-        function formatPrice(n) {
-            return Number(n).toLocaleString('vi-VN');
-        }
-
-        function renderMarketCards(items) {
-            var html = '';
-            if (items && items.length > 0) {
-                items.forEach(function (p) {
-                    var detailUrl = marketDetailTpl.replace('999999', p.PostID);
-                    var thumbHtml = p.Image
-                        ? '<img src="' + escHtml(p.Image) + '" alt="' + escHtml(p.Title) + '" loading="lazy" onerror="this.onerror=null;this.parentElement.innerHTML=\'<span>🛒</span>\';" />'
-                        : '<span>🛒</span>';
-                    html += '<a class="feed-card" href="' + detailUrl + '">'
-                         + '<div class="feed-thumb">' + thumbHtml + '</div>'
-                         + '<div class="feed-body">'
-                         + '<div class="feed-cat">' + escHtml(p.Category) + '</div>'
-                         + '<div class="feed-name">' + escHtml(p.Title) + '</div>'
-                         + '<div class="feed-price">' + formatPrice(p.Price) + ' VNĐ</div>'
-                         + '<div class="feed-meta">' + escHtml(p.Username) + ' · ' + escHtml(p.CreatedAt) + '</div>'
-                         + '</div></a>';
-                });
-            } else {
-                html = '<div class="feed-empty">Chưa có tin bán đồ nào.</div>';
-            }
-            return html;
-        }
-
-        function renderConnectCards(items) {
-            var html = '';
-            if (items && items.length > 0) {
-                items.forEach(function (p) {
-                    var detailUrl = connectDetailTpl.replace('999999', p.PostID);
-                    var thumbHtml = p.Image
-                        ? '<img src="' + escHtml(p.Image) + '" alt="' + escHtml(p.Title) + '" loading="lazy" onerror="this.onerror=null;this.parentElement.innerHTML=\'<span>🤝</span>\';" />'
-                        : '<span>🤝</span>';
-                    html += '<a class="feed-card" href="' + detailUrl + '">'
-                         + '<div class="feed-thumb">' + thumbHtml + '</div>'
-                         + '<div class="feed-body">'
-                         + '<div class="feed-cat">' + escHtml(p.Category) + '</div>'
-                         + '<div class="feed-name">' + escHtml(p.Title) + '</div>'
-                         + '<div class="feed-meta">' + escHtml(p.Username) + ' · ' + escHtml(p.CreatedAt) + '</div>'
-                         + '</div></a>';
-                });
-            } else {
-                html = '<div class="feed-empty">Chưa có bài chia sẻ nào.</div>';
-            }
-            return html;
-        }
-
-        function updateNav(prefix, page, totalPages) {
-            $('#' + prefix + 'Info').text((page + 1) + ' / ' + totalPages);
-            $('#' + prefix + 'Prev').prop('disabled', page <= 0);
-            $('#' + prefix + 'Next').prop('disabled', page >= totalPages - 1);
-            if (totalPages > 1) {
-                $('#' + prefix + 'Nav').show();
-            } else {
-                $('#' + prefix + 'Nav').hide();
-            }
-        }
-
-        function loadMarket(page) {
-            if (isMarketLoading) return;
-            isMarketLoading = true;
-            var $grid = $('#marketGrid');
-            $grid.addClass('is-loading');
-            $.ajax({
-                url: marketUrl,
-                data: { skip: page * PAGE_SIZE, take: PAGE_SIZE },
-                type: 'GET',
-                dataType: 'json',
-                success: function (res) {
-                    if (res && res.success) {
-                        totalMarket = res.total;
-                        marketPages = Math.max(1, Math.ceil(totalMarket / PAGE_SIZE));
-                        marketPage = page;
-                        $grid.html(renderMarketCards(res.items));
-                        updateNav('market', marketPage, marketPages);
-                    }
-                },
-                complete: function () {
-                    isMarketLoading = false;
-                    $grid.removeClass('is-loading');
+        if (type === 'all') {
+            $('.feed-item-card').fadeIn(200);
+        } else {
+            $('.feed-item-card').each(function () {
+                var cardType = $(this).attr('data-type');
+                if (cardType === type) {
+                    $(this).fadeIn(200);
+                } else {
+                    $(this).hide();
                 }
             });
         }
+    }
 
-        function loadConnect(page) {
-            if (isConnectLoading) return;
-            isConnectLoading = true;
-            var $grid = $('#connectGrid');
-            $grid.addClass('is-loading');
-            $.ajax({
-                url: connectUrl,
-                data: { skip: page * PAGE_SIZE, take: PAGE_SIZE },
-                type: 'GET',
-                dataType: 'json',
-                success: function (res) {
-                    if (res && res.success) {
-                        totalConnect = res.total;
-                        connectPages = Math.max(1, Math.ceil(totalConnect / PAGE_SIZE));
-                        connectPage = page;
-                        $grid.html(renderConnectCards(res.items));
-                        updateNav('connect', connectPage, connectPages);
-                    }
-                },
-                complete: function () {
-                    isConnectLoading = false;
-                    $grid.removeClass('is-loading');
-                }
+    // ── 3. DIRECT MESSAGE ──
+    function startDirectMessage(targetId) {
+        $.post('/Chat/CreatePrivateRoom', { targetId: targetId }, function (res) {
+            if (res.success && res.roomId) {
+                window.location.href = '/Chat/Private/' + res.roomId;
+            } else {
+                Swal.fire({
+                    icon: 'info',
+                    title: 'Nhắn tin',
+                    text: res.message || 'Không thể tạo phòng chat với người này!'
+                });
+            }
+        }).fail(function () {
+            Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Vui lòng đăng nhập để gửi tin nhắn!' });
+        });
+    }
+
+    // ── 4. SHARE LINK HELPER ──
+    function copyShareLink(url) {
+        var fullUrl = window.location.origin + url;
+        navigator.clipboard.writeText(fullUrl).then(function () {
+            Swal.fire({
+                toast: true,
+                position: 'top',
+                icon: 'success',
+                title: 'Đã sao chép liên kết vào bộ nhớ tạm!',
+                showConfirmButton: false,
+                timer: 1600,
+                background: '#111d30',
+                color: '#fff'
             });
+        }).catch(function () {
+            prompt('Sao chép liên kết:', fullUrl);
+        });
+    }
+
+    // ── 5. SOCIAL POST INTERACTIONS (REACTION / COMMENT / DELETE) ──
+    function toggleReactionAjax(postId, likeType) {
+        var activeControl = document.activeElement;
+        if (activeControl && $(activeControl).closest('.reaction-popup-container').length) {
+            $(activeControl).closest('.reaction-popup-container').removeClass('is-open');
+            activeControl.blur();
+        }
+        $.post('/Post/ToggleReaction', { postId: postId, likeType: likeType }, function (res) {
+            if (res.success) {
+                $('.social-post-card[data-post-id="' + postId + '"]').each(function () {
+                    var card = $(this);
+                    var btn = card.find('[id="btnReaction-' + postId + '"]');
+                    if (res.currentReaction) {
+                        btn.addClass('reacted');
+                        card.find('[id="reactionIcon-' + postId + '"]').html('<span>' + res.reactionEmoji + '</span>');
+                        card.find('[id="reactionLabel-' + postId + '"]').text(res.reactionLabel).css('color', res.reactionColor || '#00c8ff');
+                    } else {
+                        btn.removeClass('reacted');
+                        card.find('[id="reactionIcon-' + postId + '"]').html('<i class="fa-regular fa-thumbs-up"></i>');
+                        card.find('[id="reactionLabel-' + postId + '"]').text('Thích').css('color', 'inherit');
+                    }
+                    var html = '';
+                    (res.topReactions || []).forEach(function (reaction) {
+                        html += '<span class="reaction-emoji-badge">' + reaction.Emoji + '</span>';
+                    });
+                    html += '<span class="ms-1" id="likeCount-' + postId + '">' + (res.totalLikes > 0 ? res.totalLikes : '') + '</span>';
+                    card.find('[id="topReactionsWrap-' + postId + '"]').html(html);
+                });
+            } else {
+                Swal.fire({ icon: 'warning', title: 'Thông báo', text: res.message || 'Vui lòng đăng nhập để bày tỏ cảm xúc!' });
+            }
+        }).fail(function () {
+            Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Vui lòng đăng nhập để tương tác!' });
+        });
+    }
+
+    function addCommentAjax(postId) {
+        var input = $('#commentInput-' + postId);
+        var content = input.val().trim();
+        if (!content) return;
+
+        var formData = new FormData();
+        formData.append('postId', postId);
+        formData.append('content', content);
+        formData.append('__RequestVerificationToken', $('input[name="__RequestVerificationToken"]').val());
+
+        input.val('');
+
+        $.ajax({
+            url: '/Post/AddComment',
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function (res) {
+                if (res.success) {
+                    var c = res.comment;
+                    var commentHtml = `
+                        <div class="comment-item" id="comment-${c.commentId}">
+                            <img src="${c.avatar}" class="comment-avatar" alt="${c.username}" onerror="this.src='/Content/Images/default-avatar.png';" />
+                            <div class="comment-bubble">
+                                <div class="comment-author-name">${c.username}</div>
+                                <div class="comment-text">${c.content}</div>
+                                <div class="comment-meta">
+                                    <span>${c.timeAgo}</span>
+                                    <span>·</span>
+                                    <a class="comment-action-link text-danger" onclick="deleteCommentAjax(${c.commentId}, ${postId})">Xóa</a>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    $('#commentsList-' + postId).append(commentHtml);
+                    $('#commentCount-' + postId).text(res.totalComments + ' bình luận');
+                } else {
+                    Swal.fire({ icon: 'warning', title: 'Thông báo', text: res.message || 'Không thể gửi bình luận!' });
+                }
+            },
+            error: function () {
+                Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Vui lòng đăng nhập để bình luận!' });
+            }
+        });
+    }
+
+    function deletePostAjax(postId) {
+        Swal.fire({
+            title: 'Xóa bài viết?',
+            text: 'Bạn có chắc chắn muốn xóa bài viết này không?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#e25141',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Xóa ngay',
+            cancelButtonText: 'Hủy'
+        }).then(function (result) {
+            if (result.isConfirmed) {
+                var token = $('input[name="__RequestVerificationToken"]').val();
+                $.ajax({
+                    url: '/Post/Delete',
+                    type: 'POST',
+                    data: { id: postId, __RequestVerificationToken: token },
+                    headers: { '__RequestVerificationToken': token },
+                    success: function (res) {
+                        if (res.success) {
+                            $('.social-post-card[data-post-id="' + postId + '"]').fadeOut(300, function () { $(this).remove(); });
+                            Swal.fire({ toast: true, position: 'top', icon: 'success', title: 'Đã xóa bài viết!', showConfirmButton: false, timer: 1500 });
+                        } else {
+                            Swal.fire({ icon: 'error', title: 'Lỗi', text: res.message });
+                        }
+                    },
+                    error: function (xhr) {
+                        var msg = 'Yêu cầu thất bại';
+                        try { var j = JSON.parse(xhr.responseText); if (j && j.message) msg = j.message; } catch (e) {}
+                        Swal.fire({ icon: 'error', title: 'Lỗi', text: msg });
+                    }
+                });
+            }
+        });
+    }
+
+    function editPostAjax(postId, trigger) {
+        Swal.fire({
+            title: 'Sửa bài viết',
+            input: 'textarea',
+            inputValue: trigger.getAttribute('data-content') || '',
+            inputAttributes: { maxlength: 5000, 'aria-label': 'Nội dung bài viết' },
+            showCancelButton: true,
+            confirmButtonText: 'Lưu thay đổi',
+            cancelButtonText: 'Hủy'
+        }).then(function (result) {
+            if (!result.isConfirmed) return;
+            $.ajax({
+                url: '/Post/Edit',
+                type: 'POST',
+                data: { postId: postId, content: result.value, privacy: trigger.getAttribute('data-privacy'), __RequestVerificationToken: $('input[name="__RequestVerificationToken"]').first().val() },
+                headers: { '__RequestVerificationToken': $('input[name="__RequestVerificationToken"]').first().val() },
+                success: function (res) {
+                    if (res.success) location.reload();
+                    else Swal.fire({ icon: 'error', title: 'Không thể sửa bài viết', text: res.message });
+                },
+                error: function () { Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Không thể cập nhật bài viết.' }); }
+            });
+        });
+    }
+
+    function sharePostAjax(postId) {
+        Swal.fire({
+            title: 'Chia sẻ bài viết',
+            input: 'textarea',
+            inputPlaceholder: 'Viết điều gì đó về bài viết này (không bắt buộc)',
+            inputAttributes: { maxlength: 1000, 'aria-label': 'Lời bình khi chia sẻ' },
+            showCancelButton: true,
+            confirmButtonText: 'Chia sẻ',
+            cancelButtonText: 'Hủy'
+        }).then(function (result) {
+            if (!result.isConfirmed) return;
+            $.ajax({
+                url: '/Post/Share',
+                type: 'POST',
+                data: { postId: postId, content: result.value || '', __RequestVerificationToken: $('input[name="__RequestVerificationToken"]').first().val() },
+                headers: { '__RequestVerificationToken': $('input[name="__RequestVerificationToken"]').first().val() },
+                success: function (res) {
+                    if (res.success) Swal.fire({ icon: 'success', title: 'Đã chia sẻ', text: res.message }).then(function () { location.reload(); });
+                    else Swal.fire({ icon: 'error', title: 'Không thể chia sẻ', text: res.message });
+                },
+                error: function () { Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Không thể chia sẻ bài viết.' }); }
+            });
+        });
+    }
+
+    function hidePostAjax(postId) {
+        $.ajax({
+            url: '/Post/Hide',
+            type: 'POST',
+            data: { postId: postId, __RequestVerificationToken: $('input[name="__RequestVerificationToken"]').first().val() },
+            headers: { '__RequestVerificationToken': $('input[name="__RequestVerificationToken"]').first().val() },
+            success: function (res) {
+                if (res.success) $('.social-post-card[data-post-id="' + postId + '"]').fadeOut(250, function () { $(this).remove(); });
+                else Swal.fire({ icon: 'error', title: 'Không thể ẩn bài viết', text: res.message });
+            },
+            error: function () { Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Không thể ẩn bài viết.' }); }
+        });
+    }
+
+    function unhidePostAjax(postId) {
+        $.ajax({
+            url: '/Post/Unhide',
+            type: 'POST',
+            data: { postId: postId, __RequestVerificationToken: $('input[name="__RequestVerificationToken"]').first().val() },
+            headers: { '__RequestVerificationToken': $('input[name="__RequestVerificationToken"]').first().val() },
+            success: function (res) {
+                if (res.success) location.reload();
+                else Swal.fire({ icon: 'error', title: 'Không thể hiện bài viết', text: res.message });
+            },
+            error: function () { Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Không thể hiện bài viết.' }); }
+        });
+    }
+
+    function deleteShareAjax(shareId) {
+        Swal.fire({ title: 'Xóa bài chia sẻ?', icon: 'warning', showCancelButton: true, confirmButtonText: 'Xóa', cancelButtonText: 'Hủy' }).then(function (result) {
+            if (!result.isConfirmed) return;
+            $.ajax({
+                url: '/Post/DeleteShare',
+                type: 'POST',
+                data: { shareId: shareId, __RequestVerificationToken: $('input[name="__RequestVerificationToken"]').first().val() },
+                headers: { '__RequestVerificationToken': $('input[name="__RequestVerificationToken"]').first().val() },
+                success: function (res) {
+                    if (res.success) $('#share-' + shareId).fadeOut(250, function () { $(this).remove(); });
+                    else Swal.fire({ icon: 'error', title: 'Lỗi', text: res.message });
+                },
+                error: function () { Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Không thể xóa bài chia sẻ.' }); }
+            });
+        });
+    }
+
+    function toggleReactionPicker(event, button) {
+        event.preventDefault();
+        event.stopPropagation();
+        var picker = $(button).closest('.reaction-popup-container');
+        var shouldOpen = !picker.hasClass('is-open');
+        picker.toggleClass('is-open', shouldOpen);
+        if (!shouldOpen) button.blur();
+    }
+
+    $(document).on('click.reactionPicker', function (event) {
+        if (!$(event.target).closest('.reaction-popup-container').length) $('.reaction-popup-container.is-open').removeClass('is-open');
+    });
+
+    function deleteCommentAjax(commentId, postId) {
+        Swal.fire({
+            title: 'Xóa bình luận?',
+            text: 'Bạn có chắc muốn xóa bình luận này không?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#e25141',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Xóa ngay',
+            cancelButtonText: 'Hủy'
+        }).then(function (result) {
+            if (result.isConfirmed) {
+                $.post('/Post/DeleteComment', { id: commentId }, function (res) {
+                    if (res.success) {
+                        $('#comment-' + commentId).fadeOut(250, function () { $(this).remove(); });
+                        if (res.totalComments !== undefined) {
+                            $('#commentCount-' + postId).text(res.totalComments + ' bình luận');
+                        }
+                    } else {
+                        Swal.fire({ icon: 'error', title: 'Lỗi', text: res.message });
+                    }
+                });
+            }
+        });
+    }
+
+    // ── 6. CREATE POST WITH FILES PREVIEW ──
+    var selectedPostFiles = [];
+
+    $('#postFileInput').on('change', function () {
+        var files = Array.from(this.files);
+        selectedPostFiles = selectedPostFiles.concat(files);
+        renderPostFilesPreview();
+    });
+
+    function renderPostFilesPreview() {
+        var wrap = $('#postFilePreviewWrap');
+        wrap.empty();
+        selectedPostFiles.forEach(function (f, idx) {
+            var url = URL.createObjectURL(f);
+            var isVideo = f.type.startsWith('video');
+            var itemHtml = `
+                <div class="position-relative" style="width: 70px; height: 70px; border-radius: 8px; overflow: hidden; border: 1px solid rgba(255,255,255,0.2);">
+                    ${isVideo ? '<video src="' + url + '" style="width:100%;height:100%;object-fit:cover;"></video>' : '<img src="' + url + '" style="width:100%;height:100%;object-fit:cover;" />'}
+                    <span class="badge bg-danger position-absolute top-0 end-0 p-1" style="cursor:pointer;" onclick="removePostFile(${idx})">✕</span>
+                </div>
+            `;
+            wrap.append(itemHtml);
+        });
+    }
+
+    function removePostFile(idx) {
+        selectedPostFiles.splice(idx, 1);
+        renderPostFilesPreview();
+    }
+
+    function submitNewPost() {
+        var content = $('#createPostContent').val();
+        var privacy = $('#createPostPrivacy').val();
+
+        if (!content.trim() && selectedPostFiles.length === 0) {
+            Swal.fire({ icon: 'warning', title: 'Nội dung trống', text: 'Vui lòng nhập nội dung bài viết hoặc đính kèm ảnh/video!' });
+            return;
         }
 
-        // Initial nav state
-        updateNav('market', 0, marketPages);
-        updateNav('connect', 0, connectPages);
+        var formData = new FormData();
+        formData.append('content', content);
+        formData.append('privacy', privacy);
+        formData.append('__RequestVerificationToken', $('input[name="__RequestVerificationToken"]').val());
 
-        // Button events
-        $('#marketPrev').on('click', function () { if (marketPage > 0) loadMarket(marketPage - 1); });
-        $('#marketNext').on('click', function () { if (marketPage < marketPages - 1) loadMarket(marketPage + 1); });
-        $('#connectPrev').on('click', function () { if (connectPage > 0) loadConnect(connectPage - 1); });
-        $('#connectNext').on('click', function () { if (connectPage < connectPages - 1) loadConnect(connectPage + 1); });
-    })();
+        selectedPostFiles.forEach(function (f) {
+            formData.append('mediaFiles', f);
+        });
+
+        $('#btnSubmitPost').prop('disabled', true).text('Đang đăng bài...');
+
+        $.ajax({
+            url: '/Post/Create',
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function (res) {
+                if (res.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Thành công!',
+                        text: 'Bài viết của bạn đã được đăng lên Bảng tin!',
+                        timer: 1500,
+                        showConfirmButton: false
+                    }).then(function () {
+                        location.reload();
+                    });
+                } else {
+                    Swal.fire({ icon: 'error', title: 'Lỗi', text: res.message });
+                    $('#btnSubmitPost').prop('disabled', false).text('Đăng bài');
+                }
+            },
+            error: function () {
+                Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Lỗi kết nối khi đăng bài!' });
+                $('#btnSubmitPost').prop('disabled', false).text('Đăng bài');
+            }
+        });
+    }
 </script>
+
+@section Modals {
+    @Html.Partial("~/Views/Story/_StoryModalsPartial.cshtml")
+}

@@ -1,0 +1,172 @@
+﻿@model List<StudentConnect.Models.UserStoryGroupViewModel>
+@using StudentConnect.Models
+
+@{
+    ViewBag.Title = "Tin 24 Giờ";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    int currentUserId = Session["UserID"] != null ? (int)Session["UserID"] : 0;
+}
+
+<div class="container py-4">
+    <!-- KHAY TIN 24H TRÊN CÙNG -->
+    @Html.Partial("~/Views/Story/_StoryTrayPartial.cshtml", Model)
+
+    <!-- KHU VỰC QUẢN LÝ / XEM TOÀN BỘ TIN -->
+    <div class="d-flex align-items-center justify-content-between mb-4 mt-2">
+        <div>
+            <h4 class="text-white fw-bold mb-1">
+                <i class="fa-solid fa-photo-film text-cyan me-2"></i>Khoảnh Khắc
+            </h4>
+            <p class="text-white-50 small mb-0">Chia sẻ hình ảnh & video ngắn hoạt động, học tập, đời sống sinh viên. Tin tự động biến mất sau 24h.</p>
+        </div>
+    </div>
+
+    <!-- LƯỚI KHÁM PHÁ CÁC TIN ĐANG HOẠT ĐỘNG -->
+    <div class="row g-3">
+        @if (Model != null && Model.Any(g => g.Stories.Any()))
+        {
+            foreach (var group in Model.Where(g => g.Stories.Any()))
+            {
+                var latestStory = group.LatestStory;
+                if (latestStory == null) { continue; }
+
+                <div class="col-6 col-sm-4 col-md-3 col-lg-2">
+                    <div class="story-grid-item" onclick="openStoryViewer(@group.UserID, 0)">
+                        <div class="story-grid-card">
+                            <img src="@latestStory.MediaUrl" class="story-grid-img" alt="@group.Username" onerror="this.src='/Content/Images/default-cover.jpg';" />
+                            <div class="story-grid-overlay"></div>
+                            
+                            <div class="story-grid-user">
+                                <img src="@group.Avatar" class="story-grid-avatar @(group.HasUnviewedStories ? "border-cyan" : "")" alt="@group.Username" onerror="this.src='/Content/Images/default-avatar.png';" />
+                                <div class="story-grid-name">@group.Username</div>
+                                <div class="story-grid-time">@latestStory.TimeAgo</div>
+                            </div>
+
+                            @if (group.Stories.Count > 1)
+                            {
+                                <span class="story-grid-count-badge">@group.Stories.Count tin</span>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+        }
+        else
+        {
+            <div class="col-12">
+                <div class="text-center py-5" style="background: rgba(255,255,255,0.02); border-radius: 20px; border: 1px dashed rgba(255,255,255,0.1);">
+                    <i class="fa-regular fa-image fa-3x text-white-50 mb-3"></i>
+                    <h5 class="text-white">Hiện chưa có tin nào trong 24 giờ qua</h5>
+                    <p class="text-white-50 small mb-4">Hãy là người đầu tiên chia sẻ khoảnh khắc với bạn bè trường TDMU!</p>
+                    @if (currentUserId > 0)
+                    {
+                        <button class="btn btn-outline-cyan" onclick="openCreateStoryModal()">
+                            <i class="fa-solid fa-plus me-1"></i> Tạo tin ngay
+                        </button>
+                    }
+                    else
+                    {
+                        <a href="@Url.Action("Login", "User")" class="btn btn-outline-cyan">
+                            Đăng nhập để đăng tin
+                        </a>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+<style>
+    .story-grid-card {
+        position: relative;
+        width: 100%;
+        height: 240px;
+        border-radius: 16px;
+        overflow: hidden;
+        cursor: pointer;
+        background: #0d1626;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        transition: all 0.25s ease;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    }
+
+    .story-grid-card:hover {
+        transform: translateY(-4px);
+        border-color: rgba(0, 200, 255, 0.4);
+        box-shadow: 0 8px 25px rgba(0, 200, 255, 0.2);
+    }
+
+    .story-grid-img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.3s;
+    }
+
+    .story-grid-card:hover .story-grid-img {
+        transform: scale(1.06);
+    }
+
+    .story-grid-overlay {
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(180deg, rgba(0, 0, 0, 0.2) 0%, rgba(0, 0, 0, 0.8) 100%);
+    }
+
+    .story-grid-user {
+        position: absolute;
+        bottom: 12px;
+        left: 10px;
+        right: 10px;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+
+    .story-grid-avatar {
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 2px solid #fff;
+        margin-bottom: 4px;
+    }
+
+    .story-grid-avatar.border-cyan {
+        border-color: var(--tdmu-cyan, #00c8ff);
+        box-shadow: 0 0 8px rgba(0, 200, 255, 0.6);
+    }
+
+    .story-grid-name {
+        font-size: 0.82rem;
+        font-weight: 600;
+        color: #fff;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .story-grid-time {
+        font-size: 0.68rem;
+        color: rgba(255, 255, 255, 0.6);
+        font-family: 'JetBrains Mono', monospace;
+    }
+
+    .story-grid-count-badge {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        background: rgba(0, 0, 0, 0.6);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: #fff;
+        font-size: 0.68rem;
+        font-family: 'JetBrains Mono', monospace;
+        padding: 2px 6px;
+        border-radius: 10px;
+        backdrop-filter: blur(4px);
+    }
+</style>
+
+@section Modals {
+    @Html.Partial("~/Views/Story/_StoryModalsPartial.cshtml")
+}

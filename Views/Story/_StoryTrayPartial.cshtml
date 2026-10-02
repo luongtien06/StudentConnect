@@ -1,0 +1,544 @@
+﻿@model List<StudentConnect.Models.UserStoryGroupViewModel>
+@using StudentConnect.Models
+
+@{
+    int currentUserId = Session["UserID"] != null ? (int)Session["UserID"] : 0;
+    string currentAvatar = Session["Avatar"] as string ?? "/Content/Images/default-avatar.png";
+    var currentUserGroup = Model?.FirstOrDefault(g => g.IsCurrentUser);
+    var otherGroups = Model?.Where(g => !g.IsCurrentUser).ToList() ?? new List<UserStoryGroupViewModel>();
+}
+
+<style>
+    /* ─── STORY TRAY CONTAINER ─── */
+    .story-tray-wrapper {
+        position: relative;
+        margin-bottom: 2rem;
+        user-select: none;
+    }
+
+    .story-tray-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 12px;
+        padding: 0 4px;
+    }
+
+    .story-tray-title {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 1.05rem;
+        font-weight: 700;
+        color: #fff;
+        letter-spacing: -0.01em;
+    }
+
+    .story-tray-title i {
+        color: var(--tdmu-cyan, #00c8ff);
+        font-size: 1.15rem;
+    }
+
+    .story-tray-subtitle {
+        font-size: 0.8rem;
+        color: rgba(255, 255, 255, 0.45);
+        font-family: 'JetBrains Mono', monospace;
+    }
+
+    .story-tray-scroll-btn {
+        position: absolute;
+        top: 55%;
+        transform: translateY(-50%);
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        background: rgba(13, 22, 38, 0.92);
+        border: 1px solid rgba(0, 200, 255, 0.3);
+        color: #00c8ff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        z-index: 10;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+        transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+        backdrop-filter: blur(8px);
+    }
+
+    .story-tray-scroll-btn:hover {
+        background: #00c8ff;
+        color: #050a14;
+        border-color: #00c8ff;
+        box-shadow: 0 0 16px rgba(0, 200, 255, 0.5);
+        transform: translateY(-50%) scale(1.08);
+    }
+
+    .story-tray-scroll-btn.prev { left: -16px; display: none; }
+    .story-tray-scroll-btn.next { right: -16px; }
+
+    .story-tray-track {
+        display: flex;
+        gap: 12px;
+        overflow-x: auto;
+        scroll-behavior: smooth;
+        padding: 6px 4px 14px;
+        scrollbar-width: none; /* Firefox */
+        -ms-overflow-style: none; /* IE/Edge */
+    }
+
+    .story-tray-track::-webkit-scrollbar {
+        display: none; /* Chrome, Safari */
+    }
+
+    /* ─── STORY CARD ─── */
+    .story-card {
+        flex: 0 0 120px;
+        height: 195px;
+        border-radius: 16px;
+        position: relative;
+        overflow: hidden;
+        cursor: pointer;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: rgba(13, 22, 38, 0.6);
+        transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+    }
+
+    @@media (min-width: 768px) {
+        .story-card {
+            flex: 0 0 130px;
+            height: 205px;
+        }
+    }
+
+    .story-card:hover {
+        transform: translateY(-4px) scale(1.02);
+        box-shadow: 0 12px 30px rgba(0, 200, 255, 0.2);
+        border-color: rgba(0, 200, 255, 0.35);
+    }
+
+    /* ─── CREATE STORY CARD ─── */
+    .story-card.create-card {
+        background: linear-gradient(180deg, rgba(20, 32, 54, 0.8) 0%, rgba(8, 14, 26, 0.95) 100%);
+        border: 1px dashed rgba(0, 200, 255, 0.35);
+        display: flex;
+        flex-direction: column;
+    }
+
+    .story-card.create-card:hover {
+        border-color: var(--tdmu-cyan, #00c8ff);
+        border-style: solid;
+    }
+
+    .create-card-preview {
+        height: 135px;
+        width: 100%;
+        overflow: hidden;
+        position: relative;
+        background: rgba(255, 255, 255, 0.03);
+    }
+
+    .create-card-preview img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.3s;
+    }
+
+    .story-card.create-card:hover .create-card-preview img {
+        transform: scale(1.08);
+    }
+
+    .create-card-btn-wrap {
+        position: absolute;
+        bottom: 38px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 3;
+    }
+
+    .create-card-icon-btn {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #00c8ff, #7b61ff);
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+        border: 3px solid #0d1626;
+        box-shadow: 0 4px 12px rgba(0, 200, 255, 0.4);
+        transition: transform 0.2s;
+    }
+
+    .story-card.create-card:hover .create-card-icon-btn {
+        transform: scale(1.15) rotate(90deg);
+    }
+
+    .create-card-footer {
+        height: 60px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        padding-top: 14px;
+        background: #0d1626;
+    }
+
+    .create-card-label {
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: #fff;
+        line-height: 1.2;
+    }
+
+    /* ─── ACTIVE STORY CARDS ─── */
+    .story-card-bg {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        z-index: 0;
+        transition: transform 0.35s ease;
+    }
+
+    .story-card:hover .story-card-bg {
+        transform: scale(1.06);
+    }
+
+    .story-card-scrim {
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(180deg, rgba(0, 0, 0, 0.45) 0%, rgba(0, 0, 0, 0.1) 40%, rgba(0, 0, 0, 0.85) 100%);
+        z-index: 1;
+    }
+
+    /* Avatar với vòng gradient */
+    .story-card-avatar-wrap {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        z-index: 2;
+    }
+
+    .story-avatar-ring {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        padding: 2.5px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: transform 0.2s ease;
+    }
+
+    /* Vòng màu cho tin chưa xem (gradient phong cách Instagram/Facebook) */
+    .story-avatar-ring.unviewed {
+        background: linear-gradient(135deg, #00c8ff, #7b61ff, #ff007a);
+        box-shadow: 0 0 10px rgba(0, 200, 255, 0.4);
+        animation: pulseRing 3s infinite ease-in-out;
+    }
+
+    @@keyframes pulseRing {
+        0%, 100% { box-shadow: 0 0 10px rgba(0, 200, 255, 0.4); }
+        50% { box-shadow: 0 0 16px rgba(123, 97, 255, 0.6); }
+    }
+
+    /* Vòng màu xám mờ cho tin đã xem */
+    .story-avatar-ring.viewed {
+        background: rgba(255, 255, 255, 0.25);
+    }
+
+    .story-avatar-img {
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 2px solid #0d1626;
+        background: #0d1626;
+    }
+
+    .story-card-info {
+        position: absolute;
+        bottom: 10px;
+        left: 10px;
+        right: 10px;
+        z-index: 2;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+
+    .story-card-name {
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: #fff;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        text-shadow: 0 2px 6px rgba(0, 0, 0, 0.8);
+    }
+
+    .story-card-time {
+        font-size: 0.68rem;
+        color: rgba(255, 255, 255, 0.65);
+        font-family: 'JetBrains Mono', monospace;
+    }
+
+    .story-badge-count {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        z-index: 2;
+        background: rgba(0, 0, 0, 0.55);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: #fff;
+        font-size: 0.68rem;
+        font-family: 'JetBrains Mono', monospace;
+        padding: 2px 6px;
+        border-radius: 10px;
+        backdrop-filter: blur(4px);
+    }
+
+    /* Empty state */
+    .story-tray-empty-hint {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 16px 20px;
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        border-radius: 16px;
+        color: rgba(255, 255, 255, 0.5);
+        font-size: 0.85rem;
+    }
+
+    /* Nút tạo tin ở header luôn hiển thị trên mọi thiết bị */
+    .btn-create-story-header {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 5px 12px;
+        border-radius: 100px;
+        font-size: 0.76rem;
+        font-weight: 600;
+        background: rgba(0, 200, 255, 0.1);
+        border: 1px solid rgba(0, 200, 255, 0.35);
+        color: var(--tdmu-cyan, #00c8ff);
+        cursor: pointer;
+        transition: all 0.2s ease;
+        text-decoration: none;
+        white-space: nowrap;
+    }
+    .btn-create-story-header:hover {
+        background: rgba(0, 200, 255, 0.22);
+        border-color: var(--tdmu-cyan, #00c8ff);
+        color: #fff;
+        box-shadow: 0 0 12px rgba(0, 200, 255, 0.3);
+        transform: translateY(-1px);
+    }
+    .btn-create-story-header i {
+        font-size: 11px;
+    }
+
+    /* Nút + nổi ngay trên thẻ Tin của bạn */
+    .story-card-add-btn {
+        position: absolute;
+        bottom: 8px;
+        right: 8px;
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #00c8ff, #7b61ff);
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 13px;
+        border: 2px solid #0d1626;
+        box-shadow: 0 2px 10px rgba(0, 200, 255, 0.5);
+        z-index: 5;
+        cursor: pointer;
+        transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+    .story-card-add-btn:hover {
+        transform: scale(1.18);
+        box-shadow: 0 0 14px rgba(0, 200, 255, 0.8);
+    }
+</style>
+
+<div class="story-tray-wrapper" id="storyTrayWrapper">
+    <div class="story-tray-header">
+        <div class="story-tray-title">
+            <i class="fa-solid fa-bolt-lightning"></i>
+            <span>Tin 24 Giờ</span>
+        </div>
+        @if (currentUserId > 0)
+        {
+            <button type="button" class="btn-create-story-header" onclick="openCreateStoryModal()" title="Tạo tin 24h mới">
+                <i class="fa-solid fa-plus"></i> <span>Tạo tin</span>
+            </button>
+        }
+    </div>
+
+    <!-- Nút cuộn trái / phải desktop -->
+    <button class="story-tray-scroll-btn prev" id="storyScrollPrev" title="Cuộn sang trái" onclick="scrollStoryTray(-260)">
+        <i class="fa-solid fa-chevron-left"></i>
+    </button>
+    <button class="story-tray-scroll-btn next" id="storyScrollNext" title="Cuộn sang phải" onclick="scrollStoryTray(260)">
+        <i class="fa-solid fa-chevron-right"></i>
+    </button>
+
+    <!-- Thanh trượt ngang các thẻ Story -->
+    <div class="story-tray-track" id="storyTrayTrack">
+        <!-- 1. CARD TẠO TIN / TIN CỦA BẠN -->
+        @if (currentUserId > 0)
+        {
+            var myStoryCount = currentUserGroup?.Stories?.Count ?? 0;
+            var myLatestStory = currentUserGroup?.LatestStory;
+
+            if (myStoryCount > 0 && myLatestStory != null)
+            {
+                <!-- Đã có tin: Hiển thị thumbnail tin của mình + nút xem & nút tạo thêm -->
+                <div class="story-card" data-user-id="@currentUserId" data-username="Tin của bạn" onclick="openStoryViewer(@currentUserId, 0)">
+                    <img src="@myLatestStory.MediaUrl" class="story-card-bg" alt="Tin của bạn" onerror="this.src='/Content/Images/default-cover.jpg';" />
+                    <div class="story-card-scrim"></div>
+                    <div class="story-card-avatar-wrap">
+                        <div class="story-avatar-ring viewed">
+                            <img src="@currentUserGroup.Avatar" class="story-avatar-img" alt="Bạn" onerror="this.src='/Content/Images/default-avatar.png';" />
+                        </div>
+                    </div>
+                    <span class="story-badge-count">@myStoryCount tin</span>
+
+                    <!-- Nút + thêm tin nhanh ngay trên thẻ Tin của bạn -->
+                    <div class="story-card-add-btn" onclick="event.stopPropagation(); openCreateStoryModal();" title="Thêm tin mới">
+                        <i class="fa-solid fa-plus"></i>
+                    </div>
+
+                    <div class="story-card-info" style="right: 42px;">
+                        <span class="story-card-name">Tin của bạn</span>
+                        <span class="story-card-time">@myLatestStory.TimeAgo</span>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <!-- Chưa có tin: Card "Tạo tin" chuẩn Facebook -->
+                <div class="story-card create-card" onclick="openCreateStoryModal()">
+                    <div class="create-card-preview">
+                        <img src="@currentAvatar" alt="Tạo tin" onerror="this.src='/Content/Images/default-avatar.png';" />
+                    </div>
+                    <div class="create-card-btn-wrap">
+                        <div class="create-card-icon-btn">
+                            <i class="fa-solid fa-plus"></i>
+                        </div>
+                    </div>
+                    <div class="create-card-footer">
+                        <span class="create-card-label">Tạo tin mới</span>
+                    </div>
+                </div>
+            }
+        }
+        else
+        {
+            <!-- Chưa đăng nhập: Mời đăng nhập tạo tin -->
+            <div class="story-card create-card" onclick="location.href='@Url.Action("Login", "User")'">
+                <div class="create-card-preview">
+                    <img src="/Content/Images/default-avatar.png" alt="Đăng nhập tạo tin" />
+                </div>
+                <div class="create-card-btn-wrap">
+                    <div class="create-card-icon-btn">
+                        <i class="fa-solid fa-arrow-right-to-bracket"></i>
+                    </div>
+                </div>
+                <div class="create-card-footer">
+                    <span class="create-card-label">Đăng nhập</span>
+                </div>
+            </div>
+        }
+
+        <!-- 2. DANH SÁCH TIN CỦA CÁC SINH VIÊN KHÁC -->
+        @if (otherGroups.Any())
+        {
+            foreach (var group in otherGroups)
+            {
+                var latestStory = group.LatestStory;
+                if (latestStory == null) { continue; }
+
+                <div class="story-card active-story-card" 
+                     data-user-id="@group.UserID" 
+                     data-username="@group.Username" 
+                     data-has-unviewed="@group.HasUnviewedStories.ToString().ToLower()" 
+                     onclick="openStoryViewer(@group.UserID, 0)">
+                    
+                    <img src="@latestStory.MediaUrl" class="story-card-bg" alt="@group.Username" onerror="this.src='/Content/Images/default-cover.jpg';" />
+                    <div class="story-card-scrim"></div>
+
+                    <!-- Avatar với vòng gradient unviewed/viewed -->
+                    <div class="story-card-avatar-wrap">
+                        <div class="story-avatar-ring @(group.HasUnviewedStories ? "unviewed" : "viewed")">
+                            <img src="@group.Avatar" class="story-avatar-img" alt="@group.Username" onerror="this.src='/Content/Images/default-avatar.png';" />
+                        </div>
+                    </div>
+
+                    @if (group.Stories.Count > 1)
+                    {
+                        <span class="story-badge-count">@group.Stories.Count tin</span>
+                    }
+
+                    <div class="story-card-info">
+                        <span class="story-card-name">@group.Username</span>
+                        <span class="story-card-time">@latestStory.TimeAgo</span>
+                    </div>
+                </div>
+            }
+        }
+        else if (currentUserId > 0 && (currentUserGroup == null || currentUserGroup.Stories.Count == 0))
+        {
+            <div class="story-tray-empty-hint">
+                <i class="fa-regular fa-clock" style="font-size: 1.2rem; color: var(--tdmu-cyan, #00c8ff);"></i>
+                <span>Chưa có tin 24h nào từ bạn bè. Hãy là người đầu tiên chia sẻ khoảnh khắc hôm nay!</span>
+            </div>
+        }
+    </div>
+</div>
+
+<script>
+    // Xử lý nút cuộn trái phải của khay Stories
+    function scrollStoryTray(distance) {
+        const track = document.getElementById('storyTrayTrack');
+        if (track) {
+            track.scrollBy({ left: distance, behavior: 'smooth' });
+            setTimeout(checkStoryScrollButtons, 300);
+        }
+    }
+
+    function checkStoryScrollButtons() {
+        const track = document.getElementById('storyTrayTrack');
+        const prevBtn = document.getElementById('storyScrollPrev');
+        const nextBtn = document.getElementById('storyScrollNext');
+        if (!track || !prevBtn || !nextBtn) return;
+
+        if (track.scrollLeft > 20) {
+            prevBtn.style.display = 'flex';
+        } else {
+            prevBtn.style.display = 'none';
+        }
+
+        if (track.scrollLeft + track.clientWidth >= track.scrollWidth - 20) {
+            nextBtn.style.display = 'none';
+        } else {
+            nextBtn.style.display = 'flex';
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const track = document.getElementById('storyTrayTrack');
+        if (track) {
+            track.addEventListener('scroll', checkStoryScrollButtons);
+            checkStoryScrollButtons();
+        }
+    });
+</script>

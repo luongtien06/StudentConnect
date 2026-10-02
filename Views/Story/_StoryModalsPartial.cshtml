@@ -1,0 +1,1494 @@
+@using StudentConnect.Models
+
+<style>
+    /* =========================================================================
+       1. MODAL ĐĂNG TIN MỚI (CREATE STORY MODAL)
+       ========================================================================= */
+    #createStoryModal .modal-dialog {
+        max-width: 520px;
+    }
+
+    .story-upload-zone {
+        border: 2px dashed rgba(0, 200, 255, 0.35);
+        border-radius: 16px;
+        padding: 2rem 1.5rem;
+        text-align: center;
+        background: rgba(0, 200, 255, 0.02);
+        cursor: pointer;
+        transition: all 0.25s ease;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .story-upload-zone:hover, .story-upload-zone.dragover {
+        border-color: var(--tdmu-cyan, #00c8ff);
+        background: rgba(0, 200, 255, 0.06);
+        transform: translateY(-2px);
+    }
+
+    .story-upload-icon {
+        width: 54px;
+        height: 54px;
+        border-radius: 50%;
+        background: rgba(0, 200, 255, 0.1);
+        color: var(--tdmu-cyan, #00c8ff);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        margin: 0 auto 12px;
+    }
+
+    .story-preview-container {
+        display: none;
+        position: relative;
+        width: 100%;
+        max-height: 380px;
+        border-radius: 14px;
+        overflow: hidden;
+        background: #000;
+        margin-top: 14px;
+    }
+
+    .story-preview-media {
+        width: 100%;
+        max-height: 380px;
+        object-fit: contain;
+        display: block;
+        margin: 0 auto;
+    }
+
+    .story-remove-preview {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: rgba(0, 0, 0, 0.7);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: background 0.2s;
+        z-index: 5;
+    }
+
+    .story-remove-preview:hover {
+        background: #e25141;
+    }
+
+    .story-notice-badge {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        border-radius: 10px;
+        background: rgba(0, 200, 80, 0.08);
+        border: 1px solid rgba(0, 200, 80, 0.2);
+        color: #00e070;
+        font-size: 0.8rem;
+        margin-top: 14px;
+    }
+
+    /* Đảm bảo SweetAlert2 luôn hiển thị trên Story Viewer */
+    .swal2-container,
+    .swal2-top-layer {
+        z-index: 100005 !important;
+    }
+
+    /* =========================================================================
+       2. MODAL TRÌNH XEM STORY (FULLSCREEN STORY VIEWER)
+       ========================================================================= */
+    #storyViewerModal {
+        position: fixed;
+        inset: 0;
+        z-index: 99999;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        background: rgba(5, 8, 16, 0.94);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        user-select: none;
+    }
+
+    #storyViewerModal.active {
+        display: flex;
+        animation: svFadeIn 0.25s ease-out;
+    }
+
+    @@keyframes svFadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+
+    .sv-container {
+        position: relative;
+        width: 100%;
+        max-width: 420px;
+        height: 100vh;
+        max-height: 820px;
+        background: #000;
+        border-radius: 20px;
+        overflow: hidden;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.1);
+        display: flex;
+        flex-direction: column;
+    }
+
+    @@media (max-width: 576px) {
+        .sv-container {
+            max-width: 100%;
+            height: 100%;
+            max-height: 100vh;
+            border-radius: 0;
+        }
+    }
+
+    /* Progress bars ở trên cùng */
+    .sv-progress-bars {
+        position: absolute;
+        top: 12px;
+        left: 12px;
+        right: 12px;
+        display: flex;
+        gap: 4px;
+        z-index: 20;
+    }
+
+    .sv-progress-item {
+        flex: 1;
+        height: 3px;
+        background: rgba(255, 255, 255, 0.3);
+        border-radius: 4px;
+        overflow: hidden;
+    }
+
+    .sv-progress-fill {
+        height: 100%;
+        width: 0%;
+        background: #fff;
+        border-radius: 4px;
+    }
+
+    .sv-progress-item.completed .sv-progress-fill {
+        width: 100%;
+    }
+
+    /* Header thông tin tác giả */
+    .sv-header {
+        position: absolute;
+        top: 24px;
+        left: 12px;
+        right: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        z-index: 20;
+    }
+
+    .sv-author {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .sv-author-avatar {
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 2px solid var(--tdmu-cyan, #00c8ff);
+        background: #111;
+    }
+
+    .sv-author-info {
+        display: flex;
+        flex-direction: column;
+        line-height: 1.2;
+    }
+
+    .sv-author-name {
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: #fff;
+        text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
+    }
+
+    .sv-story-time {
+        font-size: 0.72rem;
+        color: rgba(255, 255, 255, 0.75);
+        font-family: 'JetBrains Mono', monospace;
+    }
+
+    .sv-controls {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .sv-btn {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: rgba(0, 0, 0, 0.45);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        font-size: 15px;
+        transition: all 0.2s;
+        backdrop-filter: blur(6px);
+    }
+
+    .sv-btn:hover {
+        background: rgba(255, 255, 255, 0.2);
+        color: var(--tdmu-cyan, #00c8ff);
+    }
+
+    .sv-btn.delete-btn:hover {
+        background: rgba(226, 81, 65, 0.8);
+        color: #fff;
+    }
+
+    /* Media content (ảnh / video) */
+    .sv-media-box {
+        position: relative;
+        flex: 1;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        background: #000;
+    }
+
+    .sv-media-img, .sv-media-video {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+    }
+
+    /* Lớp phủ cảm ứng chuyển bài (Tap left 30% / right 70%) */
+    .sv-touch-area {
+        position: absolute;
+        top: 60px;
+        bottom: 80px;
+        z-index: 10;
+        cursor: pointer;
+    }
+
+    .sv-touch-left {
+        left: 0;
+        width: 30%;
+    }
+
+    .sv-touch-right {
+        right: 0;
+        width: 70%;
+    }
+
+    /* Caption ở đáy */
+    .sv-footer {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        padding: 40px 16px 16px;
+        background: linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.85) 100%);
+        z-index: 20;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .sv-caption {
+        color: #fff;
+        font-size: 0.92rem;
+        line-height: 1.4;
+        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+        word-break: break-word;
+        max-height: 90px;
+        overflow-y: auto;
+    }
+
+    .sv-owner-stats {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding-top: 8px;
+        border-top: 1px solid rgba(255, 255, 255, 0.15);
+    }
+
+    .sv-view-count-btn {
+        background: rgba(255, 255, 255, 0.15);
+        border: none;
+        color: #fff;
+        font-size: 0.8rem;
+        padding: 4px 12px;
+        border-radius: 100px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        cursor: pointer;
+        backdrop-filter: blur(8px);
+        transition: background 0.2s;
+    }
+
+    .sv-view-count-btn:hover {
+        background: rgba(0, 200, 255, 0.3);
+        color: var(--tdmu-cyan, #00c8ff);
+    }
+
+    /* ─── Dành cho người xem: Thả cảm xúc & Trả lời tin ─── */
+    .sv-interactive-bar {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        width: 100%;
+        margin-top: 4px;
+    }
+
+    .sv-reactions-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-around;
+        gap: 6px;
+        padding: 4px 6px;
+        background: rgba(0, 0, 0, 0.35);
+        border-radius: 30px;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .sv-reaction-btn {
+        background: transparent;
+        border: none;
+        font-size: 22px;
+        line-height: 1;
+        padding: 4px 8px;
+        border-radius: 50%;
+        cursor: pointer;
+        transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .sv-reaction-btn:hover {
+        transform: scale(1.4) translateY(-3px);
+    }
+
+    .sv-reaction-btn:active {
+        transform: scale(0.9);
+    }
+
+    .sv-reply-input-wrap {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: rgba(0, 0, 0, 0.55);
+        border: 1.5px solid rgba(255, 255, 255, 0.25);
+        border-radius: 30px;
+        padding: 4px 6px 4px 16px;
+        backdrop-filter: blur(12px);
+        transition: all 0.25s ease;
+    }
+
+    .sv-reply-input-wrap:focus-within {
+        border-color: var(--tdmu-cyan, #00c8ff);
+        box-shadow: 0 0 15px rgba(0, 200, 255, 0.3);
+        background: rgba(0, 0, 0, 0.75);
+    }
+
+    .sv-reply-input {
+        flex: 1;
+        background: transparent;
+        border: none;
+        outline: none;
+        color: #fff;
+        font-size: 13.5px;
+    }
+
+    .sv-reply-input::placeholder {
+        color: rgba(255, 255, 255, 0.55);
+    }
+
+    .sv-reply-send-btn {
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        border: none;
+        background: linear-gradient(135deg, #00c8ff, #7b61ff);
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 13px;
+        cursor: pointer;
+        transition: transform 0.2s, opacity 0.2s;
+    }
+
+    .sv-reply-send-btn:hover {
+        transform: scale(1.1);
+    }
+
+    .sv-reply-send-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    /* Floating Reactions Container */
+    .sv-floating-reactions {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        overflow: hidden;
+        z-index: 35;
+    }
+
+    .sv-floating-particle {
+        position: absolute;
+        bottom: 60px;
+        font-size: 32px;
+        animation: floatUpAndFade 1.6s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+        will-change: transform, opacity;
+    }
+
+    @@keyframes floatUpAndFade {
+        0% {
+            opacity: 1;
+            transform: translate(0, 0) scale(0.6);
+        }
+        50% {
+            opacity: 0.95;
+            transform: translate(var(--dx), -180px) scale(1.3);
+        }
+        100% {
+            opacity: 0;
+            transform: translate(calc(var(--dx) * 1.5), -380px) scale(1.6);
+        }
+    }
+
+    .sv-viewer-reaction-badge {
+        font-size: 18px;
+        line-height: 1;
+        padding: 3px 6px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+    }
+
+    /* Nút mũi tên chuyển người tiếp theo bên ngoài viewer trên desktop */
+    .sv-nav-arrow {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        font-size: 18px;
+        transition: all 0.2s;
+        z-index: 50;
+    }
+
+    .sv-nav-arrow:hover {
+        background: rgba(0, 200, 255, 0.4);
+        color: #00c8ff;
+        transform: translateY(-50%) scale(1.1);
+    }
+
+    .sv-nav-prev { left: max(20px, calc(50% - 280px)); }
+    .sv-nav-next { right: max(20px, calc(50% - 280px)); }
+
+    @@media (max-width: 768px) {
+        .sv-nav-arrow { display: none; }
+    }
+
+    /* =========================================================================
+       3. VIEWERS SHEET / POPUP (DANH SÁCH NGƯỜI XEM)
+       ========================================================================= */
+    #storyViewersSheet {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        max-height: 380px;
+        background: rgba(13, 22, 38, 0.98);
+        border-top: 1px solid rgba(0, 200, 255, 0.25);
+        border-radius: 20px 20px 0 0;
+        z-index: 40;
+        display: none;
+        flex-direction: column;
+        box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.6);
+        backdrop-filter: blur(20px);
+        transform: translateY(100%);
+        transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+
+    #storyViewersSheet.show {
+        display: flex;
+        transform: translateY(0);
+    }
+
+    .sv-sheet-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 14px 18px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .sv-sheet-title {
+        font-weight: 600;
+        font-size: 0.95rem;
+        color: #fff;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .sv-sheet-list {
+        padding: 10px 14px;
+        overflow-y: auto;
+        max-height: 310px;
+    }
+
+    .sv-viewer-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 8px 10px;
+        border-radius: 10px;
+        transition: background 0.2s;
+    }
+
+    .sv-viewer-row:hover {
+        background: rgba(255, 255, 255, 0.04);
+    }
+
+    .sv-viewer-user {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .sv-viewer-avatar {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        object-fit: cover;
+    }
+
+    .sv-viewer-name {
+        font-size: 0.85rem;
+        font-weight: 500;
+        color: #fff;
+    }
+
+    .sv-viewer-faculty {
+        font-size: 0.72rem;
+        color: rgba(255, 255, 255, 0.5);
+    }
+
+    .sv-viewer-time {
+        font-size: 0.72rem;
+        color: rgba(255, 255, 255, 0.4);
+        font-family: 'JetBrains Mono', monospace;
+    }
+</style>
+
+<!-- =========================================================================
+     MODAL 1: ĐĂNG TIN MỚI (CREATE STORY)
+     ========================================================================= -->
+<div class="modal fade" id="createStoryModal" tabindex="-1" aria-labelledby="createStoryModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title d-flex align-items-center gap-2" id="createStoryModalLabel">
+                    <i class="fa-solid fa-bolt text-cyan"></i> Tạo Tin 24 Giờ Mới
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="createStoryForm" onsubmit="submitCreateStory(event)" enctype="multipart/form-data">
+                @Html.AntiForgeryToken()
+                <div class="modal-body">
+                    <!-- Khu vực chọn ảnh/video -->
+                    <div class="story-upload-zone" id="storyUploadZone" onclick="document.getElementById('storyMediaInput').click()">
+                        <input type="file" id="storyMediaInput" name="MediaFile" accept="image/*,video/mp4,video/webm" style="display:none;" onchange="handleStoryFileSelect(this)" />
+                        <div class="story-upload-icon">
+                            <i class="fa-solid fa-cloud-arrow-up"></i>
+                        </div>
+                        <h6 class="text-white mb-1">Nhấp hoặc kéo thả tập tin vào đây</h6>
+                        <p class="text-muted small mb-0">Hỗ trợ hình ảnh (JPG, PNG, GIF, WEBP) hoặc video (MP4, WEBM) tối đa 25MB</p>
+                    </div>
+
+                    <!-- Khung Preview Media sau khi chọn -->
+                    <div class="story-preview-container" id="storyPreviewContainer">
+                        <button type="button" class="story-remove-preview" title="Hủy tập tin" onclick="removeStoryPreview()">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                        <img id="storyPreviewImg" class="story-preview-media" style="display:none;" alt="Preview" />
+                        <video id="storyPreviewVideo" class="story-preview-media" style="display:none;" controls autoplay muted></video>
+                    </div>
+
+                    <!-- Nhập Chú thích Caption -->
+                    <div class="mt-3">
+                        <label class="form-label text-white-50 small mb-1">Chú thích tin (tùy chọn)</label>
+                        <input type="text" class="form-control" id="storyCaptionInput" name="Caption" placeholder="Viết vài dòng chia sẻ khoảnh khắc này..." maxlength="500" />
+                    </div>
+
+                    <!-- Ghi chú 24h -->
+                    <div class="story-notice-badge">
+                        <i class="fa-regular fa-clock"></i>
+                        <span>Tin của bạn sẽ tự động biến mất sau <strong>24 giờ</strong> kể từ thời điểm đăng.</span>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-primary d-flex align-items-center gap-2" id="btnSubmitStory">
+                        <i class="fa-solid fa-paper-plane"></i> Đăng tin ngay
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- =========================================================================
+     MODAL 2: TRÌNH XEM STORY FULLSCREEN (STORY VIEWER)
+     ========================================================================= -->
+<div id="storyViewerModal">
+    <!-- Nút sang trái user khác trên desktop -->
+    <div class="sv-nav-arrow sv-nav-prev" title="Người trước (Mũi tên trái)" onclick="navigateStoryUser(-1)">
+        <i class="fa-solid fa-chevron-left"></i>
+    </div>
+
+    <!-- Hộp hiển thị Story chính -->
+    <div class="sv-container" id="svContainer">
+        <!-- Thanh tiến trình (Progress Bars) -->
+        <div class="sv-progress-bars" id="svProgressBars"></div>
+
+        <!-- Header thông tin tác giả -->
+        <div class="sv-header">
+            <div class="sv-author" style="cursor: pointer;" onclick="goToStoryAuthorProfile()" title="Xem trang cá nhân">
+                <img src="/Content/Images/default-avatar.png" id="svAuthorAvatar" class="sv-author-avatar" alt="Avatar" />
+                <div class="sv-author-info">
+                    <span class="sv-author-name" id="svAuthorName">Người dùng</span>
+                    <span class="sv-story-time" id="svStoryTime">Vừa xong</span>
+                </div>
+            </div>
+            <div class="sv-controls">
+                <button type="button" class="sv-btn" id="svPauseBtn" title="Tạm dừng / Tiếp tục" onclick="togglePauseStory()">
+                    <i class="fa-solid fa-pause"></i>
+                </button>
+                <button type="button" class="sv-btn delete-btn" id="svDeleteBtn" title="Xóa tin này" style="display:none;" onclick="deleteCurrentStory()">
+                    <i class="fa-solid fa-trash-can"></i>
+                </button>
+                <button type="button" class="sv-btn" title="Đóng (Esc)" onclick="closeStoryViewer()">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Khung Media ảnh hoặc video -->
+        <div class="sv-media-box" id="svMediaBox" onmousedown="handleStoryHoldStart()" onmouseup="handleStoryHoldEnd()" ontouchstart="handleStoryHoldStart()" ontouchend="handleStoryHoldEnd()">
+            <img id="svMediaImg" class="sv-media-img" style="display:none;" alt="Story Image" />
+            <video id="svMediaVideo" class="sv-media-video" style="display:none;" playsinline webkit-playsinline></video>
+        </div>
+
+        <!-- Lớp phủ chạm chuyển bài (Left 30% / Right 70%) -->
+        <div class="sv-touch-area sv-touch-left" onclick="navigateStoryItem(-1)" title="Tin trước"></div>
+        <div class="sv-touch-area sv-touch-right" onclick="navigateStoryItem(1)" title="Tin tiếp theo"></div>
+
+        <!-- Chú thích Caption & Nút xem lượt xem của tác giả & Khung tương tác -->
+        <div class="sv-footer" id="svFooter">
+            <div class="sv-caption" id="svCaption" style="display:none;"></div>
+
+            <!-- Dành cho chủ sở hữu: Lượt xem -->
+            <div class="sv-owner-stats" id="svOwnerStats" style="display:none;">
+                <button type="button" class="sv-view-count-btn" onclick="openStoryViewersModal()">
+                    <i class="fa-solid fa-eye"></i> <span id="svViewersCountText">0 người xem</span>
+                </button>
+                <span class="text-white-50 small">Tin sẽ tự xóa sau 24h</span>
+            </div>
+
+            <!-- Dành cho người xem: Thả cảm xúc & Trả lời tin qua Chat DM -->
+            <div class="sv-interactive-bar" id="svInteractiveBar" style="display:none;">
+                <!-- Dải emoji reactions nhanh -->
+                <div class="sv-reactions-row">
+                    <button type="button" class="sv-reaction-btn" onclick="reactToStory('❤️')" title="Thả tim">❤️</button>
+                    <button type="button" class="sv-reaction-btn" onclick="reactToStory('😂')" title="Haha">😂</button>
+                    <button type="button" class="sv-reaction-btn" onclick="reactToStory('😮')" title="Wow">😮</button>
+                    <button type="button" class="sv-reaction-btn" onclick="reactToStory('😢')" title="Buồn">😢</button>
+                    <button type="button" class="sv-reaction-btn" onclick="reactToStory('👏')" title="Vỗ tay">👏</button>
+                    <button type="button" class="sv-reaction-btn" onclick="reactToStory('🔥')" title="Quá đỉnh">🔥</button>
+                </div>
+
+                <!-- Khung nhập lời nhắn gửi qua Chat -->
+                <div class="sv-reply-input-wrap">
+                    <input type="text" id="svReplyInput" class="sv-reply-input" placeholder="Gửi tin nhắn..." maxlength="500"
+                           onfocus="pauseStoryWhileTyping()" onblur="resumeStoryAfterTyping()" onkeydown="handleStoryReplyKey(event)" />
+                    <button type="button" class="sv-reply-send-btn" id="svSendBtn" onclick="sendStoryReply()" title="Gửi qua Chat">
+                        <i class="fa-solid fa-paper-plane"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Khung chứa hiệu ứng bay emoji -->
+        <div class="sv-floating-reactions" id="svFloatingReactions"></div>
+
+        <!-- Sheet danh sách người đã xem tin (Dành cho chủ sở hữu) -->
+        <div id="storyViewersSheet">
+            <div class="sv-sheet-header">
+                <div class="sv-sheet-title">
+                    <i class="fa-solid fa-eye text-cyan"></i> Người đã xem tin (<span id="sheetViewerCount">0</span>)
+                </div>
+                <button type="button" class="btn-close btn-close-white" onclick="closeStoryViewersModal()"></button>
+            </div>
+            <div class="sv-sheet-list" id="svSheetList">
+                <!-- Danh sách người xem sẽ được render qua JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Nút sang phải user khác trên desktop -->
+    <div class="sv-nav-arrow sv-nav-next" title="Người tiếp theo (Mũi tên phải)" onclick="navigateStoryUser(1)">
+        <i class="fa-solid fa-chevron-right"></i>
+    </div>
+</div>
+
+<!-- =========================================================================
+     JAVASCRIPT ĐIỀU KHIỂN STORIES
+     ========================================================================= -->
+<script>
+    // ─── STATE VARIABLES ───
+    let storyViewerState = {
+        active: false,
+        allUserIds: [],       // Danh sách UserID có story trong tray
+        currentUserIndex: -1, // Vị trí người đang xem trong allUserIds
+        userData: null,       // Dữ liệu người dùng đang xem
+        stories: [],          // Danh sách story của người đang xem
+        currentStoryIndex: 0, // Vị trí story đang phát
+        timer: null,          // Timer tự động chuyển story
+        progressInterval: null,
+        duration: 5000,       // 5 giây cho ảnh
+        elapsed: 0,
+        isPaused: false,
+        isHoldPaused: false
+    };
+
+    // ─── 1. TẠO TIN MỚI ───
+    function openCreateStoryModal() {
+        const modal = new bootstrap.Modal(document.getElementById('createStoryModal'));
+        modal.show();
+    }
+
+    function handleStoryFileSelect(input) {
+        if (!input.files || !input.files[0]) return;
+        const file = input.files[0];
+
+        // Kiểm tra kích thước (25MB)
+        if (file.size > 25 * 1024 * 1024) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Tập tin quá lớn',
+                text: 'Dung lượng tối đa cho phép là 25MB!'
+            });
+            input.value = '';
+            return;
+        }
+
+        const previewContainer = document.getElementById('storyPreviewContainer');
+        const uploadZone = document.getElementById('storyUploadZone');
+        const imgPreview = document.getElementById('storyPreviewImg');
+        const videoPreview = document.getElementById('storyPreviewVideo');
+
+        const fileType = file.type;
+        const fileUrl = URL.createObjectURL(file);
+
+        if (fileType.startsWith('image/')) {
+            imgPreview.src = fileUrl;
+            imgPreview.style.display = 'block';
+            videoPreview.style.display = 'none';
+            videoPreview.pause();
+        } else if (fileType.startsWith('video/')) {
+            videoPreview.src = fileUrl;
+            videoPreview.style.display = 'block';
+            imgPreview.style.display = 'none';
+        } else {
+            Swal.fire({ icon: 'error', title: 'Lỗi định dạng', text: 'Chỉ chấp nhận file ảnh hoặc video!' });
+            input.value = '';
+            return;
+        }
+
+        uploadZone.style.display = 'none';
+        previewContainer.style.display = 'block';
+    }
+
+    function removeStoryPreview() {
+        const input = document.getElementById('storyMediaInput');
+        const previewContainer = document.getElementById('storyPreviewContainer');
+        const uploadZone = document.getElementById('storyUploadZone');
+        const imgPreview = document.getElementById('storyPreviewImg');
+        const videoPreview = document.getElementById('storyPreviewVideo');
+
+        if (input) input.value = '';
+        if (imgPreview) { imgPreview.src = ''; imgPreview.style.display = 'none'; }
+        if (videoPreview) { videoPreview.pause(); videoPreview.src = ''; videoPreview.style.display = 'none'; }
+
+        previewContainer.style.display = 'none';
+        uploadZone.style.display = 'block';
+    }
+
+    function submitCreateStory(e) {
+        e.preventDefault();
+        const input = document.getElementById('storyMediaInput');
+        if (!input.files || input.files.length === 0) {
+            Swal.fire({ icon: 'warning', title: 'Chưa chọn tập tin', text: 'Vui lòng chọn hình ảnh hoặc video cho tin của bạn!' });
+            return;
+        }
+
+        const form = document.getElementById('createStoryForm');
+        const formData = new FormData(form);
+        const submitBtn = document.getElementById('btnSubmitStory');
+
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Đang đăng tin...';
+
+        fetch('/Story/Create', {
+            method: 'POST',
+            body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Đăng tin ngay';
+
+            if (data.success) {
+                // Đóng modal và reset form
+                const modalEl = document.getElementById('createStoryModal');
+                const modal = bootstrap.Modal.getInstance(modalEl);
+                if (modal) modal.hide();
+                form.reset();
+                removeStoryPreview();
+
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Đăng tin thành công!',
+                    text: data.message,
+                    timer: 2000,
+                    showConfirmButton: false
+                }).then(() => {
+                    location.reload(); // Tải lại để cập nhật khay Stories
+                });
+            } else {
+                Swal.fire({ icon: 'error', title: 'Đăng tin thất bại', text: data.message || 'Đã xảy ra lỗi!' });
+            }
+        })
+        .catch(err => {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Đăng tin ngay';
+            Swal.fire({ icon: 'error', title: 'Lỗi máy chủ', text: 'Không thể tải tin lên, vui lòng thử lại sau!' });
+        });
+    }
+
+
+    // ─── 2. TRÌNH XEM STORY (STORY VIEWER PLAYER) ───
+    function collectTrayUserIds() {
+        const cards = document.querySelectorAll('.story-card[data-user-id]');
+        const ids = [];
+        cards.forEach(c => {
+            const uid = parseInt(c.getAttribute('data-user-id'));
+            if (!isNaN(uid) && !ids.includes(uid)) {
+                ids.push(uid);
+            }
+        });
+        storyViewerState.allUserIds = ids;
+    }
+
+    function openStoryViewer(userId, startIndex) {
+        collectTrayUserIds();
+        // If story tray is not on this page, add the userId so navigation works
+        if (storyViewerState.allUserIds.length === 0 || storyViewerState.allUserIds.indexOf(userId) === -1) {
+            storyViewerState.allUserIds.push(userId);
+        }
+        storyViewerState.currentUserIndex = storyViewerState.allUserIds.indexOf(userId);
+        if (storyViewerState.currentUserIndex === -1) {
+            storyViewerState.currentUserIndex = 0;
+        }
+
+        loadUserStories(userId, startIndex || 0);
+    }
+
+    function loadUserStories(userId, startIndex) {
+        fetch('/Story/GetUserStories?userId=' + userId)
+            .then(res => res.json())
+            .then(data => {
+                if (!data.success || !data.stories || data.stories.length === 0) {
+                    Swal.fire({ icon: 'info', title: 'Không có tin', text: data.message || 'Người dùng chưa có tin nào!' });
+                    closeStoryViewer();
+                    return;
+                }
+
+                storyViewerState.userData = data.user;
+                storyViewerState.stories = data.stories;
+                storyViewerState.currentStoryIndex = Math.min(startIndex || 0, data.stories.length - 1);
+                storyViewerState.active = true;
+
+                document.getElementById('storyViewerModal').classList.add('active');
+                document.body.style.overflow = 'hidden';
+
+                renderProgressBars();
+                playCurrentStory();
+            })
+            .catch(err => {
+                console.error(err);
+                closeStoryViewer();
+            });
+    }
+
+    function renderProgressBars() {
+        const container = document.getElementById('svProgressBars');
+        container.innerHTML = '';
+
+        storyViewerState.stories.forEach((s, idx) => {
+            const item = document.createElement('div');
+            item.className = 'sv-progress-item';
+            if (idx < storyViewerState.currentStoryIndex) {
+                item.className += ' completed';
+            }
+            const fill = document.createElement('div');
+            fill.className = 'sv-progress-fill';
+            fill.id = 'svFill_' + idx;
+            if (idx < storyViewerState.currentStoryIndex) {
+                fill.style.width = '100%';
+            }
+            item.appendChild(fill);
+            container.appendChild(item);
+        });
+    }
+
+    function playCurrentStory() {
+        clearStoryTimer();
+        closeStoryViewersModal();
+
+        const story = storyViewerState.stories[storyViewerState.currentStoryIndex];
+        if (!story) return;
+
+        // Cập nhật thông tin tác giả
+        document.getElementById('svAuthorAvatar').src = storyViewerState.userData.avatar || '/Content/Images/default-avatar.png';
+        document.getElementById('svAuthorName').innerText = storyViewerState.userData.username;
+        document.getElementById('svStoryTime').innerText = story.timeAgo;
+
+        // Nút xóa (chỉ hiện khi là chủ sở hữu tin)
+        const deleteBtn = document.getElementById('svDeleteBtn');
+        if (story.isOwner) {
+            deleteBtn.style.display = 'flex';
+        } else {
+            deleteBtn.style.display = 'none';
+        }
+
+        // Chú thích Caption
+        const captionEl = document.getElementById('svCaption');
+        if (story.caption && story.caption.trim().length > 0) {
+            captionEl.innerText = story.caption;
+            captionEl.style.display = 'block';
+        } else {
+            captionEl.style.display = 'none';
+        }
+
+        // Thông tin người xem (nếu là chủ sở hữu) hoặc Khung tương tác (nếu là người xem)
+        const ownerStatsEl = document.getElementById('svOwnerStats');
+        const interactiveBarEl = document.getElementById('svInteractiveBar');
+        const replyInput = document.getElementById('svReplyInput');
+
+        if (story.isOwner) {
+            ownerStatsEl.style.display = 'flex';
+            if (interactiveBarEl) interactiveBarEl.style.display = 'none';
+            document.getElementById('svViewersCountText').innerText = (story.totalViews || 0) + ' người xem';
+        } else {
+            ownerStatsEl.style.display = 'none';
+            if (interactiveBarEl) {
+                interactiveBarEl.style.display = 'flex';
+                if (replyInput) {
+                    replyInput.value = '';
+                    replyInput.placeholder = 'Gửi tin nhắn cho ' + (storyViewerState.userData?.username || 'tác giả') + '...';
+                }
+            }
+        }
+
+        // Render Media
+        const imgEl = document.getElementById('svMediaImg');
+        const videoEl = document.getElementById('svMediaVideo');
+
+        if (story.mediaType === 'video') {
+            imgEl.style.display = 'none';
+            videoEl.style.display = 'block';
+            videoEl.src = story.mediaUrl;
+            videoEl.currentTime = 0;
+            videoEl.play();
+
+            videoEl.onloadedmetadata = function () {
+                storyViewerState.duration = (videoEl.duration && videoEl.duration > 0) ? (videoEl.duration * 1000) : 10000;
+                startStoryProgress();
+            };
+            videoEl.onerror = function () {
+                storyViewerState.duration = 5000;
+                startStoryProgress();
+            };
+        } else {
+            videoEl.pause();
+            videoEl.style.display = 'none';
+            imgEl.style.display = 'block';
+            imgEl.src = story.mediaUrl;
+
+            storyViewerState.duration = 5000; // 5 giây cho ảnh
+            startStoryProgress();
+        }
+
+        // Đánh dấu đã xem (Call API MarkViewed)
+        if (!story.hasViewed) {
+            fetch('/Story/MarkViewed', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: 'storyId=' + story.storyId
+            }).then(() => {
+                story.hasViewed = true;
+            }).catch(() => {});
+        }
+    }
+
+    function startStoryProgress() {
+        clearStoryTimer();
+        storyViewerState.elapsed = 0;
+        storyViewerState.isPaused = false;
+        document.getElementById('svPauseBtn').innerHTML = '<i class="fa-solid fa-pause"></i>';
+
+        const step = 50; // cập nhật mỗi 50ms
+        const fillEl = document.getElementById('svFill_' + storyViewerState.currentStoryIndex);
+
+        storyViewerState.progressInterval = setInterval(() => {
+            if (storyViewerState.isPaused || storyViewerState.isHoldPaused) return;
+
+            storyViewerState.elapsed += step;
+            const percent = Math.min((storyViewerState.elapsed / storyViewerState.duration) * 100, 100);
+            if (fillEl) fillEl.style.width = percent + '%';
+
+            if (storyViewerState.elapsed >= storyViewerState.duration) {
+                clearStoryTimer();
+                navigateStoryItem(1); // Tự động sang story tiếp theo
+            }
+        }, step);
+    }
+
+    function clearStoryTimer() {
+        if (storyViewerState.progressInterval) {
+            clearInterval(storyViewerState.progressInterval);
+            storyViewerState.progressInterval = null;
+        }
+    }
+
+    function togglePauseStory() {
+        storyViewerState.isPaused = !storyViewerState.isPaused;
+        const btn = document.getElementById('svPauseBtn');
+        const videoEl = document.getElementById('svMediaVideo');
+
+        if (storyViewerState.isPaused) {
+            btn.innerHTML = '<i class="fa-solid fa-play"></i>';
+            if (videoEl && videoEl.style.display !== 'none') videoEl.pause();
+        } else {
+            btn.innerHTML = '<i class="fa-solid fa-pause"></i>';
+            if (videoEl && videoEl.style.display !== 'none') videoEl.play();
+        }
+    }
+
+    function handleStoryHoldStart() {
+        storyViewerState.isHoldPaused = true;
+        const videoEl = document.getElementById('svMediaVideo');
+        if (videoEl && videoEl.style.display !== 'none') videoEl.pause();
+    }
+
+    function handleStoryHoldEnd() {
+        storyViewerState.isHoldPaused = false;
+        const videoEl = document.getElementById('svMediaVideo');
+        if (videoEl && videoEl.style.display !== 'none' && !storyViewerState.isPaused) videoEl.play();
+    }
+
+    function navigateStoryItem(direction) {
+        clearStoryTimer();
+        const currentIdx = storyViewerState.currentStoryIndex;
+        const nextIdx = currentIdx + direction;
+
+        if (nextIdx >= 0 && nextIdx < storyViewerState.stories.length) {
+            // Đánh dấu thanh tiến trình trước đó
+            if (direction > 0) {
+                const curFill = document.getElementById('svFill_' + currentIdx);
+                if (curFill) curFill.style.width = '100%';
+            } else {
+                const curFill = document.getElementById('svFill_' + currentIdx);
+                if (curFill) curFill.style.width = '0%';
+            }
+
+            storyViewerState.currentStoryIndex = nextIdx;
+            renderProgressBars();
+            playCurrentStory();
+        } else if (direction > 0) {
+            // Hết story của người này -> chuyển sang người tiếp theo
+            navigateStoryUser(1);
+        } else if (direction < 0) {
+            // Ở story đầu tiên mà bấm lùi -> chuyển sang người trước đó
+            navigateStoryUser(-1);
+        }
+    }
+
+    function navigateStoryUser(direction) {
+        clearStoryTimer();
+        const nextUserIdx = storyViewerState.currentUserIndex + direction;
+
+        if (nextUserIdx >= 0 && nextUserIdx < storyViewerState.allUserIds.length) {
+            storyViewerState.currentUserIndex = nextUserIdx;
+            const nextUserId = storyViewerState.allUserIds[nextUserIdx];
+            loadUserStories(nextUserId, 0);
+        } else {
+            // Đã xem hết tất cả story
+            closeStoryViewer();
+        }
+    }
+
+    function closeStoryViewer() {
+        clearStoryTimer();
+        storyViewerState.active = false;
+        const modal = document.getElementById('storyViewerModal');
+        modal.classList.remove('active');
+        document.body.style.overflow = '';
+
+        const videoEl = document.getElementById('svMediaVideo');
+        if (videoEl) { videoEl.pause(); videoEl.src = ''; }
+        closeStoryViewersModal();
+    }
+
+    function goToStoryAuthorProfile() {
+        if (storyViewerState && storyViewerState.userData && storyViewerState.userData.userId) {
+            var uid = storyViewerState.userData.userId;
+            closeStoryViewer();
+            window.location.href = '/User/Profile/' + uid;
+        }
+    }
+
+    // ─── 3. XÓA TIN ───
+    function deleteCurrentStory() {
+        const story = storyViewerState.stories[storyViewerState.currentStoryIndex];
+        if (!story) return;
+
+        storyViewerState.isPaused = true;
+        const videoEl = document.getElementById('svMediaVideo');
+        if (videoEl && videoEl.style.display !== 'none') {
+            videoEl.pause();
+        }
+        const token = $('input[name="__RequestVerificationToken"]').val();
+
+        Swal.fire({
+            title: 'Xóa tin này?',
+            text: 'Bạn có chắc chắn muốn xóa tin này không? Thao tác không thể hoàn tác.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#e25141',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Xóa ngay',
+            cancelButtonText: 'Hủy',
+            customClass: {
+                container: 'swal2-top-layer'
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                fetch('/Story/Delete', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: '__RequestVerificationToken=' + encodeURIComponent(token) + '&id=' + story.storyId
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Đã xóa!',
+                            text: data.message,
+                            timer: 1500,
+                            showConfirmButton: false,
+                            customClass: { container: 'swal2-top-layer' }
+                        });
+                        closeStoryViewer();
+                        setTimeout(() => location.reload(), 1500);
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Lỗi',
+                            text: data.message,
+                            customClass: { container: 'swal2-top-layer' }
+                        });
+                        storyViewerState.isPaused = false;
+                        if (videoEl && videoEl.style.display !== 'none') videoEl.play();
+                    }
+                })
+                .catch(() => {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Lỗi',
+                        text: 'Không thể xóa tin!',
+                        customClass: { container: 'swal2-top-layer' }
+                    });
+                    storyViewerState.isPaused = false;
+                    if (videoEl && videoEl.style.display !== 'none') videoEl.play();
+                });
+            } else {
+                storyViewerState.isPaused = false;
+                if (videoEl && videoEl.style.display !== 'none') videoEl.play();
+            }
+        });
+    }
+
+    // ─── 4. SHEET XEM NGƯỜI ĐÃ XEM ───
+    function openStoryViewersModal() {
+        const story = storyViewerState.stories[storyViewerState.currentStoryIndex];
+        if (!story || !story.isOwner) return;
+
+        storyViewerState.isPaused = true;
+        const sheet = document.getElementById('storyViewersSheet');
+        const list = document.getElementById('svSheetList');
+        const countEl = document.getElementById('sheetViewerCount');
+
+        const viewers = story.viewers || [];
+        countEl.innerText = viewers.length;
+        list.innerHTML = '';
+
+        if (viewers.length === 0) {
+            list.innerHTML = '<div class="text-center text-white-50 py-4 small">Chưa có ai xem tin này.</div>';
+        } else {
+            viewers.forEach(v => {
+                const row = document.createElement('div');
+                row.className = 'sv-viewer-row';
+                row.innerHTML = `
+                    <div class="sv-viewer-user">
+                        <img src="${v.avatar}" class="sv-viewer-avatar" alt="${v.username}" onerror="this.src='/Content/Images/default-avatar.png';" />
+                        <div>
+                            <div class="sv-viewer-name">${v.username}</div>
+                            <div class="sv-viewer-faculty">${v.faculty || ''}</div>
+                        </div>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        ${v.reaction ? `<span class="sv-viewer-reaction-badge" title="Đã bày tỏ cảm xúc">${v.reaction}</span>` : ''}
+                        <div class="sv-viewer-time">${v.viewedAt}</div>
+                    </div>
+                `;
+                list.appendChild(row);
+            });
+        }
+
+        sheet.classList.add('show');
+    }
+
+    function closeStoryViewersModal() {
+        const sheet = document.getElementById('storyViewersSheet');
+        if (sheet) sheet.classList.remove('show');
+        storyViewerState.isPaused = false;
+    }
+
+    // ─── 5. TƯƠNG TÁC: THẢ CẢM XÚC (STORY REACTIONS) ───
+    function reactToStory(emoji) {
+        const story = storyViewerState.stories[storyViewerState.currentStoryIndex];
+        if (!story) return;
+
+        // Bắn hiệu ứng emoji bay lên màn hình
+        spawnFloatingReactions(emoji);
+
+        // Gửi API lưu reaction và đẩy tin nhắn đoạn chat 1vs1
+        fetch('/Story/React', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: `storyId=${story.storyId}&emoji=${encodeURIComponent(emoji)}`
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                // Toast nhỏ thông báo
+                const Toast = Swal.mixin({
+                    toast: true,
+                    position: 'top',
+                    showConfirmButton: false,
+                    timer: 1500,
+                    timerProgressBar: false,
+                    background: '#111d30',
+                    color: '#fff'
+                });
+                Toast.fire({
+                    icon: 'success',
+                    title: `Đã gửi ${emoji} đến ${storyViewerState.userData?.username || 'tác giả'}!`
+                });
+            }
+        })
+        .catch(() => {});
+    }
+
+    function spawnFloatingReactions(emoji) {
+        const container = document.getElementById('svFloatingReactions');
+        if (!container) return;
+
+        const count = 7; // Số lượng hạt bay lên
+        for (let i = 0; i < count; i++) {
+            setTimeout(() => {
+                const el = document.createElement('div');
+                el.className = 'sv-floating-particle';
+                el.innerText = emoji;
+
+                // Vị trí ngang ngẫu nhiên
+                const startLeft = 20 + Math.random() * 60;
+                const dx = (Math.random() - 0.5) * 120;
+                el.style.left = startLeft + '%';
+                el.style.setProperty('--dx', dx + 'px');
+
+                container.appendChild(el);
+
+                setTimeout(() => {
+                    if (el && el.parentNode) el.parentNode.removeChild(el);
+                }, 1600);
+            }, i * 75);
+        }
+    }
+
+    // ─── 6. TƯƠNG TÁC: TRẢ LỜI TIN QUA ĐOẠN CHAT (STORY REPLY VIA DM) ───
+    function pauseStoryWhileTyping() {
+        storyViewerState.isHoldPaused = true;
+        const videoEl = document.getElementById('svMediaVideo');
+        if (videoEl && videoEl.style.display !== 'none') videoEl.pause();
+    }
+
+    function resumeStoryAfterTyping() {
+        storyViewerState.isHoldPaused = false;
+        const videoEl = document.getElementById('svMediaVideo');
+        if (videoEl && videoEl.style.display !== 'none' && !storyViewerState.isPaused) videoEl.play();
+    }
+
+    function handleStoryReplyKey(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            sendStoryReply();
+        }
+    }
+
+    function sendStoryReply() {
+        const story = storyViewerState.stories[storyViewerState.currentStoryIndex];
+        if (!story) return;
+
+        const input = document.getElementById('svReplyInput');
+        const sendBtn = document.getElementById('svSendBtn');
+        const text = input ? input.value.trim() : '';
+
+        if (!text) return;
+
+        sendBtn.disabled = true;
+        sendBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+
+        fetch('/Story/Reply', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: `storyId=${story.storyId}&message=${encodeURIComponent(text)}`
+        })
+        .then(res => res.json())
+        .then(data => {
+            sendBtn.disabled = false;
+            sendBtn.innerHTML = '<i class="fa-solid fa-paper-plane"></i>';
+
+            if (data.success) {
+                input.value = '';
+                input.blur();
+                resumeStoryAfterTyping();
+
+                const Toast = Swal.mixin({
+                    toast: true,
+                    position: 'top',
+                    showConfirmButton: false,
+                    timer: 2000,
+                    background: '#111d30',
+                    color: '#fff'
+                });
+                Toast.fire({
+                    icon: 'success',
+                    title: `Đã gửi tin nhắn đến ${storyViewerState.userData?.username || 'tác giả'}!`
+                });
+            } else {
+                Swal.fire({ icon: 'warning', title: 'Thông báo', text: data.message || 'Không thể gửi tin nhắn!' });
+            }
+        })
+        .catch(() => {
+            sendBtn.disabled = false;
+            sendBtn.innerHTML = '<i class="fa-solid fa-paper-plane"></i>';
+            Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Lỗi kết nối khi gửi tin nhắn!' });
+        });
+    }
+
+    // ─── 7. TRÌNH XEM TIN NỔI BẬT (HIGHLIGHT VIEWER) ───
+    function openHighlightViewer(highlightId) {
+        fetch('/Story/GetHighlightStories?highlightId=' + highlightId)
+            .then(res => res.json())
+            .then(data => {
+                if (!data.success || !data.stories || data.stories.length === 0) {
+                    Swal.fire({ icon: 'info', title: 'Tin nổi bật', text: data.message || 'Mục tin nổi bật này chưa có tin nào!' });
+                    return;
+                }
+
+                storyViewerState.allUserIds = [data.user.userId];
+                storyViewerState.currentUserIndex = 0;
+                storyViewerState.userData = data.user;
+                storyViewerState.stories = data.stories;
+                storyViewerState.currentStoryIndex = 0;
+                storyViewerState.active = true;
+
+                document.getElementById('storyViewerModal').classList.add('active');
+                document.body.style.overflow = 'hidden';
+
+                renderProgressBars();
+                playCurrentStory();
+            })
+            .catch(err => {
+                console.error(err);
+                Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Không thể tải tin nổi bật!' });
+            });
+    }
+
+    // ─── 8. PHÍM TẮT BÀN PHÍM ───
+    document.addEventListener('keydown', function (e) {
+        if (!storyViewerState.active) return;
+
+        // Nếu đang gõ text trong ô reply, không nhận phím tắt chuyển story
+        if (document.activeElement && document.activeElement.id === 'svReplyInput') {
+            if (e.key === 'Escape') {
+                document.activeElement.blur();
+                resumeStoryAfterTyping();
+            }
+            return;
+        }
+
+        if (e.key === 'Escape') {
+            closeStoryViewer();
+        } else if (e.key === 'ArrowRight') {
+            navigateStoryItem(1);
+        } else if (e.key === 'ArrowLeft') {
+            navigateStoryItem(-1);
+        } else if (e.key === ' ') {
+            e.preventDefault();
+            togglePauseStory();
+        }
+    });
+</script>

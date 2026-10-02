@@ -160,43 +160,56 @@
     <Compile Include="Controllers\MarketController.cs" />
     <Compile Include="Controllers\NotificationController.cs" />
     <Compile Include="Controllers\StartupController.cs" />
+    <Compile Include="Controllers\StoryController.cs" />
+    <Compile Include="Controllers\PostController.cs" />
     <Compile Include="Controllers\UserController.cs" />
     <Compile Include="Global.asax.cs">
       <DependentUpon>Global.asax</DependentUpon>
     </Compile>
     <Compile Include="Helpers\PasswordHelper.cs" />
     <Compile Include="Helpers\WordModerationHelper.cs" />
+    <Compile Include="Helpers\SocialHelper.cs" />
+    <Compile Include="Helpers\StoryHelper.cs" />
+    <Compile Include="Models\SocialConstants.cs" />
+    <Compile Include="Models\SocialModelExtensions.cs" />
+    <Compile Include="Models\SocialViewModels.cs" />
     <Compile Include="Models\ChatListItemViewModel.cs" />
     <Compile Include="Models\ChatMessage.cs">
-      <DependentUpon>Model1.tt</DependentUpon>
+      <DependentUpon>Model1.Context.tt</DependentUpon>
     </Compile>
     <Compile Include="Models\ChatParticipant.cs">
-      <DependentUpon>Model1.tt</DependentUpon>
+      <DependentUpon>Model1.Context.tt</DependentUpon>
     </Compile>
     <Compile Include="Models\ChatRoom.cs">
-      <DependentUpon>Model1.tt</DependentUpon>
+      <DependentUpon>Model1.Context.tt</DependentUpon>
     </Compile>
     <Compile Include="Models\ChatRoomExtension.cs" />
     <Compile Include="Models\ConnectCategory.cs">
-      <DependentUpon>Model1.tt</DependentUpon>
+      <DependentUpon>Model1.Context.tt</DependentUpon>
     </Compile>
     <Compile Include="Models\ConnectPost.cs">
-      <DependentUpon>Model1.tt</DependentUpon>
+      <DependentUpon>Model1.Context.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Models\Follow.cs">
+      <DependentUpon>Model1.Context.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Models\Friendship.cs">
+      <DependentUpon>Model1.Context.tt</DependentUpon>
     </Compile>
     <Compile Include="Models\MarketCategory.cs">
-      <DependentUpon>Model1.tt</DependentUpon>
+      <DependentUpon>Model1.Context.tt</DependentUpon>
     </Compile>
     <Compile Include="Models\MarketChatRoom.cs">
-      <DependentUpon>Model1.tt</DependentUpon>
+      <DependentUpon>Model1.Context.tt</DependentUpon>
     </Compile>
     <Compile Include="Models\MarketImage.cs">
-      <DependentUpon>Model1.tt</DependentUpon>
+      <DependentUpon>Model1.Context.tt</DependentUpon>
     </Compile>
     <Compile Include="Models\MarketPost.cs">
-      <DependentUpon>Model1.tt</DependentUpon>
+      <DependentUpon>Model1.Context.tt</DependentUpon>
     </Compile>
     <Compile Include="Models\MarketWishlist.cs">
-      <DependentUpon>Model1.tt</DependentUpon>
+      <DependentUpon>Model1.Context.tt</DependentUpon>
     </Compile>
     <Compile Include="Models\Model1.Context.cs">
       <AutoGen>True</AutoGen>
@@ -209,10 +222,31 @@
       <DependentUpon>Model1.tt</DependentUpon>
     </Compile>
     <Compile Include="Models\Notification.cs">
-      <DependentUpon>Model1.tt</DependentUpon>
+      <DependentUpon>Model1.Context.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Models\Post.cs">
+      <DependentUpon>Model1.Context.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Models\PostComment.cs">
+      <DependentUpon>Model1.Context.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Models\PostLike.cs">
+      <DependentUpon>Model1.Context.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Models\PostMedia.cs">
+      <DependentUpon>Model1.Context.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Models\PostShare.cs">
+      <DependentUpon>Model1.Context.tt</DependentUpon>
     </Compile>
     <Compile Include="Models\Review.cs">
-      <DependentUpon>Model1.tt</DependentUpon>
+      <DependentUpon>Model1.Context.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Models\Story.cs">
+      <DependentUpon>Model1.Context.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Models\StoryView.cs">
+      <DependentUpon>Model1.Context.tt</DependentUpon>
     </Compile>
     <Compile Include="Models\TDMUEcoSystemModel.Designer.cs">
       <AutoGen>True</AutoGen>
@@ -220,7 +254,10 @@
       <DependentUpon>TDMUEcoSystemModel.edmx</DependentUpon>
     </Compile>
     <Compile Include="Models\User.cs">
-      <DependentUpon>Model1.tt</DependentUpon>
+      <DependentUpon>Model1.Context.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Models\UserProfile.cs">
+      <DependentUpon>Model1.Context.tt</DependentUpon>
     </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
@@ -242,6 +279,7 @@
     <Content Include="Content\bootstrap.rtl.css" />
     <Content Include="Content\bootstrap.rtl.min.css" />
     <Content Include="Content\PagedList.css" />
+    <Content Include="Database\Scripts\CreateUserHiddenPosts.sql" />
     <Content Include="favicon.ico" />
     <Content Include="Global.asax" />
     <Content Include="Content\Site.css" />
@@ -324,6 +362,9 @@
     <Content Include="Views\User\Profile.cshtml" />
     <Content Include="Views\Connect\MyPosts.cshtml" />
     <Content Include="Views\Market\MyMarketPosts.cshtml" />
+    <Content Include="Views\Story\Index.cshtml" />
+    <Content Include="Views\Story\_StoryTrayPartial.cshtml" />
+    <Content Include="Views\Story\_StoryModalsPartial.cshtml" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="App_Data\" />
@@ -333,7 +374,6 @@
     <Folder Include="Content\Uploads\Chat\" />
     <Folder Include="Content\Uploads\Market\" />
     <Folder Include="Views\Base\" />
-    <Folder Include="Views\Startup\" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="Content\bootstrap.rtl.min.css.map" />

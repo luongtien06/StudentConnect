@@ -78,13 +78,39 @@
 
                     <div class="d-flex align-items-center justify-content-between mb-4 pb-4 border-bottom flex-wrap gap-2">
                         <div class="d-flex align-items-center">
-                            <div class="bg-light rounded-circle d-flex justify-content-center align-items-center me-3" style="width: 50px; height: 50px;">
-                                <i class="fas fa-user-circle fs-2 text-secondary"></i>
-                            </div>
-                            <div>
-                                <p class="mb-0 fw-bold">@(Model.User != null ? Model.User.Username : "Ẩn danh")</p>
-                                <small class="text-muted">Tác giả bài viết</small>
-                            </div>
+                            @if (Model.User != null)
+                            {
+                                <a href="@Url.Action("Profile", "User", new { id = Model.UserID })" class="text-decoration-none d-flex align-items-center me-3" title="Xem trang cá nhân">
+                                    @if (!string.IsNullOrEmpty(Model.User.Avatar))
+                                    {
+                                        <img src="@Model.User.Avatar" class="rounded-circle shadow-sm" style="width: 50px; height: 50px; object-fit: cover;" alt="@Model.User.Username" onerror="this.src='/Content/Images/default-avatar.png';" />
+                                    }
+                                    else
+                                    {
+                                        <div class="bg-info text-dark fw-bold rounded-circle d-flex justify-content-center align-items-center shadow-sm" style="width: 50px; height: 50px; font-size: 1.2rem;">
+                                            @(Model.User.Username?.Substring(0, 1).ToUpper() ?? "U")
+                                        </div>
+                                    }
+                                </a>
+                                <div>
+                                    <p class="mb-0 fw-bold">
+                                        <a href="@Url.Action("Profile", "User", new { id = Model.UserID })" class="text-dark text-decoration-none" title="Xem trang cá nhân">
+                                            @Model.User.Username <i class="fa-solid fa-arrow-up-right-from-square text-info ms-1" style="font-size: 11px;"></i>
+                                        </a>
+                                    </p>
+                                    <small class="text-muted">Tác giả bài viết · <a href="@Url.Action("Profile", "User", new { id = Model.UserID })" class="text-info text-decoration-none">Xem hồ sơ</a></small>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="bg-light rounded-circle d-flex justify-content-center align-items-center me-3" style="width: 50px; height: 50px;">
+                                    <i class="fas fa-user-circle fs-2 text-secondary"></i>
+                                </div>
+                                <div>
+                                    <p class="mb-0 fw-bold">Ẩn danh</p>
+                                    <small class="text-muted">Tác giả bài viết</small>
+                                </div>
+                            }
                         </div>
                         @if (Model.UserID != null && (Session["UserID"] == null || Convert.ToInt32(Session["UserID"]) != Model.UserID))
                         {

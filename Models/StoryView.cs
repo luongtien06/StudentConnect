@@ -12,20 +12,14 @@ namespace StudentConnect.Models
     using System;
     using System.Collections.Generic;
     
-    public partial class Notification
+    public partial class StoryView
     {
-        public int NotificationID { get; set; }
-        public int UserID { get; set; }
-        public string Message { get; set; }
-        public string Type { get; set; }
-        public string Url { get; set; }
-        public bool IsRead { get; set; }
-        public System.DateTime CreatedAt { get; set; }
-        public Nullable<int> SenderID { get; set; }
-        public Nullable<int> RefID { get; set; }
-        public string RefType { get; set; }
+        public int ViewID { get; set; }
+        public int StoryID { get; set; }
+        public int ViewerID { get; set; }
+        public Nullable<System.DateTime> ViewedAt { get; set; }
     
+        public virtual Story Story { get; set; }
         public virtual User User { get; set; }
-        public virtual User User1 { get; set; }
     }
 }

@@ -1,0 +1,27 @@
+@model StudentConnect.Models.PostShareInfoViewModel
+
+<div class="shared-post-preview">
+    <a class="shared-post-author" href="@Url.Action("Profile", "User", new { id = Model.OriginalAuthorID })">
+        @Model.OriginalAuthorName
+    </a>
+    @if (!string.IsNullOrWhiteSpace(Model.OriginalContent))
+    {
+        <div class="shared-post-content">@Model.OriginalContent</div>
+    }
+    @if (Model.OriginalMediaList != null && Model.OriginalMediaList.Any())
+    {
+        <div class="shared-post-media">
+            @foreach (var media in Model.OriginalMediaList.Take(4))
+            {
+                if (media.MediaType == "video")
+                {
+                    <video src="@media.MediaUrl" controls></video>
+                }
+                else
+                {
+                    <img src="@media.MediaUrl" alt="Ảnh bài viết được chia sẻ" />
+                }
+            }
+        </div>
+    }
+</div>

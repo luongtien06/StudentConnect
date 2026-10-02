@@ -35,6 +35,34 @@
         <AssociationConnector Association="TDMUEcoSystemModel.FK_ChatMessages_Reply" />
         <EntityTypeShape EntityType="TDMUEcoSystemModel.Notification" Width="1.5" PointX="3.125" PointY="41.125" />
         <AssociationConnector Association="TDMUEcoSystemModel.FK__Notificat__UserI__04E4BC85" />
+        <EntityTypeShape EntityType="TDMUEcoSystemModel.Follow" Width="1.5" PointX="5.375" PointY="49.625" />
+        <EntityTypeShape EntityType="TDMUEcoSystemModel.Friendship" Width="1.5" PointX="5.375" PointY="29.75" />
+        <EntityTypeShape EntityType="TDMUEcoSystemModel.PostComment" Width="1.5" PointX="12.75" PointY="41.5" />
+        <EntityTypeShape EntityType="TDMUEcoSystemModel.PostLike" Width="1.5" PointX="10.625" PointY="38.625" />
+        <EntityTypeShape EntityType="TDMUEcoSystemModel.PostMedia" Width="1.5" PointX="10.25" PointY="48.25" />
+        <EntityTypeShape EntityType="TDMUEcoSystemModel.Post" Width="1.5" PointX="8.125" PointY="42.75" />
+        <EntityTypeShape EntityType="TDMUEcoSystemModel.PostShare" Width="1.5" PointX="7.625" PointY="48.625" />
+        <EntityTypeShape EntityType="TDMUEcoSystemModel.Story" Width="1.5" PointX="5.375" PointY="46.25" />
+        <EntityTypeShape EntityType="TDMUEcoSystemModel.StoryView" Width="1.5" PointX="10.625" PointY="42.25" />
+        <EntityTypeShape EntityType="TDMUEcoSystemModel.UserProfile" Width="1.5" PointX="5.375" PointY="41.75" />
+        <AssociationConnector Association="TDMUEcoSystemModel.FK_Follows_Follower" />
+        <AssociationConnector Association="TDMUEcoSystemModel.FK_Follows_Following" />
+        <AssociationConnector Association="TDMUEcoSystemModel.FK_Friendships_Receiver" />
+        <AssociationConnector Association="TDMUEcoSystemModel.FK_Friendships_Requester" />
+        <AssociationConnector Association="TDMUEcoSystemModel.FK_Notifications_Sender" />
+        <AssociationConnector Association="TDMUEcoSystemModel.FK_PostComments_ParentID" />
+        <AssociationConnector Association="TDMUEcoSystemModel.FK_PostComments_PostID" />
+        <AssociationConnector Association="TDMUEcoSystemModel.FK_PostComments_UserID" />
+        <AssociationConnector Association="TDMUEcoSystemModel.FK_PostLikes_PostID" />
+        <AssociationConnector Association="TDMUEcoSystemModel.FK_PostLikes_UserID" />
+        <AssociationConnector Association="TDMUEcoSystemModel.FK_PostMedia_PostID" />
+        <AssociationConnector Association="TDMUEcoSystemModel.FK_Posts_UserID" />
+        <AssociationConnector Association="TDMUEcoSystemModel.FK_PostShares_PostID" />
+        <AssociationConnector Association="TDMUEcoSystemModel.FK_PostShares_UserID" />
+        <AssociationConnector Association="TDMUEcoSystemModel.FK_Stories_UserID" />
+        <AssociationConnector Association="TDMUEcoSystemModel.FK_StoryViews_StoryID" />
+        <AssociationConnector Association="TDMUEcoSystemModel.FK_StoryViews_ViewerID" />
+        <AssociationConnector Association="TDMUEcoSystemModel.FK_UserProfiles_UserID" />
       </Diagram>
     </edmx:Diagrams>
   </edmx:Designer>

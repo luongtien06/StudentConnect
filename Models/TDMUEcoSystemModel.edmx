@@ -56,6 +56,25 @@
           <Property Name="MainImage" Type="nvarchar" MaxLength="255" Nullable="false" />
           <Property Name="CreatedAt" Type="datetime" />
         </EntityType>
+        <EntityType Name="Follows">
+          <Key>
+            <PropertyRef Name="FollowID" />
+          </Key>
+          <Property Name="FollowID" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="FollowerID" Type="int" Nullable="false" />
+          <Property Name="FollowingID" Type="int" Nullable="false" />
+          <Property Name="CreatedAt" Type="datetime" />
+        </EntityType>
+        <EntityType Name="Friendships">
+          <Key>
+            <PropertyRef Name="FriendshipID" />
+          </Key>
+          <Property Name="FriendshipID" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="RequesterID" Type="int" Nullable="false" />
+          <Property Name="ReceiverID" Type="int" Nullable="false" />
+          <Property Name="Status" Type="nvarchar" MaxLength="20" Nullable="false" />
+          <Property Name="CreatedAt" Type="datetime" />
+        </EntityType>
         <EntityType Name="MarketCategories">
           <Key>
             <PropertyRef Name="CategoryID" />
@@ -119,6 +138,62 @@
           <Property Name="Url" Type="nvarchar" MaxLength="300" />
           <Property Name="IsRead" Type="bit" Nullable="false" />
           <Property Name="CreatedAt" Type="datetime" Nullable="false" />
+          <Property Name="SenderID" Type="int" />
+          <Property Name="RefID" Type="int" />
+          <Property Name="RefType" Type="nvarchar" MaxLength="20" />
+        </EntityType>
+        <EntityType Name="PostComments">
+          <Key>
+            <PropertyRef Name="CommentID" />
+          </Key>
+          <Property Name="CommentID" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="PostID" Type="int" Nullable="false" />
+          <Property Name="UserID" Type="int" Nullable="false" />
+          <Property Name="Content" Type="nvarchar" MaxLength="1000" />
+          <Property Name="ImageUrl" Type="nvarchar" MaxLength="255" />
+          <Property Name="ParentID" Type="int" />
+          <Property Name="CreatedAt" Type="datetime" />
+        </EntityType>
+        <EntityType Name="PostLikes">
+          <Key>
+            <PropertyRef Name="LikeID" />
+          </Key>
+          <Property Name="LikeID" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="PostID" Type="int" Nullable="false" />
+          <Property Name="UserID" Type="int" Nullable="false" />
+          <Property Name="LikeType" Type="nvarchar" MaxLength="20" Nullable="false" />
+          <Property Name="CreatedAt" Type="datetime" />
+        </EntityType>
+        <EntityType Name="PostMedia">
+          <Key>
+            <PropertyRef Name="MediaID" />
+          </Key>
+          <Property Name="MediaID" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="PostID" Type="int" Nullable="false" />
+          <Property Name="MediaUrl" Type="nvarchar" MaxLength="255" Nullable="false" />
+          <Property Name="MediaType" Type="nvarchar" MaxLength="10" Nullable="false" />
+          <Property Name="SortOrder" Type="int" Nullable="false" />
+        </EntityType>
+        <EntityType Name="Posts">
+          <Key>
+            <PropertyRef Name="PostID" />
+          </Key>
+          <Property Name="PostID" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="UserID" Type="int" Nullable="false" />
+          <Property Name="Content" Type="nvarchar(max)" />
+          <Property Name="Privacy" Type="nvarchar" MaxLength="20" Nullable="false" />
+          <Property Name="CreatedAt" Type="datetime" />
+          <Property Name="UpdatedAt" Type="datetime" />
+        </EntityType>
+        <EntityType Name="PostShares">
+          <Key>
+            <PropertyRef Name="ShareID" />
+          </Key>
+          <Property Name="ShareID" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="PostID" Type="int" Nullable="false" />
+          <Property Name="UserID" Type="int" Nullable="false" />
+          <Property Name="Content" Type="nvarchar" MaxLength="500" />
+          <Property Name="CreatedAt" Type="datetime" />
         </EntityType>
         <EntityType Name="Reviews">
           <Key>
@@ -131,6 +206,39 @@
           <Property Name="RatingStar" Type="int" />
           <Property Name="Comment" Type="nvarchar(max)" />
           <Property Name="CreatedAt" Type="datetime" />
+        </EntityType>
+        <EntityType Name="Stories">
+          <Key>
+            <PropertyRef Name="StoryID" />
+          </Key>
+          <Property Name="StoryID" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="UserID" Type="int" Nullable="false" />
+          <Property Name="MediaUrl" Type="nvarchar" MaxLength="255" Nullable="false" />
+          <Property Name="Caption" Type="nvarchar" MaxLength="200" />
+          <Property Name="CreatedAt" Type="datetime" />
+          <Property Name="ExpiresAt" Type="datetime" Nullable="false" />
+        </EntityType>
+        <EntityType Name="StoryViews">
+          <Key>
+            <PropertyRef Name="ViewID" />
+          </Key>
+          <Property Name="ViewID" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="StoryID" Type="int" Nullable="false" />
+          <Property Name="ViewerID" Type="int" Nullable="false" />
+          <Property Name="ViewedAt" Type="datetime" />
+        </EntityType>
+        <EntityType Name="UserProfiles">
+          <Key>
+            <PropertyRef Name="ProfileID" />
+          </Key>
+          <Property Name="ProfileID" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="UserID" Type="int" Nullable="false" />
+          <Property Name="CoverPhoto" Type="nvarchar" MaxLength="255" />
+          <Property Name="Bio" Type="nvarchar" MaxLength="500" />
+          <Property Name="Faculty" Type="nvarchar" MaxLength="100" />
+          <Property Name="Major" Type="nvarchar" MaxLength="100" />
+          <Property Name="StudentYear" Type="int" />
+          <Property Name="Hometown" Type="nvarchar" MaxLength="100" />
         </EntityType>
         <EntityType Name="Users">
           <Key>
@@ -147,6 +255,7 @@
           <Property Name="LastActivityAt" Type="datetime" />
           <Property Name="CreatedAt" Type="datetime" />
           <Property Name="AdminRole" Type="nvarchar" MaxLength="50" />
+          <Property Name="IsPrivate" Type="bit" Nullable="false" />
         </EntityType>
         <Association Name="FK__ChatMessa__RoomI__37A5467C">
           <End Role="ChatRooms" Type="Self.ChatRooms" Multiplicity="0..1" />
@@ -352,19 +461,257 @@
             </Dependent>
           </ReferentialConstraint>
         </Association>
+        <Association Name="FK_Follows_Follower">
+          <End Role="Users" Type="Self.Users" Multiplicity="1" />
+          <End Role="Follows" Type="Self.Follows" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Users">
+              <PropertyRef Name="UserID" />
+            </Principal>
+            <Dependent Role="Follows">
+              <PropertyRef Name="FollowerID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_Follows_Following">
+          <End Role="Users" Type="Self.Users" Multiplicity="1" />
+          <End Role="Follows" Type="Self.Follows" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Users">
+              <PropertyRef Name="UserID" />
+            </Principal>
+            <Dependent Role="Follows">
+              <PropertyRef Name="FollowingID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_Friendships_Receiver">
+          <End Role="Users" Type="Self.Users" Multiplicity="1" />
+          <End Role="Friendships" Type="Self.Friendships" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Users">
+              <PropertyRef Name="UserID" />
+            </Principal>
+            <Dependent Role="Friendships">
+              <PropertyRef Name="ReceiverID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_Friendships_Requester">
+          <End Role="Users" Type="Self.Users" Multiplicity="1" />
+          <End Role="Friendships" Type="Self.Friendships" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Users">
+              <PropertyRef Name="UserID" />
+            </Principal>
+            <Dependent Role="Friendships">
+              <PropertyRef Name="RequesterID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_Notifications_Sender">
+          <End Role="Users" Type="Self.Users" Multiplicity="0..1" />
+          <End Role="Notifications" Type="Self.Notifications" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Users">
+              <PropertyRef Name="UserID" />
+            </Principal>
+            <Dependent Role="Notifications">
+              <PropertyRef Name="SenderID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_PostComments_ParentID">
+          <End Role="PostComments" Type="Self.PostComments" Multiplicity="0..1" />
+          <End Role="PostComments1" Type="Self.PostComments" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="PostComments">
+              <PropertyRef Name="CommentID" />
+            </Principal>
+            <Dependent Role="PostComments1">
+              <PropertyRef Name="ParentID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_PostComments_PostID">
+          <End Role="Posts" Type="Self.Posts" Multiplicity="1">
+            <OnDelete Action="Cascade" />
+          </End>
+          <End Role="PostComments" Type="Self.PostComments" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Posts">
+              <PropertyRef Name="PostID" />
+            </Principal>
+            <Dependent Role="PostComments">
+              <PropertyRef Name="PostID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_PostComments_UserID">
+          <End Role="Users" Type="Self.Users" Multiplicity="1" />
+          <End Role="PostComments" Type="Self.PostComments" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Users">
+              <PropertyRef Name="UserID" />
+            </Principal>
+            <Dependent Role="PostComments">
+              <PropertyRef Name="UserID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_PostLikes_PostID">
+          <End Role="Posts" Type="Self.Posts" Multiplicity="1">
+            <OnDelete Action="Cascade" />
+          </End>
+          <End Role="PostLikes" Type="Self.PostLikes" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Posts">
+              <PropertyRef Name="PostID" />
+            </Principal>
+            <Dependent Role="PostLikes">
+              <PropertyRef Name="PostID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_PostLikes_UserID">
+          <End Role="Users" Type="Self.Users" Multiplicity="1" />
+          <End Role="PostLikes" Type="Self.PostLikes" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Users">
+              <PropertyRef Name="UserID" />
+            </Principal>
+            <Dependent Role="PostLikes">
+              <PropertyRef Name="UserID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_PostMedia_PostID">
+          <End Role="Posts" Type="Self.Posts" Multiplicity="1">
+            <OnDelete Action="Cascade" />
+          </End>
+          <End Role="PostMedia" Type="Self.PostMedia" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Posts">
+              <PropertyRef Name="PostID" />
+            </Principal>
+            <Dependent Role="PostMedia">
+              <PropertyRef Name="PostID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_Posts_UserID">
+          <End Role="Users" Type="Self.Users" Multiplicity="1" />
+          <End Role="Posts" Type="Self.Posts" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Users">
+              <PropertyRef Name="UserID" />
+            </Principal>
+            <Dependent Role="Posts">
+              <PropertyRef Name="UserID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_PostShares_PostID">
+          <End Role="Posts" Type="Self.Posts" Multiplicity="1">
+            <OnDelete Action="Cascade" />
+          </End>
+          <End Role="PostShares" Type="Self.PostShares" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Posts">
+              <PropertyRef Name="PostID" />
+            </Principal>
+            <Dependent Role="PostShares">
+              <PropertyRef Name="PostID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_PostShares_UserID">
+          <End Role="Users" Type="Self.Users" Multiplicity="1" />
+          <End Role="PostShares" Type="Self.PostShares" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Users">
+              <PropertyRef Name="UserID" />
+            </Principal>
+            <Dependent Role="PostShares">
+              <PropertyRef Name="UserID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_Stories_UserID">
+          <End Role="Users" Type="Self.Users" Multiplicity="1" />
+          <End Role="Stories" Type="Self.Stories" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Users">
+              <PropertyRef Name="UserID" />
+            </Principal>
+            <Dependent Role="Stories">
+              <PropertyRef Name="UserID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_StoryViews_StoryID">
+          <End Role="Stories" Type="Self.Stories" Multiplicity="1">
+            <OnDelete Action="Cascade" />
+          </End>
+          <End Role="StoryViews" Type="Self.StoryViews" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Stories">
+              <PropertyRef Name="StoryID" />
+            </Principal>
+            <Dependent Role="StoryViews">
+              <PropertyRef Name="StoryID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_StoryViews_ViewerID">
+          <End Role="Users" Type="Self.Users" Multiplicity="1" />
+          <End Role="StoryViews" Type="Self.StoryViews" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Users">
+              <PropertyRef Name="UserID" />
+            </Principal>
+            <Dependent Role="StoryViews">
+              <PropertyRef Name="ViewerID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_UserProfiles_UserID">
+          <End Role="Users" Type="Self.Users" Multiplicity="1">
+            <OnDelete Action="Cascade" />
+          </End>
+          <End Role="UserProfiles" Type="Self.UserProfiles" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Users">
+              <PropertyRef Name="UserID" />
+            </Principal>
+            <Dependent Role="UserProfiles">
+              <PropertyRef Name="UserID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
         <EntityContainer Name="TDMUEcoSystemModelStoreContainer">
           <EntitySet Name="ChatMessages" EntityType="Self.ChatMessages" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="ChatParticipants" EntityType="Self.ChatParticipants" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="ChatRooms" EntityType="Self.ChatRooms" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="ConnectCategories" EntityType="Self.ConnectCategories" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="ConnectPosts" EntityType="Self.ConnectPosts" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="Follows" EntityType="Self.Follows" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="Friendships" EntityType="Self.Friendships" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="MarketCategories" EntityType="Self.MarketCategories" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="MarketChatRooms" EntityType="Self.MarketChatRooms" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="MarketImages" EntityType="Self.MarketImages" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="MarketPosts" EntityType="Self.MarketPosts" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="MarketWishlists" EntityType="Self.MarketWishlists" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="Notifications" EntityType="Self.Notifications" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="PostComments" EntityType="Self.PostComments" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="PostLikes" EntityType="Self.PostLikes" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="PostMedia" EntityType="Self.PostMedia" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="Posts" EntityType="Self.Posts" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="PostShares" EntityType="Self.PostShares" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="Reviews" EntityType="Self.Reviews" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="Stories" EntityType="Self.Stories" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="StoryViews" EntityType="Self.StoryViews" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="UserProfiles" EntityType="Self.UserProfiles" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="Users" EntityType="Self.Users" Schema="dbo" store:Type="Tables" />
           <AssociationSet Name="FK__ChatMessa__RoomI__37A5467C" Association="Self.FK__ChatMessa__RoomI__37A5467C">
             <End Role="ChatRooms" EntitySet="ChatRooms" />
@@ -433,6 +780,78 @@
           <AssociationSet Name="FK_ChatMessages_Reply" Association="Self.FK_ChatMessages_Reply">
             <End Role="ChatMessages" EntitySet="ChatMessages" />
             <End Role="ChatMessages1" EntitySet="ChatMessages" />
+          </AssociationSet>
+          <AssociationSet Name="FK_Follows_Follower" Association="Self.FK_Follows_Follower">
+            <End Role="Users" EntitySet="Users" />
+            <End Role="Follows" EntitySet="Follows" />
+          </AssociationSet>
+          <AssociationSet Name="FK_Follows_Following" Association="Self.FK_Follows_Following">
+            <End Role="Users" EntitySet="Users" />
+            <End Role="Follows" EntitySet="Follows" />
+          </AssociationSet>
+          <AssociationSet Name="FK_Friendships_Receiver" Association="Self.FK_Friendships_Receiver">
+            <End Role="Users" EntitySet="Users" />
+            <End Role="Friendships" EntitySet="Friendships" />
+          </AssociationSet>
+          <AssociationSet Name="FK_Friendships_Requester" Association="Self.FK_Friendships_Requester">
+            <End Role="Users" EntitySet="Users" />
+            <End Role="Friendships" EntitySet="Friendships" />
+          </AssociationSet>
+          <AssociationSet Name="FK_Notifications_Sender" Association="Self.FK_Notifications_Sender">
+            <End Role="Users" EntitySet="Users" />
+            <End Role="Notifications" EntitySet="Notifications" />
+          </AssociationSet>
+          <AssociationSet Name="FK_PostComments_ParentID" Association="Self.FK_PostComments_ParentID">
+            <End Role="PostComments" EntitySet="PostComments" />
+            <End Role="PostComments1" EntitySet="PostComments" />
+          </AssociationSet>
+          <AssociationSet Name="FK_PostComments_PostID" Association="Self.FK_PostComments_PostID">
+            <End Role="Posts" EntitySet="Posts" />
+            <End Role="PostComments" EntitySet="PostComments" />
+          </AssociationSet>
+          <AssociationSet Name="FK_PostComments_UserID" Association="Self.FK_PostComments_UserID">
+            <End Role="Users" EntitySet="Users" />
+            <End Role="PostComments" EntitySet="PostComments" />
+          </AssociationSet>
+          <AssociationSet Name="FK_PostLikes_PostID" Association="Self.FK_PostLikes_PostID">
+            <End Role="Posts" EntitySet="Posts" />
+            <End Role="PostLikes" EntitySet="PostLikes" />
+          </AssociationSet>
+          <AssociationSet Name="FK_PostLikes_UserID" Association="Self.FK_PostLikes_UserID">
+            <End Role="Users" EntitySet="Users" />
+            <End Role="PostLikes" EntitySet="PostLikes" />
+          </AssociationSet>
+          <AssociationSet Name="FK_PostMedia_PostID" Association="Self.FK_PostMedia_PostID">
+            <End Role="Posts" EntitySet="Posts" />
+            <End Role="PostMedia" EntitySet="PostMedia" />
+          </AssociationSet>
+          <AssociationSet Name="FK_Posts_UserID" Association="Self.FK_Posts_UserID">
+            <End Role="Users" EntitySet="Users" />
+            <End Role="Posts" EntitySet="Posts" />
+          </AssociationSet>
+          <AssociationSet Name="FK_PostShares_PostID" Association="Self.FK_PostShares_PostID">
+            <End Role="Posts" EntitySet="Posts" />
+            <End Role="PostShares" EntitySet="PostShares" />
+          </AssociationSet>
+          <AssociationSet Name="FK_PostShares_UserID" Association="Self.FK_PostShares_UserID">
+            <End Role="Users" EntitySet="Users" />
+            <End Role="PostShares" EntitySet="PostShares" />
+          </AssociationSet>
+          <AssociationSet Name="FK_Stories_UserID" Association="Self.FK_Stories_UserID">
+            <End Role="Users" EntitySet="Users" />
+            <End Role="Stories" EntitySet="Stories" />
+          </AssociationSet>
+          <AssociationSet Name="FK_StoryViews_StoryID" Association="Self.FK_StoryViews_StoryID">
+            <End Role="Stories" EntitySet="Stories" />
+            <End Role="StoryViews" EntitySet="StoryViews" />
+          </AssociationSet>
+          <AssociationSet Name="FK_StoryViews_ViewerID" Association="Self.FK_StoryViews_ViewerID">
+            <End Role="Users" EntitySet="Users" />
+            <End Role="StoryViews" EntitySet="StoryViews" />
+          </AssociationSet>
+          <AssociationSet Name="FK_UserProfiles_UserID" Association="Self.FK_UserProfiles_UserID">
+            <End Role="Users" EntitySet="Users" />
+            <End Role="UserProfiles" EntitySet="UserProfiles" />
           </AssociationSet>
         </EntityContainer>
       </Schema></edmx:StorageModels>
@@ -520,6 +939,88 @@
           <AssociationSet Name="FK__Notificat__UserI__04E4BC85" Association="TDMUEcoSystemModel.FK__Notificat__UserI__04E4BC85">
             <End Role="User" EntitySet="Users" />
             <End Role="Notification" EntitySet="Notifications" />
+          </AssociationSet>
+          <EntitySet Name="Follows" EntityType="TDMUEcoSystemModel.Follow" />
+          <EntitySet Name="Friendships" EntityType="TDMUEcoSystemModel.Friendship" />
+          <EntitySet Name="PostComments" EntityType="TDMUEcoSystemModel.PostComment" />
+          <EntitySet Name="PostLikes" EntityType="TDMUEcoSystemModel.PostLike" />
+          <EntitySet Name="PostMedias" EntityType="TDMUEcoSystemModel.PostMedia" />
+          <EntitySet Name="Posts" EntityType="TDMUEcoSystemModel.Post" />
+          <EntitySet Name="PostShares" EntityType="TDMUEcoSystemModel.PostShare" />
+          <EntitySet Name="Stories" EntityType="TDMUEcoSystemModel.Story" />
+          <EntitySet Name="StoryViews" EntityType="TDMUEcoSystemModel.StoryView" />
+          <EntitySet Name="UserProfiles" EntityType="TDMUEcoSystemModel.UserProfile" />
+          <AssociationSet Name="FK_Follows_Follower" Association="TDMUEcoSystemModel.FK_Follows_Follower">
+            <End Role="User" EntitySet="Users" />
+            <End Role="Follow" EntitySet="Follows" />
+          </AssociationSet>
+          <AssociationSet Name="FK_Follows_Following" Association="TDMUEcoSystemModel.FK_Follows_Following">
+            <End Role="User" EntitySet="Users" />
+            <End Role="Follow" EntitySet="Follows" />
+          </AssociationSet>
+          <AssociationSet Name="FK_Friendships_Receiver" Association="TDMUEcoSystemModel.FK_Friendships_Receiver">
+            <End Role="User" EntitySet="Users" />
+            <End Role="Friendship" EntitySet="Friendships" />
+          </AssociationSet>
+          <AssociationSet Name="FK_Friendships_Requester" Association="TDMUEcoSystemModel.FK_Friendships_Requester">
+            <End Role="User" EntitySet="Users" />
+            <End Role="Friendship" EntitySet="Friendships" />
+          </AssociationSet>
+          <AssociationSet Name="FK_Notifications_Sender" Association="TDMUEcoSystemModel.FK_Notifications_Sender">
+            <End Role="User" EntitySet="Users" />
+            <End Role="Notification" EntitySet="Notifications" />
+          </AssociationSet>
+          <AssociationSet Name="FK_PostComments_ParentID" Association="TDMUEcoSystemModel.FK_PostComments_ParentID">
+            <End Role="PostComment" EntitySet="PostComments" />
+            <End Role="PostComment1" EntitySet="PostComments" />
+          </AssociationSet>
+          <AssociationSet Name="FK_PostComments_PostID" Association="TDMUEcoSystemModel.FK_PostComments_PostID">
+            <End Role="Post" EntitySet="Posts" />
+            <End Role="PostComment" EntitySet="PostComments" />
+          </AssociationSet>
+          <AssociationSet Name="FK_PostComments_UserID" Association="TDMUEcoSystemModel.FK_PostComments_UserID">
+            <End Role="User" EntitySet="Users" />
+            <End Role="PostComment" EntitySet="PostComments" />
+          </AssociationSet>
+          <AssociationSet Name="FK_PostLikes_PostID" Association="TDMUEcoSystemModel.FK_PostLikes_PostID">
+            <End Role="Post" EntitySet="Posts" />
+            <End Role="PostLike" EntitySet="PostLikes" />
+          </AssociationSet>
+          <AssociationSet Name="FK_PostLikes_UserID" Association="TDMUEcoSystemModel.FK_PostLikes_UserID">
+            <End Role="User" EntitySet="Users" />
+            <End Role="PostLike" EntitySet="PostLikes" />
+          </AssociationSet>
+          <AssociationSet Name="FK_PostMedia_PostID" Association="TDMUEcoSystemModel.FK_PostMedia_PostID">
+            <End Role="Post" EntitySet="Posts" />
+            <End Role="PostMedia" EntitySet="PostMedias" />
+          </AssociationSet>
+          <AssociationSet Name="FK_Posts_UserID" Association="TDMUEcoSystemModel.FK_Posts_UserID">
+            <End Role="User" EntitySet="Users" />
+            <End Role="Post" EntitySet="Posts" />
+          </AssociationSet>
+          <AssociationSet Name="FK_PostShares_PostID" Association="TDMUEcoSystemModel.FK_PostShares_PostID">
+            <End Role="Post" EntitySet="Posts" />
+            <End Role="PostShare" EntitySet="PostShares" />
+          </AssociationSet>
+          <AssociationSet Name="FK_PostShares_UserID" Association="TDMUEcoSystemModel.FK_PostShares_UserID">
+            <End Role="User" EntitySet="Users" />
+            <End Role="PostShare" EntitySet="PostShares" />
+          </AssociationSet>
+          <AssociationSet Name="FK_Stories_UserID" Association="TDMUEcoSystemModel.FK_Stories_UserID">
+            <End Role="User" EntitySet="Users" />
+            <End Role="Story" EntitySet="Stories" />
+          </AssociationSet>
+          <AssociationSet Name="FK_StoryViews_StoryID" Association="TDMUEcoSystemModel.FK_StoryViews_StoryID">
+            <End Role="Story" EntitySet="Stories" />
+            <End Role="StoryView" EntitySet="StoryViews" />
+          </AssociationSet>
+          <AssociationSet Name="FK_StoryViews_ViewerID" Association="TDMUEcoSystemModel.FK_StoryViews_ViewerID">
+            <End Role="User" EntitySet="Users" />
+            <End Role="StoryView" EntitySet="StoryViews" />
+          </AssociationSet>
+          <AssociationSet Name="FK_UserProfiles_UserID" Association="TDMUEcoSystemModel.FK_UserProfiles_UserID">
+            <End Role="User" EntitySet="Users" />
+            <End Role="UserProfile" EntitySet="UserProfiles" />
           </AssociationSet>
         </EntityContainer>
         <EntityType Name="ChatMessage">
@@ -685,6 +1186,19 @@
           <NavigationProperty Name="MarketWishlists" Relationship="TDMUEcoSystemModel.FK__MarketWis__UserI__49C3F6B7" FromRole="User" ToRole="MarketWishlist" />
           <NavigationProperty Name="Reviews" Relationship="TDMUEcoSystemModel.FK__Reviews__UserID__5AEE82B9" FromRole="User" ToRole="Review" />
           <NavigationProperty Name="Notifications" Relationship="TDMUEcoSystemModel.FK__Notificat__UserI__04E4BC85" FromRole="User" ToRole="Notification" />
+          <Property Name="IsPrivate" Type="Boolean" Nullable="false" />
+          <NavigationProperty Name="Follows" Relationship="TDMUEcoSystemModel.FK_Follows_Follower" FromRole="User" ToRole="Follow" />
+          <NavigationProperty Name="Follows1" Relationship="TDMUEcoSystemModel.FK_Follows_Following" FromRole="User" ToRole="Follow" />
+          <NavigationProperty Name="Friendships" Relationship="TDMUEcoSystemModel.FK_Friendships_Receiver" FromRole="User" ToRole="Friendship" />
+          <NavigationProperty Name="Friendships1" Relationship="TDMUEcoSystemModel.FK_Friendships_Requester" FromRole="User" ToRole="Friendship" />
+          <NavigationProperty Name="Notifications1" Relationship="TDMUEcoSystemModel.FK_Notifications_Sender" FromRole="User" ToRole="Notification" />
+          <NavigationProperty Name="PostComments" Relationship="TDMUEcoSystemModel.FK_PostComments_UserID" FromRole="User" ToRole="PostComment" />
+          <NavigationProperty Name="PostLikes" Relationship="TDMUEcoSystemModel.FK_PostLikes_UserID" FromRole="User" ToRole="PostLike" />
+          <NavigationProperty Name="Posts" Relationship="TDMUEcoSystemModel.FK_Posts_UserID" FromRole="User" ToRole="Post" />
+          <NavigationProperty Name="PostShares" Relationship="TDMUEcoSystemModel.FK_PostShares_UserID" FromRole="User" ToRole="PostShare" />
+          <NavigationProperty Name="Stories" Relationship="TDMUEcoSystemModel.FK_Stories_UserID" FromRole="User" ToRole="Story" />
+          <NavigationProperty Name="StoryViews" Relationship="TDMUEcoSystemModel.FK_StoryViews_ViewerID" FromRole="User" ToRole="StoryView" />
+          <NavigationProperty Name="UserProfiles" Relationship="TDMUEcoSystemModel.FK_UserProfiles_UserID" FromRole="User" ToRole="UserProfile" />
         </EntityType>
         <Association Name="FK__ChatMessa__RoomI__37A5467C">
           <End Type="TDMUEcoSystemModel.ChatRoom" Role="ChatRoom" Multiplicity="0..1" />
@@ -890,6 +1404,10 @@
           <Property Name="IsRead" Type="Boolean" Nullable="false" />
           <Property Name="CreatedAt" Type="DateTime" Nullable="false" Precision="3" />
           <NavigationProperty Name="User" Relationship="TDMUEcoSystemModel.FK__Notificat__UserI__04E4BC85" FromRole="Notification" ToRole="User" />
+          <Property Name="SenderID" Type="Int32" />
+          <Property Name="RefID" Type="Int32" />
+          <Property Name="RefType" Type="String" MaxLength="20" FixedLength="false" Unicode="true" />
+          <NavigationProperty Name="User1" Relationship="TDMUEcoSystemModel.FK_Notifications_Sender" FromRole="Notification" ToRole="User" />
         </EntityType>
         <Association Name="FK__Notificat__UserI__04E4BC85">
           <End Type="TDMUEcoSystemModel.User" Role="User" Multiplicity="1" />
@@ -899,6 +1417,362 @@
               <PropertyRef Name="UserID" />
             </Principal>
             <Dependent Role="Notification">
+              <PropertyRef Name="UserID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <EntityType Name="Follow">
+          <Key>
+            <PropertyRef Name="FollowID" />
+          </Key>
+          <Property Name="FollowID" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="FollowerID" Type="Int32" Nullable="false" />
+          <Property Name="FollowingID" Type="Int32" Nullable="false" />
+          <Property Name="CreatedAt" Type="DateTime" Precision="3" />
+          <NavigationProperty Name="User" Relationship="TDMUEcoSystemModel.FK_Follows_Follower" FromRole="Follow" ToRole="User" />
+          <NavigationProperty Name="User1" Relationship="TDMUEcoSystemModel.FK_Follows_Following" FromRole="Follow" ToRole="User" />
+        </EntityType>
+        <EntityType Name="Friendship">
+          <Key>
+            <PropertyRef Name="FriendshipID" />
+          </Key>
+          <Property Name="FriendshipID" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="RequesterID" Type="Int32" Nullable="false" />
+          <Property Name="ReceiverID" Type="Int32" Nullable="false" />
+          <Property Name="Status" Type="String" Nullable="false" MaxLength="20" FixedLength="false" Unicode="true" />
+          <Property Name="CreatedAt" Type="DateTime" Precision="3" />
+          <NavigationProperty Name="User" Relationship="TDMUEcoSystemModel.FK_Friendships_Receiver" FromRole="Friendship" ToRole="User" />
+          <NavigationProperty Name="User1" Relationship="TDMUEcoSystemModel.FK_Friendships_Requester" FromRole="Friendship" ToRole="User" />
+        </EntityType>
+        <EntityType Name="PostComment">
+          <Key>
+            <PropertyRef Name="CommentID" />
+          </Key>
+          <Property Name="CommentID" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="PostID" Type="Int32" Nullable="false" />
+          <Property Name="UserID" Type="Int32" Nullable="false" />
+          <Property Name="Content" Type="String" MaxLength="1000" FixedLength="false" Unicode="true" />
+          <Property Name="ImageUrl" Type="String" MaxLength="255" FixedLength="false" Unicode="true" />
+          <Property Name="ParentID" Type="Int32" />
+          <Property Name="CreatedAt" Type="DateTime" Precision="3" />
+          <NavigationProperty Name="PostComments1" Relationship="TDMUEcoSystemModel.FK_PostComments_ParentID" FromRole="PostComment" ToRole="PostComment1" />
+          <NavigationProperty Name="PostComment1" Relationship="TDMUEcoSystemModel.FK_PostComments_ParentID" FromRole="PostComment1" ToRole="PostComment" />
+          <NavigationProperty Name="Post" Relationship="TDMUEcoSystemModel.FK_PostComments_PostID" FromRole="PostComment" ToRole="Post" />
+          <NavigationProperty Name="User" Relationship="TDMUEcoSystemModel.FK_PostComments_UserID" FromRole="PostComment" ToRole="User" />
+        </EntityType>
+        <EntityType Name="PostLike">
+          <Key>
+            <PropertyRef Name="LikeID" />
+          </Key>
+          <Property Name="LikeID" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="PostID" Type="Int32" Nullable="false" />
+          <Property Name="UserID" Type="Int32" Nullable="false" />
+          <Property Name="LikeType" Type="String" Nullable="false" MaxLength="20" FixedLength="false" Unicode="true" />
+          <Property Name="CreatedAt" Type="DateTime" Precision="3" />
+          <NavigationProperty Name="Post" Relationship="TDMUEcoSystemModel.FK_PostLikes_PostID" FromRole="PostLike" ToRole="Post" />
+          <NavigationProperty Name="User" Relationship="TDMUEcoSystemModel.FK_PostLikes_UserID" FromRole="PostLike" ToRole="User" />
+        </EntityType>
+        <EntityType Name="PostMedia">
+          <Key>
+            <PropertyRef Name="MediaID" />
+          </Key>
+          <Property Name="MediaID" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="PostID" Type="Int32" Nullable="false" />
+          <Property Name="MediaUrl" Type="String" Nullable="false" MaxLength="255" FixedLength="false" Unicode="true" />
+          <Property Name="MediaType" Type="String" Nullable="false" MaxLength="10" FixedLength="false" Unicode="true" />
+          <Property Name="SortOrder" Type="Int32" Nullable="false" />
+          <NavigationProperty Name="Post" Relationship="TDMUEcoSystemModel.FK_PostMedia_PostID" FromRole="PostMedia" ToRole="Post" />
+        </EntityType>
+        <EntityType Name="Post">
+          <Key>
+            <PropertyRef Name="PostID" />
+          </Key>
+          <Property Name="PostID" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="UserID" Type="Int32" Nullable="false" />
+          <Property Name="Content" Type="String" MaxLength="Max" FixedLength="false" Unicode="true" />
+          <Property Name="Privacy" Type="String" Nullable="false" MaxLength="20" FixedLength="false" Unicode="true" />
+          <Property Name="CreatedAt" Type="DateTime" Precision="3" />
+          <Property Name="UpdatedAt" Type="DateTime" Precision="3" />
+          <NavigationProperty Name="PostComments" Relationship="TDMUEcoSystemModel.FK_PostComments_PostID" FromRole="Post" ToRole="PostComment" />
+          <NavigationProperty Name="PostLikes" Relationship="TDMUEcoSystemModel.FK_PostLikes_PostID" FromRole="Post" ToRole="PostLike" />
+          <NavigationProperty Name="PostMedias" Relationship="TDMUEcoSystemModel.FK_PostMedia_PostID" FromRole="Post" ToRole="PostMedia" />
+          <NavigationProperty Name="User" Relationship="TDMUEcoSystemModel.FK_Posts_UserID" FromRole="Post" ToRole="User" />
+          <NavigationProperty Name="PostShares" Relationship="TDMUEcoSystemModel.FK_PostShares_PostID" FromRole="Post" ToRole="PostShare" />
+        </EntityType>
+        <EntityType Name="PostShare">
+          <Key>
+            <PropertyRef Name="ShareID" />
+          </Key>
+          <Property Name="ShareID" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="PostID" Type="Int32" Nullable="false" />
+          <Property Name="UserID" Type="Int32" Nullable="false" />
+          <Property Name="Content" Type="String" MaxLength="500" FixedLength="false" Unicode="true" />
+          <Property Name="CreatedAt" Type="DateTime" Precision="3" />
+          <NavigationProperty Name="Post" Relationship="TDMUEcoSystemModel.FK_PostShares_PostID" FromRole="PostShare" ToRole="Post" />
+          <NavigationProperty Name="User" Relationship="TDMUEcoSystemModel.FK_PostShares_UserID" FromRole="PostShare" ToRole="User" />
+        </EntityType>
+        <EntityType Name="Story">
+          <Key>
+            <PropertyRef Name="StoryID" />
+          </Key>
+          <Property Name="StoryID" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="UserID" Type="Int32" Nullable="false" />
+          <Property Name="MediaUrl" Type="String" Nullable="false" MaxLength="255" FixedLength="false" Unicode="true" />
+          <Property Name="Caption" Type="String" MaxLength="200" FixedLength="false" Unicode="true" />
+          <Property Name="CreatedAt" Type="DateTime" Precision="3" />
+          <Property Name="ExpiresAt" Type="DateTime" Nullable="false" Precision="3" />
+          <NavigationProperty Name="User" Relationship="TDMUEcoSystemModel.FK_Stories_UserID" FromRole="Story" ToRole="User" />
+          <NavigationProperty Name="StoryViews" Relationship="TDMUEcoSystemModel.FK_StoryViews_StoryID" FromRole="Story" ToRole="StoryView" />
+        </EntityType>
+        <EntityType Name="StoryView">
+          <Key>
+            <PropertyRef Name="ViewID" />
+          </Key>
+          <Property Name="ViewID" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="StoryID" Type="Int32" Nullable="false" />
+          <Property Name="ViewerID" Type="Int32" Nullable="false" />
+          <Property Name="ViewedAt" Type="DateTime" Precision="3" />
+          <NavigationProperty Name="Story" Relationship="TDMUEcoSystemModel.FK_StoryViews_StoryID" FromRole="StoryView" ToRole="Story" />
+          <NavigationProperty Name="User" Relationship="TDMUEcoSystemModel.FK_StoryViews_ViewerID" FromRole="StoryView" ToRole="User" />
+        </EntityType>
+        <EntityType Name="UserProfile">
+          <Key>
+            <PropertyRef Name="ProfileID" />
+          </Key>
+          <Property Name="ProfileID" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="UserID" Type="Int32" Nullable="false" />
+          <Property Name="CoverPhoto" Type="String" MaxLength="255" FixedLength="false" Unicode="true" />
+          <Property Name="Bio" Type="String" MaxLength="500" FixedLength="false" Unicode="true" />
+          <Property Name="Faculty" Type="String" MaxLength="100" FixedLength="false" Unicode="true" />
+          <Property Name="Major" Type="String" MaxLength="100" FixedLength="false" Unicode="true" />
+          <Property Name="StudentYear" Type="Int32" />
+          <Property Name="Hometown" Type="String" MaxLength="100" FixedLength="false" Unicode="true" />
+          <NavigationProperty Name="User" Relationship="TDMUEcoSystemModel.FK_UserProfiles_UserID" FromRole="UserProfile" ToRole="User" />
+        </EntityType>
+        <Association Name="FK_Follows_Follower">
+          <End Type="TDMUEcoSystemModel.User" Role="User" Multiplicity="1" />
+          <End Type="TDMUEcoSystemModel.Follow" Role="Follow" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="User">
+              <PropertyRef Name="UserID" />
+            </Principal>
+            <Dependent Role="Follow">
+              <PropertyRef Name="FollowerID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_Follows_Following">
+          <End Type="TDMUEcoSystemModel.User" Role="User" Multiplicity="1" />
+          <End Type="TDMUEcoSystemModel.Follow" Role="Follow" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="User">
+              <PropertyRef Name="UserID" />
+            </Principal>
+            <Dependent Role="Follow">
+              <PropertyRef Name="FollowingID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_Friendships_Receiver">
+          <End Type="TDMUEcoSystemModel.User" Role="User" Multiplicity="1" />
+          <End Type="TDMUEcoSystemModel.Friendship" Role="Friendship" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="User">
+              <PropertyRef Name="UserID" />
+            </Principal>
+            <Dependent Role="Friendship">
+              <PropertyRef Name="ReceiverID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_Friendships_Requester">
+          <End Type="TDMUEcoSystemModel.User" Role="User" Multiplicity="1" />
+          <End Type="TDMUEcoSystemModel.Friendship" Role="Friendship" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="User">
+              <PropertyRef Name="UserID" />
+            </Principal>
+            <Dependent Role="Friendship">
+              <PropertyRef Name="RequesterID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_Notifications_Sender">
+          <End Type="TDMUEcoSystemModel.User" Role="User" Multiplicity="0..1" />
+          <End Type="TDMUEcoSystemModel.Notification" Role="Notification" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="User">
+              <PropertyRef Name="UserID" />
+            </Principal>
+            <Dependent Role="Notification">
+              <PropertyRef Name="SenderID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_PostComments_ParentID">
+          <End Type="TDMUEcoSystemModel.PostComment" Role="PostComment" Multiplicity="0..1" />
+          <End Type="TDMUEcoSystemModel.PostComment" Role="PostComment1" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="PostComment">
+              <PropertyRef Name="CommentID" />
+            </Principal>
+            <Dependent Role="PostComment1">
+              <PropertyRef Name="ParentID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_PostComments_PostID">
+          <End Type="TDMUEcoSystemModel.Post" Role="Post" Multiplicity="1">
+            <OnDelete Action="Cascade" />
+          </End>
+          <End Type="TDMUEcoSystemModel.PostComment" Role="PostComment" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Post">
+              <PropertyRef Name="PostID" />
+            </Principal>
+            <Dependent Role="PostComment">
+              <PropertyRef Name="PostID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_PostComments_UserID">
+          <End Type="TDMUEcoSystemModel.User" Role="User" Multiplicity="1" />
+          <End Type="TDMUEcoSystemModel.PostComment" Role="PostComment" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="User">
+              <PropertyRef Name="UserID" />
+            </Principal>
+            <Dependent Role="PostComment">
+              <PropertyRef Name="UserID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_PostLikes_PostID">
+          <End Type="TDMUEcoSystemModel.Post" Role="Post" Multiplicity="1">
+            <OnDelete Action="Cascade" />
+          </End>
+          <End Type="TDMUEcoSystemModel.PostLike" Role="PostLike" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Post">
+              <PropertyRef Name="PostID" />
+            </Principal>
+            <Dependent Role="PostLike">
+              <PropertyRef Name="PostID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_PostLikes_UserID">
+          <End Type="TDMUEcoSystemModel.User" Role="User" Multiplicity="1" />
+          <End Type="TDMUEcoSystemModel.PostLike" Role="PostLike" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="User">
+              <PropertyRef Name="UserID" />
+            </Principal>
+            <Dependent Role="PostLike">
+              <PropertyRef Name="UserID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_PostMedia_PostID">
+          <End Type="TDMUEcoSystemModel.Post" Role="Post" Multiplicity="1">
+            <OnDelete Action="Cascade" />
+          </End>
+          <End Type="TDMUEcoSystemModel.PostMedia" Role="PostMedia" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Post">
+              <PropertyRef Name="PostID" />
+            </Principal>
+            <Dependent Role="PostMedia">
+              <PropertyRef Name="PostID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_Posts_UserID">
+          <End Type="TDMUEcoSystemModel.User" Role="User" Multiplicity="1" />
+          <End Type="TDMUEcoSystemModel.Post" Role="Post" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="User">
+              <PropertyRef Name="UserID" />
+            </Principal>
+            <Dependent Role="Post">
+              <PropertyRef Name="UserID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_PostShares_PostID">
+          <End Type="TDMUEcoSystemModel.Post" Role="Post" Multiplicity="1">
+            <OnDelete Action="Cascade" />
+          </End>
+          <End Type="TDMUEcoSystemModel.PostShare" Role="PostShare" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Post">
+              <PropertyRef Name="PostID" />
+            </Principal>
+            <Dependent Role="PostShare">
+              <PropertyRef Name="PostID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_PostShares_UserID">
+          <End Type="TDMUEcoSystemModel.User" Role="User" Multiplicity="1" />
+          <End Type="TDMUEcoSystemModel.PostShare" Role="PostShare" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="User">
+              <PropertyRef Name="UserID" />
+            </Principal>
+            <Dependent Role="PostShare">
+              <PropertyRef Name="UserID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_Stories_UserID">
+          <End Type="TDMUEcoSystemModel.User" Role="User" Multiplicity="1" />
+          <End Type="TDMUEcoSystemModel.Story" Role="Story" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="User">
+              <PropertyRef Name="UserID" />
+            </Principal>
+            <Dependent Role="Story">
+              <PropertyRef Name="UserID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_StoryViews_StoryID">
+          <End Type="TDMUEcoSystemModel.Story" Role="Story" Multiplicity="1">
+            <OnDelete Action="Cascade" />
+          </End>
+          <End Type="TDMUEcoSystemModel.StoryView" Role="StoryView" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Story">
+              <PropertyRef Name="StoryID" />
+            </Principal>
+            <Dependent Role="StoryView">
+              <PropertyRef Name="StoryID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_StoryViews_ViewerID">
+          <End Type="TDMUEcoSystemModel.User" Role="User" Multiplicity="1" />
+          <End Type="TDMUEcoSystemModel.StoryView" Role="StoryView" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="User">
+              <PropertyRef Name="UserID" />
+            </Principal>
+            <Dependent Role="StoryView">
+              <PropertyRef Name="ViewerID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_UserProfiles_UserID">
+          <End Type="TDMUEcoSystemModel.User" Role="User" Multiplicity="1">
+            <OnDelete Action="Cascade" />
+          </End>
+          <End Type="TDMUEcoSystemModel.UserProfile" Role="UserProfile" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="User">
+              <PropertyRef Name="UserID" />
+            </Principal>
+            <Dependent Role="UserProfile">
               <PropertyRef Name="UserID" />
             </Dependent>
           </ReferentialConstraint>
@@ -1038,6 +1912,7 @@
           <EntitySetMapping Name="Users">
             <EntityTypeMapping TypeName="TDMUEcoSystemModel.User">
               <MappingFragment StoreEntitySet="Users">
+                <ScalarProperty Name="IsPrivate" ColumnName="IsPrivate" />
                 <ScalarProperty Name="CreatedAt" ColumnName="CreatedAt" />
                 <ScalarProperty Name="LastActivityAt" ColumnName="LastActivityAt" />
                 <ScalarProperty Name="Avatar" ColumnName="Avatar" />
@@ -1055,6 +1930,9 @@
           <EntitySetMapping Name="Notifications">
             <EntityTypeMapping TypeName="TDMUEcoSystemModel.Notification">
               <MappingFragment StoreEntitySet="Notifications">
+                <ScalarProperty Name="RefType" ColumnName="RefType" />
+                <ScalarProperty Name="RefID" ColumnName="RefID" />
+                <ScalarProperty Name="SenderID" ColumnName="SenderID" />
                 <ScalarProperty Name="CreatedAt" ColumnName="CreatedAt" />
                 <ScalarProperty Name="IsRead" ColumnName="IsRead" />
                 <ScalarProperty Name="Url" ColumnName="Url" />
@@ -1062,6 +1940,121 @@
                 <ScalarProperty Name="Message" ColumnName="Message" />
                 <ScalarProperty Name="UserID" ColumnName="UserID" />
                 <ScalarProperty Name="NotificationID" ColumnName="NotificationID" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="Follows">
+            <EntityTypeMapping TypeName="TDMUEcoSystemModel.Follow">
+              <MappingFragment StoreEntitySet="Follows">
+                <ScalarProperty Name="CreatedAt" ColumnName="CreatedAt" />
+                <ScalarProperty Name="FollowingID" ColumnName="FollowingID" />
+                <ScalarProperty Name="FollowerID" ColumnName="FollowerID" />
+                <ScalarProperty Name="FollowID" ColumnName="FollowID" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="Friendships">
+            <EntityTypeMapping TypeName="TDMUEcoSystemModel.Friendship">
+              <MappingFragment StoreEntitySet="Friendships">
+                <ScalarProperty Name="CreatedAt" ColumnName="CreatedAt" />
+                <ScalarProperty Name="Status" ColumnName="Status" />
+                <ScalarProperty Name="ReceiverID" ColumnName="ReceiverID" />
+                <ScalarProperty Name="RequesterID" ColumnName="RequesterID" />
+                <ScalarProperty Name="FriendshipID" ColumnName="FriendshipID" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="PostComments">
+            <EntityTypeMapping TypeName="TDMUEcoSystemModel.PostComment">
+              <MappingFragment StoreEntitySet="PostComments">
+                <ScalarProperty Name="CreatedAt" ColumnName="CreatedAt" />
+                <ScalarProperty Name="ParentID" ColumnName="ParentID" />
+                <ScalarProperty Name="ImageUrl" ColumnName="ImageUrl" />
+                <ScalarProperty Name="Content" ColumnName="Content" />
+                <ScalarProperty Name="UserID" ColumnName="UserID" />
+                <ScalarProperty Name="PostID" ColumnName="PostID" />
+                <ScalarProperty Name="CommentID" ColumnName="CommentID" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="PostLikes">
+            <EntityTypeMapping TypeName="TDMUEcoSystemModel.PostLike">
+              <MappingFragment StoreEntitySet="PostLikes">
+                <ScalarProperty Name="CreatedAt" ColumnName="CreatedAt" />
+                <ScalarProperty Name="LikeType" ColumnName="LikeType" />
+                <ScalarProperty Name="UserID" ColumnName="UserID" />
+                <ScalarProperty Name="PostID" ColumnName="PostID" />
+                <ScalarProperty Name="LikeID" ColumnName="LikeID" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="PostMedias">
+            <EntityTypeMapping TypeName="TDMUEcoSystemModel.PostMedia">
+              <MappingFragment StoreEntitySet="PostMedia">
+                <ScalarProperty Name="SortOrder" ColumnName="SortOrder" />
+                <ScalarProperty Name="MediaType" ColumnName="MediaType" />
+                <ScalarProperty Name="MediaUrl" ColumnName="MediaUrl" />
+                <ScalarProperty Name="PostID" ColumnName="PostID" />
+                <ScalarProperty Name="MediaID" ColumnName="MediaID" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="Posts">
+            <EntityTypeMapping TypeName="TDMUEcoSystemModel.Post">
+              <MappingFragment StoreEntitySet="Posts">
+                <ScalarProperty Name="UpdatedAt" ColumnName="UpdatedAt" />
+                <ScalarProperty Name="CreatedAt" ColumnName="CreatedAt" />
+                <ScalarProperty Name="Privacy" ColumnName="Privacy" />
+                <ScalarProperty Name="Content" ColumnName="Content" />
+                <ScalarProperty Name="UserID" ColumnName="UserID" />
+                <ScalarProperty Name="PostID" ColumnName="PostID" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="PostShares">
+            <EntityTypeMapping TypeName="TDMUEcoSystemModel.PostShare">
+              <MappingFragment StoreEntitySet="PostShares">
+                <ScalarProperty Name="CreatedAt" ColumnName="CreatedAt" />
+                <ScalarProperty Name="Content" ColumnName="Content" />
+                <ScalarProperty Name="UserID" ColumnName="UserID" />
+                <ScalarProperty Name="PostID" ColumnName="PostID" />
+                <ScalarProperty Name="ShareID" ColumnName="ShareID" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="Stories">
+            <EntityTypeMapping TypeName="TDMUEcoSystemModel.Story">
+              <MappingFragment StoreEntitySet="Stories">
+                <ScalarProperty Name="ExpiresAt" ColumnName="ExpiresAt" />
+                <ScalarProperty Name="CreatedAt" ColumnName="CreatedAt" />
+                <ScalarProperty Name="Caption" ColumnName="Caption" />
+                <ScalarProperty Name="MediaUrl" ColumnName="MediaUrl" />
+                <ScalarProperty Name="UserID" ColumnName="UserID" />
+                <ScalarProperty Name="StoryID" ColumnName="StoryID" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="StoryViews">
+            <EntityTypeMapping TypeName="TDMUEcoSystemModel.StoryView">
+              <MappingFragment StoreEntitySet="StoryViews">
+                <ScalarProperty Name="ViewedAt" ColumnName="ViewedAt" />
+                <ScalarProperty Name="ViewerID" ColumnName="ViewerID" />
+                <ScalarProperty Name="StoryID" ColumnName="StoryID" />
+                <ScalarProperty Name="ViewID" ColumnName="ViewID" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="UserProfiles">
+            <EntityTypeMapping TypeName="TDMUEcoSystemModel.UserProfile">
+              <MappingFragment StoreEntitySet="UserProfiles">
+                <ScalarProperty Name="Hometown" ColumnName="Hometown" />
+                <ScalarProperty Name="StudentYear" ColumnName="StudentYear" />
+                <ScalarProperty Name="Major" ColumnName="Major" />
+                <ScalarProperty Name="Faculty" ColumnName="Faculty" />
+                <ScalarProperty Name="Bio" ColumnName="Bio" />
+                <ScalarProperty Name="CoverPhoto" ColumnName="CoverPhoto" />
+                <ScalarProperty Name="UserID" ColumnName="UserID" />
+                <ScalarProperty Name="ProfileID" ColumnName="ProfileID" />
               </MappingFragment>
             </EntityTypeMapping>
           </EntitySetMapping>

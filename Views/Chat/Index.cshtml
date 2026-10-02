@@ -1,6 +1,6 @@
 ﻿@model IEnumerable<StudentConnect.Models.ChatMessage>
 @{
-    ViewBag.Title = "Trò chuyện ẩn danh";
+    ViewBag.Title = "Trò chuyện";
     int myId = Session["UserID"] != null ? (int)Session["UserID"] : 0;
     bool isPrivate = ViewBag.IsPrivate != null && (bool)ViewBag.IsPrivate;
     string roomType = ViewBag.RoomType as string ?? "Public";
@@ -1057,6 +1057,19 @@
         flex-shrink: 0;
     }
 
+    .profile-icon {
+        background: rgba(123, 97, 255, 0.15);
+        color: #7b61ff;
+        border: 1px solid rgba(123, 97, 255, 0.25);
+    }
+    .action-item.action-profile:hover {
+        background: rgba(123, 97, 255, 0.08);
+        border-color: rgba(123, 97, 255, 0.25);
+    }
+    .action-item.action-profile:hover .action-title {
+        color: #7b61ff;
+    }
+
     .chat-icon {
         background: rgba(0, 200, 255, 0.12);
         color: #00c8ff;
@@ -1372,7 +1385,7 @@
                     }
                     else
                     {
-                        <p class="header-name">Sảnh ẩn danh toàn trường</p>
+                        <p class="header-name">SẢNH CÔNG CỘNG</p>
                         <div class="header-sub" style="color: #2abe02;"> NƠI BẮT ĐẦU NHỮNG CUỘC GẶP GỠ · <span id="onlineCount">--</span> người
                         </div>
                     }
@@ -1405,6 +1418,16 @@
             {
                 foreach (var m in Model)
                 {
+                    bool isSystemRenameNotice = m.Content != null && m.Content.StartsWith("[SYSTEM_NOTICE_RENAME]");
+                    if (isSystemRenameNotice)
+                    {
+                        var systemText = m.Content.Substring("[SYSTEM_NOTICE_RENAME]".Length);
+                        <div class="sys-msg">
+                            <i class="fa-solid fa-pen-to-square" style="opacity:0.7; margin-right:6px;"></i>@systemText
+                        </div>
+                        continue;
+                    }
+
                     bool isMe = m.SenderID == myId;
                     bool isRevoked = m.Content == "Tin nhắn đã được thu hồi";
                     bool isMsgAnon = string.IsNullOrEmpty(m.Content) || !m.Content.StartsWith("[SHOW_ID]:");
@@ -1450,15 +1473,22 @@
                                             <img src="@m.ImageUrl" class="chat-img" onclick="viewImage('@m.ImageUrl')" />
                                         </div>
                                     }
-                                    else
+                                    @if (!string.IsNullOrEmpty(cleanText) && !isRevoked)
                                     {
-                                        <div class="msg msg-text @(isRevoked ? "revoked-style" : "")">
-                                            @if (isRevoked)
-                                            {
-                                                <i class="fa-solid fa-circle-info" style="font-size:11px; opacity:0.5; margin-right:4px;"></i>
-                                            }
+                                        <div class="msg msg-text">
                                             @cleanText
                                         </div>
+                                    }
+                                    else if (isRevoked)
+                                    {
+                                        <div class="msg msg-text revoked-style">
+                                            <i class="fa-solid fa-circle-info" style="font-size:11px; opacity:0.5; margin-right:4px;"></i>
+                                            @cleanText
+                                        </div>
+                                    }
+                                    else if (string.IsNullOrEmpty(m.ImageUrl))
+                                    {
+                                        <div class="msg msg-text"></div>
                                     }
                                     <div class="reaction-badge"></div>
                                 </div>
@@ -1530,6 +1560,14 @@
             </div>
             <div class="user-menu-divider"></div>
             <ul class="user-menu-actions">
+                <li class="action-item action-profile" id="menuItemViewProfile" onclick="handleViewProfileFromMenu()">
+                    <div class="action-icon profile-icon"><i class="fa-solid fa-id-card"></i></div>
+                    <div class="action-details">
+                        <span class="action-title">Xem trang cá nhân</span>
+                        <span class="action-sub">Xem tiểu sử, bài viết và bạn bè</span>
+                    </div>
+                    <i class="fa-solid fa-chevron-right action-arrow d-md-none"></i>
+                </li>
                 <li class="action-item action-chat" onclick="handlePrivateChatFromMenu()">
                     <div class="action-icon chat-icon"><i class="fa-solid fa-paper-plane"></i></div>
                     <div class="action-details">
@@ -1555,10 +1593,20 @@
         <!-- FOOTER -->
         <div class="chat-footer">
             <div id="emojiPicker">
-                @foreach (var e in new[] { "😀", "😂", "😍", "👍", "❤️", "🔥", "😭", "😮", "😊", "👏", "✨", "🤣" })
-                {
-                    <span class="emoji-item">@e</span>
-                }
+                @foreach (var e in new[]
+                    {
+                        "😀", "😂", "🤣", "😍", "🥰", "😘",
+                        "😊", "😎", "🤩", "🥳", "😢", "😭",
+                        "😡", "😱", "😮", "🤔", "😆", "😅",
+                        "👍", "👎", "👌", "👏", "🙌", "🙏",
+                        "❤️", "🧡", "💛", "💚", "💙", "💜",
+                        "💔", "💕", "💖", "🔥", "✨", "💯",
+                        "🎉", "🎊", "🚀", "💪", "🤝", "🌟",
+                        "⭐", "💥", "⚡", "🎵", "😇", "🤗"
+                    })
+                    {
+                        <span class="emoji-item">@e</span>
+                    }
             </div>
 
             <div id="replyPreview">
@@ -1667,16 +1715,29 @@
             cancelButtonText: 'Hủy'
         }).then((result) => {
             if (result.isConfirmed) {
-                $.post('/Chat/DeleteConversation', { roomId: targetRoomId }, function(res) {
-                    if (res.success) {
-                        Swal.fire({ icon: 'success', title: 'Đã xóa', text: 'Đã xóa cuộc trò chuyện.', toast: true, position: 'top-end', timer: 2000, showConfirmButton: false });
-                        if (targetRoomId === roomId) {
-                            window.location.href = '/Chat';
+                $.ajax({
+                    url: '/Chat/DeleteConversation',
+                    type: 'POST',
+                    data: {
+                        roomId: targetRoomId,
+                        __RequestVerificationToken: getChatAntiForgeryToken()
+                    },
+                    success: function (res) {
+                        if (res.success) {
+                            Swal.fire({ icon: 'success', title: 'Đã xóa', text: 'Đã xóa cuộc trò chuyện.', toast: true, position: 'top-end', timer: 2000, showConfirmButton: false });
+                            if (targetRoomId === roomId) {
+                                window.location.href = '/Chat';
+                            } else {
+                                loadSidebarChatList();
+                            }
                         } else {
-                            loadSidebarChatList();
+                            Swal.fire('Lỗi', res.message || 'Không thể xóa.', 'error');
                         }
-                    } else {
-                        Swal.fire('Lỗi', res.message || 'Không thể xóa.', 'error');
+                    },
+                    error: function (xhr) {
+                        let msg = 'Không thể xóa cuộc trò chuyện.';
+                        try { const j = JSON.parse(xhr.responseText); if (j && j.message) msg = j.message; } catch (e) {}
+                        Swal.fire('Lỗi', msg, 'error');
                     }
                 });
             }
@@ -1953,6 +2014,7 @@
         if (currentTargetIsAnon) {
             $('#menuTargetAvatar').html('<i class="fa-solid fa-user-secret"></i>');
             $('#menuTargetMeta').html('<span class="badge-anon"><i class="fa-solid fa-user-secret me-1"></i>Ẩn danh</span>');
+            $('#menuItemViewProfile').hide();
         } else {
             if (currentTargetAvatar) {
                 $('#menuTargetAvatar').html(`<img src="${currentTargetAvatar}" alt="${currentTargetName}" onerror="handleAvatarError(this)" />`);
@@ -1961,6 +2023,7 @@
                 $('#menuTargetAvatar').html(`<b>${initial}</b>`);
             }
             $('#menuTargetMeta').html('<span class="badge-sv"><i class="fa-solid fa-graduation-cap me-1"></i>SV</span>');
+            $('#menuItemViewProfile').show();
         }
 
         const menu = $('#userContextMenu');
@@ -1974,7 +2037,7 @@
             const winW = $(window).width();
             const winH = $(window).height();
             const menuW = 280;
-            const menuH = 220;
+            const menuH = 260;
 
             let left = event.clientX;
             let top = event.clientY;
@@ -1990,6 +2053,13 @@
             menu.css({ top: top + 'px', left: left + 'px', right: 'auto', bottom: 'auto' });
         } else if (isMobile) {
             menu.css({ top: '', left: '', right: '', bottom: '' });
+        }
+    }
+
+    function handleViewProfileFromMenu() {
+        closeUserMenu();
+        if (currentTargetUserId > 0) {
+            window.location.href = '/User/Profile/' + currentTargetUserId;
         }
     }
 
@@ -2047,6 +2117,11 @@
             else Swal.fire('Lỗi', 'Không thể kết nối.', 'error');
         }).fail(() => Swal.fire('Lỗi', 'Mất kết nối máy chủ.', 'error'));
     }
+    function getChatAntiForgeryToken() {
+        const tokenInput = document.querySelector('input[name="__RequestVerificationToken"]');
+        return tokenInput ? tokenInput.value : '';
+    }
+
     function revokeMsg(id) {
         Swal.fire({
             title: 'Thu hồi tin nhắn?',
@@ -2054,21 +2129,45 @@
             icon: 'warning', showCancelButton: true,
             confirmButtonText: 'Thu hồi', cancelButtonText: 'Hủy'
         }).then(r => {
-            if (r.isConfirmed)
-                $.post('/Chat/RevokeMessage', { messageId: id }, res => { if (!res.success) Swal.fire('Lỗi', res.message, 'error'); });
+            if (r.isConfirmed) {
+                $.ajax({
+                    url: '/Chat/RevokeMessage',
+                    type: 'POST',
+                    data: { messageId: id, __RequestVerificationToken: getChatAntiForgeryToken() },
+                    success: function (res) {
+                        if (!res.success) Swal.fire('Lỗi', res.message || 'Không thể thu hồi tin nhắn.', 'error');
+                    },
+                    error: function (xhr) {
+                        let msg = 'Không thể thu hồi tin nhắn.';
+                        try { const j = JSON.parse(xhr.responseText); if (j && j.message) msg = j.message; } catch (e) {}
+                        Swal.fire('Lỗi', msg, 'error');
+                    }
+                });
+            }
         });
     }
     function deleteMsg(id) {
         Swal.fire({
-            title: 'Xóa tin nhắn?', text: 'Tin nhắn sẽ bị xóa hẳn khỏi lịch sử.',
+            title: 'Xóa tin nhắn?', text: 'Tin nhắn sẽ bị xóa hẳn khỏi lịch sử trong vòng 5 phút từ khi gửi.',
             icon: 'warning', showCancelButton: true,
             confirmButtonText: 'Xóa', cancelButtonText: 'Hủy'
         }).then(r => {
-            if (r.isConfirmed)
-                $.post('/Chat/DeleteMessage', { messageId: id }, res => {
-                    if (res.success) $(`#msg-${id}`).fadeOut(300, function() { $(this).remove(); });
-                    else Swal.fire('Lỗi', res.message, 'error');
+            if (r.isConfirmed) {
+                $.ajax({
+                    url: '/Chat/DeleteMessage',
+                    type: 'POST',
+                    data: { messageId: id, __RequestVerificationToken: getChatAntiForgeryToken() },
+                    success: function (res) {
+                        if (res.success) $(`#msg-${id}`).fadeOut(300, function() { $(this).remove(); });
+                        else Swal.fire('Lỗi', res.message || 'Không thể xóa tin nhắn.', 'error');
+                    },
+                    error: function (xhr) {
+                        let msg = 'Không thể xóa tin nhắn.';
+                        try { const j = JSON.parse(xhr.responseText); if (j && j.message) msg = j.message; } catch (e) {}
+                        Swal.fire('Lỗi', msg, 'error');
+                    }
                 });
+            }
         });
     }
 
@@ -2142,9 +2241,11 @@
             const safeReply = $('<div/>').text(replyContent || "").html();
             const replyHtml = (replyToId && replyContent)
                 ? `<div class="reply-preview-msg" onclick="scrollToMsg(${replyToId})">↩ ${safeReply.length > 40 ? safeReply.substring(0,40)+'...' : safeReply}</div>` : '';
-            const contentHtml = hasImage
-                ? `<div class="msg msg-image"><img src="${imageUrl}" class="chat-img" onclick="viewImage('${imageUrl}')"/></div>`
-                : `<div class="msg msg-text">${safeMsg}</div>`;
+            const imageHtml = hasImage
+                ? `<div class="msg msg-image"><img src="${imageUrl}" class="chat-img" onclick="viewImage('${imageUrl}')"/></div>` : '';
+            const textHtml = safeMsg
+                ? `<div class="msg msg-text">${safeMsg}</div>` : '';
+            const contentHtml = imageHtml + textHtml;
 
             const isAnon = (isAnonymous !== false && isAnonymous !== "false");
             const displayName = isAnon ? "Ẩn danh" : (senderName || "Sinh viên");

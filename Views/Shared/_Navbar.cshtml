@@ -311,14 +311,14 @@
     }
 
     .notif-mark-all {
-        font-size: 15px;
+        font-size: 12px;
         cursor: pointer;
         background: none;
         border: none;
-        width: 36px;
-        height: 36px;
-        padding: 7px;
-        border-radius: 5px;
+        width: 34px;
+        height: 34px;
+        padding: 5px;
+        border-radius: 8px;
         box-shadow: 1px 1px 2px;
     }
 
@@ -331,13 +331,13 @@
     }
         .mark-read:hover {
             color: #157347;
-            font-size: 18px;
+            font-size: 16px;
             translate: 0 -1px;
         }
 
         .delete-notifs:hover {
             color: #bb2d3b;
-            font-size: 18px;
+            font-size: 16px;
             translate: 0 -1px;
         }
 
@@ -601,7 +601,7 @@
         align-items: center;
         gap: 8px;
         padding: 4px 12px 4px 4px;
-        border-radius: 10px;
+        border-radius: 8px;
         background: rgba(255,255,255,0.04);
         border: 1px solid rgba(255,255,255,0.08);
         transition: all 0.2s;
@@ -614,8 +614,8 @@
         }
 
     .tnav-avatar {
-        width: 28px;
-        height: 28px;
+        width: 25px;
+        height: 25px;
         border-radius: 8px;
         background: linear-gradient(135deg,#7b61ff 0%,#00c8ff 100%);
         display: flex;
@@ -644,8 +644,8 @@
         display: flex;
         align-items: center;
         gap: 5px;
-        padding: 6px 14px;
-        border-radius: 100px;
+        padding: 7px 14px;
+        border-radius: 8px;
         font-size: 12px;
         font-weight: 500;
         color: rgba(255,100,100,0.8);
@@ -662,8 +662,8 @@
         }
 
     .tnav-btn-login {
-        padding: 6px 16px;
-        border-radius: 100px;
+        padding: 6px 14px;
+        border-radius: 8px;
         font-size: 12px;
         font-weight: 500;
         color: rgba(0,200,255,0.85);
@@ -680,8 +680,8 @@
         }
 
     .tnav-btn-register {
-        padding: 6px 16px;
-        border-radius: 100px;
+        padding: 6px 14px;
+        border-radius: 8px;
         font-size: 12px;
         font-weight: 600;
         color: #050a14;
@@ -761,7 +761,7 @@
     <a class="tnav-brand" href="@Url.Action("Index", "Home")">
         <div class="tnav-brand-icon">TDMU</div>
         <div class="tnav-brand-text">
-            <span class="tnav-brand-name">TDMU</span>
+            <span class="tnav-brand-name"></span>
         </div>
     </a>
 
@@ -771,6 +771,7 @@
 
     <div class="tnav-links">
         <a class="tnav-link @(controller == "Home"    ? "is-active" : "")" href="@Url.Action("Index", "Home")"><span class="tnav-icon">⌂</span> Trang chủ</a>
+        <a class="tnav-link @(controller == "Story"   ? "is-active" : "")" href="@Url.Action("Index", "Story")"><span class="tnav-icon">⚡</span> Tin</a>
         <a class="tnav-link @(controller == "Chat"    ? "is-active" : "")" href="@Url.Action("Index", "Chat")"><span class="tnav-icon">💬</span> Trò chuyện</a>
         <a class="tnav-link @(controller == "Market"  ? "is-active" : "")" href="@Url.Action("Index", "Market")"><span class="tnav-icon">🛒</span> Chợ Sinh Viên</a>
         <a class="tnav-link @(controller == "Connect" ? "is-active" : "")" href="@Url.Action("Index", "Connect")"><span class="tnav-icon">🤝</span> Kết Nối</a>
@@ -791,7 +792,7 @@
                         <span class="notif-header-title">THÔNG BÁO</span>
                         <div style="display:flex; gap:6px;">
                             <button class="notif-mark-all mark-read" id="markAllRead" title="Đánh dấu tất cả đã đọc"> ✔ </button>
-                            <button class="notif-mark-all delete-notifs" id="deleteAllNotifs" title="Xóa tất cả thông báo"> 🗑️ </button>
+                            <button class="bi bi-trash notif-mark-all delete-notifs" id="deleteAllNotifs" title="Xóa tất cả thông báo"> </button>
                         </div>
                     </div>
                     <div class="notif-tabs">
@@ -821,9 +822,9 @@
             </div>
 
             <div class="tnav-divider"></div>
-            <a class="tnav-user" href="@Url.Action("Profile", "User")">
+            <a class="tnav-user" href="@Url.Action("Profile", "User", new { id = currentUserId })" title="Xem trang cá nhân của bạn">
                 <div class="tnav-avatar">
-                    <img src="https://ui-avatars.com/api/?name=@Session["Username"]&background=7b61ff&color=fff&size=56" alt="@Session["Username"]" />
+                    <img src="@(!string.IsNullOrEmpty(Session["Avatar"] as string) ? Session["Avatar"] : $"https://ui-avatars.com/api/?name={Uri.EscapeDataString((string)Session["Username"] ?? "U")}&background=7b61ff&color=fff&size=56")" alt="@Session["Username"]" onerror="this.src='/Content/Images/default-avatar.png';" />
                 </div>
                 <span class="tnav-username">@Session["Username"]</span>
             </a>

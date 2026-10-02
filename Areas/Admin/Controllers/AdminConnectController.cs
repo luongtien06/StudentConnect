@@ -1,4 +1,4 @@
-using StudentConnect.Models;
+﻿using StudentConnect.Models;
 using System;
 using System.IO;
 using System.Linq;
@@ -144,6 +144,7 @@ namespace StudentConnect.Areas.Admin.Controllers
         // 4. POST: Admin/AdminConnect/Delete (Xóa dữ liệu bằng Entity Framework)
         // ==============================================================================
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public ActionResult Delete(int id)
         {
             try

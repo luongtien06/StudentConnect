@@ -1,4 +1,4 @@
-using StudentConnect.Helpers;
+﻿using StudentConnect.Helpers;
 using StudentConnect.Models;
 using System;
 using System.Linq;
@@ -120,6 +120,7 @@ namespace StudentConnect.Areas.Admin.Controllers
 
         // Admin/AdminUser/Delete
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public ActionResult Delete(int id)
         {
             var user = db.Users.Find(id);

@@ -34,10 +34,11 @@ namespace StudentConnect.Helpers
             "đm", "dm", "dmm", "đmm", "dcm", "đcm", "đkm", "dkm", "đcmm", "dcmm",
             "vcl", "vl", "vkl", "vcll", "clgt", "đệt",
             "cặc", "cak", "lồn", "lồz", "loz", "buồi",
-            "đụ", "địt", "ditme", "đitmẹ", "địtme", "đéo", "duma", "sv", "lol",
-            "cave",
+            "đụ", "địt", "ditme", "đitmẹ", "địtme", "đéo", "duma", "sv", "lon",
+            "cave", "cặc", "buồi", "lôz", "lồz", "địt", "đụ", "đéo", "đcm", "đm",
+            "djtme", "dit me", " đủ má", "địt mẹ", "địt mày", "địt con", "địt cha", "địt bố", "địt ông", "địt bà",
             // Tiếng Anh
-            "fuck", "fucking", "fucker", "bitch", "shit", "asshole",
+            "fuck", "fucking", "fucker", "bitch", "asshole",
             "cunt", "dick", "pussy", "bastard", "whore", "slut", "porno"
         };
 
