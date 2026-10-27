@@ -1,0 +1,138 @@
+@model StudentConnect.Models.PostShareInfoViewModel
+
+@if (Model != null)
+{
+    if (Model.IsOriginalDeleted)
+    {
+        var isMarket = Model.ShareType == "Market";
+        var isConnect = Model.ShareType == "Connect";
+        var badgeBg = isMarket ? "rgba(16, 185, 129, 0.2)" : (isConnect ? "rgba(59, 130, 246, 0.2)" : "rgba(168, 85, 247, 0.2)");
+        var badgeColor = isMarket ? "#34d399" : (isConnect ? "#60a5fa" : "#c084fc");
+        var badgeBorder = isMarket ? "rgba(16, 185, 129, 0.3)" : (isConnect ? "rgba(59, 130, 246, 0.3)" : "rgba(168, 85, 247, 0.3)");
+        var iconClass = isMarket ? "fa-store" : (isConnect ? "fa-compass" : "fa-newspaper");
+        var badgeLabel = Model.OriginalBadge ?? (isMarket ? "Chợ sinh viên" : (isConnect ? "Kết nối" : "Bài viết"));
+
+        <div class="shared-post-preview shared-post-card-preview shared-post-unavailable" style="border: 1px dashed rgba(255,255,255,0.15); border-radius: 12px; padding: 16px 14px; background: rgba(0,0,0,0.3); margin: 6px 0 10px; text-align: center;">
+            <div style="display: flex; justify-content: flex-end; margin-bottom: 8px;">
+                <span style="background: @badgeBg; color: @badgeColor; border: 1px solid @badgeBorder; font-size: 0.72rem; padding: 2px 8px; border-radius: 20px; font-weight: 600;">
+                    <i class="fas @iconClass me-1"></i>@badgeLabel
+                </span>
+            </div>
+            <div style="color: #94a3b8; margin-bottom: 8px;">
+                <i class="fa-solid fa-lock fa-2x" style="opacity: 0.75;"></i>
+            </div>
+            <div style="font-weight: 600; font-size: 0.95rem; color: #f8fafc; margin-bottom: 4px;">
+                Nội dung này hiện không khả dụng
+            </div>
+            <div style="font-size: 0.82rem; color: #94a3b8; line-height: 1.5; max-width: 420px; margin: 0 auto;">
+                @(Model.UnavailableReason ?? "Bài viết gốc đã bị xóa hoặc người đăng đã thay đổi quyền riêng tư.")
+            </div>
+        </div>
+    }
+    else
+    {
+        var isMarket = Model.ShareType == "Market";
+        var isConnect = Model.ShareType == "Connect";
+        var isPost = !isMarket && !isConnect;
+
+        var badgeBg = isMarket ? "rgba(16, 185, 129, 0.2)" : (isConnect ? "rgba(59, 130, 246, 0.2)" : "rgba(14, 165, 233, 0.2)");
+        var badgeColor = isMarket ? "#34d399" : (isConnect ? "#60a5fa" : "#38bdf8");
+        var badgeBorder = isMarket ? "rgba(16, 185, 129, 0.3)" : (isConnect ? "rgba(59, 130, 246, 0.3)" : "rgba(14, 165, 233, 0.3)");
+        var iconClass = isMarket ? "fa-store" : (isConnect ? "fa-compass" : "fa-newspaper");
+        var badgeLabel = Model.OriginalBadge ?? (isMarket ? "Chợ sinh viên" : (isConnect ? "Kết nối" : "Bài viết"));
+
+        var targetUrl = !string.IsNullOrEmpty(Model.OriginalUrl)
+            ? Model.OriginalUrl
+            : (isMarket ? Url.Action("Details", "Market", new { id = Model.OriginalPostID })
+                : (isConnect ? Url.Action("Details", "Connect", new { id = Model.OriginalPostID })
+                    : (Url.Action("Profile", "User", new { id = Model.OriginalAuthorID }) + "#post-" + Model.OriginalPostID)));
+
+        <div class="shared-post-preview shared-post-card-preview" style="border: 1px solid rgba(255,255,255,0.12); border-radius: 12px; padding: 12px 14px; background: rgba(0,0,0,0.3); margin: 6px 0 10px; transition: border-color 0.2s ease;">
+            <!-- Header of original post inside preview box -->
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <a href="@Url.Action("Profile", "User", new { id = Model.OriginalAuthorID })" style="text-decoration: none;">
+                        <img src="@(string.IsNullOrEmpty(Model.OriginalAuthorAvatar) ? StudentConnect.Helpers.DefaultImagePlaceholders.Avatar : Model.OriginalAuthorAvatar)"
+                             alt="@Model.OriginalAuthorName"
+                             style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover; border: 1px solid rgba(255,255,255,0.15);"
+                             onerror="this.onerror=null;this.src=window.DEFAULT_AVATAR_SVG||'/Content/Images/default-avatar.png';" />
+                    </a>
+                    <div>
+                        <a href="@Url.Action("Profile", "User", new { id = Model.OriginalAuthorID })" style="font-weight: 600; font-size: 0.88rem; color: #f8fafc; text-decoration: none;">
+                            @(string.IsNullOrWhiteSpace(Model.OriginalAuthorName) ? "Người dùng" : Model.OriginalAuthorName)
+                        </a>
+                        @if (!string.IsNullOrEmpty(Model.OriginalTimeAgo))
+                        {
+                            <span style="font-size: 0.75rem; color: #94a3b8; margin-left: 6px;">@Model.OriginalTimeAgo</span>
+                        }
+                    </div>
+                </div>
+                <span style="background: @badgeBg; color: @badgeColor; border: 1px solid @badgeBorder; font-size: 0.72rem; padding: 3px 9px; border-radius: 20px; font-weight: 600;">
+                    <i class="fas @iconClass me-1"></i>@badgeLabel
+                </span>
+            </div>
+
+            <!-- Content & Media of original post -->
+            <a href="@targetUrl" style="text-decoration: none; color: inherit; display: block;">
+                @if (Model.OriginalMediaList != null && Model.OriginalMediaList.Any())
+                {
+                    if (Model.OriginalMediaList.Count == 1)
+                    {
+                        var m = Model.OriginalMediaList.First();
+                        <div style="width: 100%; max-height: 320px; overflow: hidden; border-radius: 8px; margin-bottom: 10px; background: #000;">
+                            @if (m.MediaType == "video")
+                            {
+                                <video src="@m.MediaUrl" controls style="width: 100%; max-height: 320px; object-fit: cover;"></video>
+                            }
+                            else
+                            {
+                                <img src="@m.MediaUrl" alt="@Model.OriginalTitle" style="width: 100%; max-height: 260px; object-fit: cover;" onerror="this.style.display='none'" />
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        int count = Math.Min(Model.OriginalMediaList.Count, 4);
+                        <div style="display: grid; grid-template-columns: repeat(@(count > 1 ? 2 : 1), 1fr); gap: 6px; margin-bottom: 10px; border-radius: 8px; overflow: hidden;">
+                            @foreach (var m in Model.OriginalMediaList.Take(4))
+                            {
+                                if (m.MediaType == "video")
+                                {
+                                    <video src="@m.MediaUrl" controls style="width: 100%; height: 140px; object-fit: cover; border-radius: 4px;"></video>
+                                }
+                                else
+                                {
+                                    <img src="@m.MediaUrl" alt="Media" style="width: 100%; height: 140px; object-fit: cover; border-radius: 4px;" onerror="this.style.display='none'" />
+                                }
+                            }
+                        </div>
+                    }
+                }
+
+                @if (!string.IsNullOrWhiteSpace(Model.OriginalTitle) && (isMarket || isConnect))
+                {
+                    <h5 style="font-size: 0.98rem; font-weight: 600; color: #f8fafc; margin-bottom: 4px; line-height: 1.4;">
+                        @Model.OriginalTitle
+                    </h5>
+                }
+
+                @if (!string.IsNullOrWhiteSpace(Model.OriginalSubtitle))
+                {
+                    <div style="font-weight: 600; color: @(isMarket ? "#34d399" : (isConnect ? "#38bdf8" : "#94a3b8")); font-size: 0.9rem; margin-bottom: 6px;">
+                        @Model.OriginalSubtitle
+                    </div>
+                }
+
+                @if (!string.IsNullOrWhiteSpace(Model.OriginalContent))
+                {
+                    <div class="shared-post-content" style="font-size: 0.88rem; color: #cbd5e1; white-space: pre-line; line-height: 1.45; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical;">@Model.OriginalContent.Trim()</div>
+                }
+
+                <div style="margin-top: 10px; font-size: 0.82rem; color: #00c8ff; display: flex; align-items: center; gap: 4px; font-weight: 500;">
+                    <span>Xem @(isMarket ? "sản phẩm" : (isConnect ? "bài kết nối" : "bài viết gốc"))</span>
+                    <i class="fas fa-arrow-right" style="font-size: 0.75rem;"></i>
+                </div>
+            </a>
+        </div>
+    }
+}

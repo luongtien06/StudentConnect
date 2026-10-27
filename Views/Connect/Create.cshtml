@@ -1,0 +1,213 @@
+﻿@model StudentConnect.Models.ConnectPost
+@{
+    ViewBag.Title = "Đăng bài mới";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<style>
+    body {
+        background-color: #0f172a;
+        color: #e2e8f0;
+        font-family: 'Inter', sans-serif;
+    }
+
+    .glass-card {
+        background: rgba(30, 41, 59, 0.7);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 16px;
+        backdrop-filter: blur(12px);
+        padding: 1.5rem;
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+    }
+
+    @@media (max-width: 575.98px) {
+        .glass-card {
+            padding: 1rem;
+            border-radius: 12px;
+        }
+        .page-header h4 {
+            font-size: 1.1rem;
+        }
+        .btn-submit {
+            padding: 10px;
+            font-size: 0.85rem;
+        }
+    }
+
+    .form-label {
+        color: #38bdf8;
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        margin-bottom: 0.4rem;
+    }
+
+    .form-control, .form-select {
+        background: rgba(15, 23, 42, 0.8) !important;
+        border: 1px solid #1e293b !important;
+        color: #f8fafc !important;
+        border-radius: 8px;
+        font-size: 0.9rem;
+        padding: 10px 15px;
+    }
+
+        /* FIX LỖI SELECT TRẮNG XÓA */
+        .form-select option {
+            background-color: #1e293b; /* Màu nền menu khi bấm vào */
+            color: #f8fafc;
+        }
+
+        .form-control:focus, .form-select:focus {
+            background: #0f172a !important;
+            border-color: #38bdf8 !important;
+            box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2) !important;
+            outline: none;
+        }
+
+    .btn-submit {
+        background: #38bdf8;
+        color: #0f172a;
+        border: none;
+        padding: 12px;
+        border-radius: 8px;
+        font-weight: 800;
+        transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+        .btn-submit:hover {
+            background: #7dd3fc;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(56, 189, 248, 0.4);
+        }
+
+    .page-header {
+        border-bottom: 1px solid rgba(255,255,255,0.05);
+        margin-bottom: 1.5rem;
+        padding-bottom: 1rem;
+    }
+
+    /* Custom file input cho đồng bộ */
+    input[type="file"]::file-selector-button {
+        background: #1e293b;
+        color: #38bdf8;
+        border: none;
+        padding: 5px 10px;
+        border-radius: 4px;
+        margin-right: 10px;
+        cursor: pointer;
+    }
+</style>
+
+<div class="container mt-4 mb-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8 col-xl-7">
+            <div class="glass-card">
+                <div class="page-header d-flex align-items-center">
+                    <div class="icon-box me-3" style="color: #38bdf8; font-size: 1.5rem;">
+                        <i class="fas fa-plus-circle"></i>
+                    </div>
+                    <div>
+                        <h4 class="mb-0 fw-bold">Chia sẻ địa điểm</h4>
+                        <small class="text-muted">Gửi review tới cộng đồng TDMU</small>
+                    </div>
+                </div>
+
+                @if (!ViewData.ModelState.IsValid)
+                {
+                    <div class="alert alert-danger py-2 px-3 mb-3 small" style="background: rgba(220,53,69,0.2); border: 1px solid rgba(220,53,69,0.4); color: #ff8080; border-radius: 8px;">
+                        @Html.ValidationSummary(false, "")
+                    </div>
+                }
+
+                @using (Html.BeginForm("Create", "Connect", FormMethod.Post, new { enctype = "multipart/form-data" }))
+                {
+                    @Html.AntiForgeryToken()
+
+                    <div class="row">
+                        <div class="col-12 mb-3">
+                            <label class="form-label">Tên địa điểm / Quán</label>
+                            @Html.TextBoxFor(model => model.Title, new { @class = "form-control", placeholder = "VD: Highlands Coffee TDMU...", required = "required" })
+                            @Html.ValidationMessageFor(model => model.Title, "", new { @class = "text-danger small" })
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Danh mục</label>
+                            @Html.DropDownList("CategoryID", null, "-- Chọn danh mục --", htmlAttributes: new { @class = "form-select", required = "required" })
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Ảnh địa điểm</label>
+                            <input type="file" name="ImageFiles" id="imageFilesInput" class="form-control" accept="image/jpeg,image/png,image/webp,image/gif" multiple required onchange="handleImagePreview(this)" />
+                            <small class="text-muted d-block mt-1" style="font-size: 11px;">Chọn tối đa 5 ảnh, mỗi ảnh không quá 15MB.</small>
+                            <div id="imagePreviewContainer" class="mt-2 d-flex flex-wrap gap-2" style="display: none;"></div>
+                            </div>
+
+                        <div class="col-12 mb-4">
+                            <label class="form-label">Cảm nhận & Đánh giá</label>
+                            @Html.TextAreaFor(model => model.Description, new { @class = "form-control", rows = "5", placeholder = "Không gian, giá cả, thái độ phục vụ...", required = "required" })
+                        </div>
+                    </div>
+
+                    <div class="row align-items-center mt-2">
+                        <div class="col-sm-8 mb-3 mb-sm-0">
+                            <button type="submit" class="btn btn-submit w-100 text-uppercase">
+                                <i class="fas fa-paper-plane me-2"></i>Đăng bài review
+                            </button>
+                        </div>
+                        <div class="col-sm-4 text-center">
+                            <a href="@Url.Action("Index")" class="text-decoration-none text-muted small hover-white">
+                                <i class="fas fa-arrow-left me-1"></i>Quay lại
+                            </a>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+    function handleImagePreview(input) {
+        const files = Array.from(input.files || []);
+        const maxFiles = 5;
+        const maxSize = 15 * 1024 * 1024;
+        if (files.length > maxFiles || files.some(file => file.size > maxSize)) {
+            Swal.fire({
+                icon: 'warning',
+                title: files.length > maxFiles ? 'Chọn quá nhiều ảnh' : 'Ảnh quá lớn',
+                text: files.length > maxFiles ? 'Mỗi bài viết chọn tối đa 5 ảnh.' : 'Mỗi ảnh không được vượt quá 15MB.',
+                confirmButtonColor: '#38bdf8'
+            });
+            input.value = '';
+            $('#imagePreviewContainer').empty().hide();
+            return;
+        }
+
+        const container = $('#imagePreviewContainer').empty();
+        files.forEach(function(file) {
+            const preview = $('<img>', {
+                src: URL.createObjectURL(file),
+                alt: 'Ảnh xem trước',
+                class: 'rounded',
+                css: { width: '92px', height: '92px', objectFit: 'cover', border: '1px solid rgba(255,255,255,.2)' }
+            });
+            container.append(preview);
+        });
+        container.toggle(files.length > 0);
+    }
+
+    $(document).ready(function() {
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('uploadError') === 'tooLarge') {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Lỗi tải ảnh',
+                    text: 'File tải lên vượt quá dung lượng cho phép của máy chủ. Vui lòng chọn ảnh nhẹ hơn (dưới 25MB).',
+                    confirmButtonColor: '#38bdf8'
+                });
+            }
+        }
+    });
+</script>

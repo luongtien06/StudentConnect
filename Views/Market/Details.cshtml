@@ -1,0 +1,984 @@
+﻿@model StudentConnect.Models.MarketPost
+@{
+    ViewBag.Title = Model.Title;
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    bool isLoggedIn = Session["UserID"] != null;
+    int currentUserId = isLoggedIn ? (int)Session["UserID"] : 0;
+    bool isOwner = isLoggedIn && currentUserId == Model.UserID;
+
+    // Lấy danh sách bình luận từ ViewBag (Sử dụng model Review)
+    var comments = ViewBag.Comments as IEnumerable<StudentConnect.Models.Review> ?? new List<StudentConnect.Models.Review>();
+}
+
+<style>
+    /* ── BASE & WRAPPERS ── */
+    .market-detail-container {
+        max-width: 1140px;
+        margin: 0 auto;
+        padding-bottom: 3rem;
+    }
+
+    .details-wrapper, .comments-wrapper {
+        background: #111424;
+        border: 1px solid #23273b;
+        border-radius: 16px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+        margin-top: 18px;
+        overflow: hidden;
+        color: #fff;
+    }
+
+    /* ── BREADCRUMB ── */
+    .custom-breadcrumb {
+        padding: 12px 0;
+        font-size: 0.88rem;
+    }
+    .custom-breadcrumb a {
+        color: #9ca3af;
+        text-decoration: none;
+        transition: color 0.2s ease;
+    }
+    .custom-breadcrumb a:hover {
+        color: #0dcaf0;
+    }
+    .breadcrumb-active-title {
+        max-width: 320px;
+    }
+
+    /* ── IMAGE SECTION & GALLERY ── */
+    .image-section {
+        background: #080d17;
+        padding: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 480px;
+        border-right: 1px solid #23273b;
+    }
+
+    .market-image-gallery {
+        display: grid;
+        gap: 4px;
+        width: 100%;
+        border-radius: 10px;
+        overflow: hidden;
+        background: #050811;
+    }
+
+    /* 1 ảnh */
+    .market-image-gallery.img-count-1 {
+        grid-template-columns: 1fr;
+    }
+    .market-image-gallery.img-count-1 .market-gallery-item {
+        height: 440px;
+        background: #080d17;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .market-image-gallery.img-count-1 .market-gallery-image {
+        max-height: 440px;
+        width: 100%;
+        object-fit: contain;
+    }
+
+    /* 2 ảnh */
+    .market-image-gallery.img-count-2 {
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: 320px;
+    }
+
+    /* 3 ảnh */
+    .market-image-gallery.img-count-3 {
+        grid-template-columns: 1.2fr 1fr;
+        grid-template-rows: 160px 160px;
+    }
+    .market-image-gallery.img-count-3 .market-gallery-item:first-child {
+        grid-row: 1 / 3;
+    }
+
+    /* 4 ảnh */
+    .market-image-gallery.img-count-4 {
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: 195px 195px;
+    }
+
+    /* 5+ ảnh */
+    .market-image-gallery.img-count-5 {
+        grid-template-columns: 1fr 1fr 1fr;
+        grid-template-rows: 220px 150px;
+    }
+    .market-image-gallery.img-count-5 .market-gallery-item:nth-child(1) {
+        grid-column: 1 / 3;
+    }
+    .market-image-gallery.img-count-5 .market-gallery-item:nth-child(2) {
+        grid-column: 3 / 4;
+    }
+
+    .market-gallery-item {
+        position: relative;
+        overflow: hidden;
+        cursor: pointer;
+        background: #080d17;
+    }
+    .market-gallery-image {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+        transition: transform 0.3s ease, filter 0.3s ease;
+    }
+    .market-gallery-item:hover .market-gallery-image {
+        transform: scale(1.03);
+        filter: brightness(1.08);
+    }
+    .market-gallery-more {
+        position: absolute;
+        inset: 0;
+        background: rgba(0,0,0,0.6);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        font-size: 1.8rem;
+        font-weight: 700;
+        pointer-events: none;
+        backdrop-filter: blur(2px);
+    }
+
+    /* ── INFO SECTION ── */
+    .info-section {
+        padding: 32px 28px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+    .category-label {
+        background: rgba(0, 200, 255, 0.12);
+        color: #00c8ff;
+        border: 1px solid rgba(0, 200, 255, 0.25);
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.78rem;
+        font-weight: 600;
+        display: inline-block;
+        align-self: flex-start;
+    }
+    .market-detail-title {
+        font-size: 1.65rem;
+        font-weight: 800;
+        color: #fff;
+        line-height: 1.35;
+        word-break: break-word;
+        margin-top: 10px;
+    }
+    .price-tag {
+        font-size: 2rem;
+        font-weight: 800;
+        color: #0dcaf0;
+        margin: 10px 0 14px;
+        line-height: 1.2;
+    }
+    .market-meta-box {
+        border-top: 1px solid #23273b;
+        padding-top: 14px;
+        margin-top: 14px;
+    }
+    .market-meta-box p {
+        margin-bottom: 8px;
+        font-size: 0.9rem;
+        word-break: break-word;
+    }
+
+    /* Seller Info */
+    .seller-info {
+        border: 1px solid #23273b;
+        background: #16192b;
+        border-radius: 12px;
+        padding: 14px 16px;
+        margin-top: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+    }
+    .user-avatar {
+        width: 46px;
+        height: 46px;
+        background: #0dcaf0;
+        color: #000;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.15rem;
+        margin-right: 12px;
+        flex-shrink: 0;
+        font-weight: bold;
+        overflow: hidden;
+    }
+    .seller-link {
+        display: flex;
+        align-items: center;
+        text-decoration: none;
+        min-width: 0;
+        flex: 1;
+    }
+    .seller-name {
+        font-weight: 700;
+        color: #fff;
+        font-size: 0.98rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    /* Actions */
+    .btn-chat-seller {
+        border-radius: 12px;
+        font-size: 1rem;
+        font-weight: 700;
+        background: linear-gradient(135deg, #0dcaf0, #0099ff);
+        border: none;
+        color: #000;
+        box-shadow: 0 6px 20px rgba(13,202,240,0.3);
+        text-decoration: none;
+        transition: all 0.25s ease;
+        min-height: 48px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+    }
+    .btn-chat-seller:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 8px 25px rgba(13,202,240,0.45);
+        color: #000;
+    }
+    .btn-share-market {
+        min-height: 42px;
+        font-size: 0.95rem;
+        font-weight: 600;
+        border-radius: 50px;
+        width: 100%;
+    }
+
+    /* ── DESCRIPTION BOX ── */
+    .desc-wrapper {
+        margin-top: 18px;
+        padding: 24px;
+    }
+    .desc-content {
+        line-height: 1.75;
+        color: #d1d5db;
+        white-space: pre-line;
+        margin-top: 14px;
+        font-size: 0.98rem;
+        word-break: break-word;
+        overflow-wrap: anywhere;
+    }
+
+    /* ── COMMENTS SECTION ── */
+    .comments-wrapper {
+        margin-top: 18px;
+        padding: 24px;
+    }
+    .comment-input-area {
+        background: #16192b;
+        padding: 18px;
+        border-radius: 12px;
+        border: 1px solid #23273b;
+        margin-bottom: 24px;
+    }
+    .dark-textarea {
+        background: #0b0d18 !important;
+        color: #fff !important;
+        border: 1px solid #23273b !important;
+        border-radius: 10px;
+        resize: none;
+        padding: 10px 14px;
+        font-size: 0.92rem;
+        line-height: 1.5;
+    }
+    .dark-textarea:focus {
+        border-color: #0dcaf0 !important;
+        box-shadow: 0 0 0 0.2rem rgba(13, 202, 240, 0.2) !important;
+    }
+    .comment-item {
+        display: flex;
+        padding-bottom: 1.25rem;
+        margin-bottom: 1.25rem;
+        border-bottom: 1px solid #23273b;
+        gap: 12px;
+    }
+    .comment-item:last-child {
+        border-bottom: none;
+        margin-bottom: 0;
+        padding-bottom: 0;
+    }
+    .comment-avatar {
+        width: 44px;
+        height: 44px;
+        background: #3b82f6;
+        color: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 1.1rem;
+        flex-shrink: 0;
+    }
+    .comment-avatar.seller {
+        background: #10b981;
+    }
+    .comment-content {
+        flex-grow: 1;
+        min-width: 0;
+    }
+    .comment-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-bottom: 4px;
+    }
+    .comment-author {
+        font-weight: 700;
+        font-size: 0.98rem;
+        color: #fff;
+    }
+    .comment-time {
+        font-size: 0.8rem;
+        color: #9ca3af;
+    }
+    .comment-text {
+        color: #d1d5db;
+        font-size: 0.93rem;
+        line-height: 1.5;
+        margin-bottom: 6px;
+        word-break: break-word;
+        overflow-wrap: anywhere;
+    }
+    .btn-reply {
+        color: #9ca3af;
+        font-size: 0.82rem;
+        font-weight: 600;
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+    .btn-reply:hover {
+        color: #0dcaf0;
+    }
+
+    /* ── RESPONSIVE MEDIA QUERIES ── */
+    @@media (max-width: 991.98px) {
+        .image-section {
+            min-height: auto;
+            border-right: none;
+            border-bottom: 1px solid #23273b;
+            padding: 20px;
+        }
+        .info-section {
+            padding: 24px 20px;
+        }
+        .market-image-gallery.img-count-1 .market-gallery-item {
+            height: 380px;
+        }
+    }
+
+    @@media (max-width: 767.98px) {
+        .details-wrapper, .comments-wrapper, .desc-wrapper {
+            border-radius: 14px;
+            margin-top: 14px;
+            padding: 18px 14px;
+        }
+        .image-section {
+            padding: 14px;
+        }
+        .info-section {
+            padding: 18px 14px;
+        }
+        .market-detail-title {
+            font-size: 1.35rem;
+        }
+        .price-tag {
+            font-size: 1.65rem;
+            margin: 8px 0 10px;
+        }
+        .breadcrumb-active-title {
+            max-width: 180px;
+        }
+        .seller-info {
+            padding: 12px 14px;
+            margin-top: 16px;
+            flex-wrap: wrap;
+        }
+        .comment-input-area {
+            padding: 14px;
+        }
+        .comment-item {
+            gap: 10px;
+        }
+        .comment-avatar {
+            width: 38px;
+            height: 38px;
+            font-size: 1rem;
+        }
+    }
+
+    @@media (max-width: 575.98px) {
+        .market-image-gallery.img-count-1 .market-gallery-item { height: 280px; }
+        .market-image-gallery.img-count-2 { grid-template-rows: 180px; }
+        .market-image-gallery.img-count-3 { grid-template-rows: 120px 120px; }
+        .market-image-gallery.img-count-4 { grid-template-rows: 135px 135px; }
+        .market-image-gallery.img-count-5 { grid-template-rows: 140px 95px; }
+        
+        .breadcrumb-active-title { max-width: 140px; }
+        .price-tag { font-size: 1.5rem; }
+        .market-detail-title { font-size: 1.25rem; }
+
+        /* Comment input on mobile: textarea takes full width */
+        .comment-input-form-inner {
+            flex-direction: column;
+            gap: 10px;
+        }
+        .comment-input-avatar-wrap {
+            display: none !important;
+        }
+        .btn-submit-comment-wrap {
+            width: 100%;
+        }
+        .btn-submit-comment-wrap button {
+            width: 100%;
+            padding: 10px !important;
+            font-size: 14px;
+        }
+    }
+
+    @@media (max-width: 375.98px) {
+        .market-image-gallery.img-count-1 .market-gallery-item { height: 230px; }
+        .market-image-gallery.img-count-2 { grid-template-rows: 150px; }
+        .market-image-gallery.img-count-3 { grid-template-rows: 95px 95px; }
+        .market-image-gallery.img-count-4 { grid-template-rows: 105px 105px; }
+        .market-image-gallery.img-count-5 { grid-template-rows: 115px 75px; }
+        .price-tag { font-size: 1.35rem; }
+        .market-detail-title { font-size: 1.15rem; }
+    }
+
+    /* SweetAlert2 dark override */
+    .swal-dark-popup {
+        border: 1px solid rgba(226,75,74,0.25) !important;
+        border-radius: 16px !important;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.6) !important;
+    }
+    .swal-dark-title {
+        font-size: 18px !important;
+        font-weight: 700 !important;
+        color: #fff !important;
+    }
+    .swal-dark-icon {
+        border-color: rgba(226,75,74,0.3) !important;
+        color: #e24b4a !important;
+    }
+    .swal-confirm-btn {
+        border-radius: 50px !important;
+        padding: 9px 24px !important;
+        font-size: 13px !important;
+        font-weight: 700 !important;
+        border: none !important;
+    }
+    .swal-cancel-btn {
+        border-radius: 50px !important;
+        padding: 9px 24px !important;
+        font-size: 13px !important;
+        font-weight: 500 !important;
+        border: 1px solid rgba(255,255,255,0.15) !important;
+        color: #8b94a5 !important;
+    }
+    .swal-cancel-btn:hover {
+        background: rgba(255,255,255,0.05) !important;
+        color: #fff !important;
+    }
+</style>
+
+<div class="container pb-5">
+    <nav class="custom-breadcrumb">
+        <a href="@Url.Action("Index", "Home")">Trang chủ</a>
+        <span class="mx-2 text-muted">/</span>
+        <a href="@Url.Action("Index", "Market")">Chợ Sinh Viên</a>
+        <span class="mx-2 text-muted">/</span>
+        <span class="text-white font-weight-bold text-truncate breadcrumb-active-title" title="@Model.Title">@Model.Title</span>
+    </nav>
+
+    <div class="details-wrapper">
+        <div class="row g-0">
+        <div class="col-lg-7 image-section">
+            @{
+                var marketImages = Model.MarketImages?
+                    .Where(image => !string.IsNullOrWhiteSpace(image.ImageUrl))
+                    .Select(image => image.ImageUrl)
+                    .Distinct()
+                    .ToList() ?? new List<string>();
+                if (!marketImages.Any() && !string.IsNullOrWhiteSpace(Model.MainImage))
+                {
+                    marketImages.Add(Model.MainImage);
+                }
+            }
+            @if (marketImages.Any())
+            {
+                int imgCount = marketImages.Count;
+                int displayCount = Math.Min(imgCount, 5);
+                string countClass = "img-count-" + Math.Min(imgCount, 5);
+
+                <div class="market-image-gallery @countClass">
+                    @for (int i = 0; i < displayCount; i++)
+                    {
+                        <div class="market-gallery-item" onclick="openLightbox(@i)">
+                            <img src="@marketImages[i]" class="market-gallery-image" alt="@Model.Title - Ảnh @(i+1)" loading="lazy" />
+                            @if (i == displayCount - 1 && imgCount > 5)
+                            {
+                                <div class="market-gallery-more">+@(imgCount - 5)</div>
+                            }
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="text-center text-muted">
+                    <i class="fas fa-box-open fa-4x mb-3"></i>
+                    <p>Chưa có hình ảnh mô tả</p>
+                </div>
+            }
+        </div>
+
+        <div class="col-lg-5 info-section">
+            <span class="category-label">
+                @(Model.MarketCategory?.CategoryName ?? "Khác")
+            </span>
+
+            <h1 class="market-detail-title">@Model.Title</h1>
+
+            <div class="price-tag">
+                @((Model.Price ?? 0).ToString("N0"))
+                <span style="font-size:1.2rem;">đ</span>
+            </div>
+
+            <div class="mt-4 pt-3 border-top">
+                <p class="mb-2 text-muted">
+                    <i class="fas fa-map-marker-alt mr-2 text-danger"></i>
+                    <strong class="text-light">Khu vực:</strong> @(Model.ExchangeLocation ?? "Thỏa thuận")
+                </p>
+                <p class="text-muted">
+                    <i class="fas fa-history mr-2 text-primary"></i>
+                    <strong class="text-light">Ngày đăng:</strong> @(Model.CreatedAt?.ToString("dd/MM/yyyy") ?? "N/A")
+                </p>
+            </div>
+
+            @if (Model.User != null)
+            {
+                <div class="seller-info">
+                    <a href="@Url.Action("Profile", "User", new { id = Model.UserID })" class="seller-link" title="Xem trang cá nhân">
+                        <div class="user-avatar" style="padding: 0;">
+                            @if (!string.IsNullOrEmpty(Model.User.Avatar))
+                            {
+                                <img src="@Model.User.Avatar" style="width:100%; height:100%; object-fit:cover;" alt="@Model.User.Username" onerror="this.parentElement.innerHTML='@(Model.User.Username?.Substring(0, 1).ToUpper() ?? "U")';" />
+                            }
+                            else
+                            {
+                                @(Model.User.Username?.Substring(0, 1).ToUpper() ?? "U")
+                            }
+                        </div>
+                        <div style="min-width:0; flex:1;">
+                            <div class="small text-muted text-truncate">Người bán · <span class="text-info"><i class="fa-solid fa-arrow-up-right-from-square"></i> Hồ sơ</span></div>
+                            <div class="seller-name">@Model.User.Username</div>
+                        </div>
+                    </a>
+                    <div class="small text-success text-nowrap">
+                        <i class="fas fa-check-circle me-1"></i>Đã xác thực
+                    </div>
+                </div>
+            }
+
+            <div class="mt-4">
+                @if (isOwner)
+                {
+                    <div class="row gx-2">
+                        <div class="col-6">
+                            <a href="@Url.Action("Edit", "Market", new { id = Model.PostID })"
+                               class="btn btn-warning w-100 font-weight-bold py-2">
+                                <i class="fas fa-edit mr-2"></i> Sửa
+                            </a>
+                        </div>
+                        <div class="col-6">
+                           @using (Html.BeginForm("Delete", "Market",  new { id = Model.PostID },  FormMethod.Post,  new { id = "deleteMarketForm" }))
+                            {
+                                @Html.AntiForgeryToken()
+                            <button type="button" class="btn btn-danger w-100 font-weight-bold py-2"
+                                    onclick="confirmDelete()">
+                                <i class="fas fa-trash-alt mr-2"></i> Xóa
+                            </button>
+                            }
+                        </div>
+                    </div>
+                    <div class="alert mt-3 text-center small" style="background: rgba(255,255,255,0.05); color: #fff; border: 1px solid #23273b;">
+                        Bạn đang xem bài viết của chính mình.
+                    </div>
+                }
+                else
+                {
+                    <div class="mb-3">
+                        <a href="@Url.Action("ChatWithSeller", "Market", new { postId = Model.PostID })"
+                           class="btn btn-info btn-chat-seller"
+                           style="border-radius: 12px; font-size: 1.05rem; background: linear-gradient(135deg, #0dcaf0, #0099ff); border: none; color: #000; box-shadow: 0 6px 22px rgba(13,202,240,0.35); text-decoration: none; transition: all 0.3s ease;">
+                            <i class="fas fa-comment-dots mr-2" style="font-size: 1.3rem;"></i> Nhắn tin với người bán
+                        </a>
+                    </div>
+                }
+
+                @{
+                    int mDetailShareCount = ViewBag.ShareCount ?? 0;
+                }
+                <div class="mt-3">
+                    <button type="button" class="btn btn-outline-info w-100 py-2 rounded-pill btn-share-market" style="font-size:0.95rem;"
+                            onclick="openShareModal('Market', @Model.PostID, '@HttpUtility.JavaScriptStringEncode(Model.Title ?? "")', '@HttpUtility.JavaScriptStringEncode(Model.User?.Username ?? "Ẩn danh")', '@HttpUtility.JavaScriptStringEncode(marketImages.FirstOrDefault() ?? "")', '@HttpUtility.JavaScriptStringEncode((Model.Price ?? 0).ToString("N0") + " VNĐ")')">
+                        <i class="bi bi-share me-2"></i>Chia sẻ tin này <span class="share-count-Market-@Model.PostID">@(mDetailShareCount > 0 ? $"({mDetailShareCount})" : "")</span>
+                    </button>
+                </div>
+
+                <p class="text-center mt-3 small text-muted">
+                    Vui lòng không giao dịch ngoài khuôn viên trường để đảm bảo an toàn.
+                </p>
+            </div>
+        </div>
+    </div>
+        </div>
+
+    <div class="details-wrapper mt-4 p-4">
+        <h5 class="font-weight-bold border-bottom pb-3">Mô tả chi tiết</h5>
+        <div class="desc-content">@Model.Description</div>
+    </div>
+
+    <div class="comments-wrapper mt-4 p-4">
+        <h5 class="font-weight-bold mb-4 border-bottom pb-3">
+            Bình luận (<span id="commentTotalCount">@comments.Count()</span>)
+        </h5>
+
+        <div class="comment-input-area mb-4">
+            @if (isLoggedIn)
+            {
+                <form id="marketCommentForm" data-ajax="true" onsubmit="submitMarketComment(event)">
+                    <div class="d-flex comment-input-form-inner">
+                        <div class="comment-avatar comment-input-avatar-wrap" style="width:44px; height:44px; background: #4b5563; flex-shrink:0;">
+                            <i class="fas fa-user" style="font-size: 1.1rem;"></i>
+                        </div>
+                        <div class="flex-grow-1" style="min-width:0;">
+                            <textarea id="commentContent" class="form-control dark-textarea" rows="2" placeholder="Chia sẻ cảm nghĩ hoặc đặt câu hỏi về sản phẩm..." required></textarea>
+                            <div class="text-end mt-2 btn-submit-comment-wrap">
+                                <button type="submit" id="btnSubmitComment" class="btn btn-info px-4 py-2" style="border-radius: 20px; font-weight:bold; background-color: #0dcaf0; color: #000; border: none;">
+                                    <i class="fas fa-paper-plane me-1"></i> Gửi bình luận
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            }
+            else
+            {
+                <div class="alert text-center m-0" style="background: rgba(220, 53, 69, 0.1); border: 1px solid rgba(220, 53, 69, 0.2); color: #fff; border-radius: 12px;">
+                    Vui lòng <a href="@Url.Action("Login", "User")" class="font-weight-bold" style="color: #0dcaf0;">Đăng nhập</a> để tham gia bình luận và trao đổi.
+                </div>
+            }
+        </div>
+
+        <div class="comment-list" id="commentListContainer">
+            @if (comments.Any())
+            {
+                foreach (var c in comments)
+                {
+                    var authorName = c.User?.Username ?? "Ẩn danh";
+                    bool isSeller = (c.UserID == Model.UserID);
+
+                    <div class="comment-item" id="comment-item-@c.ReviewID">
+                        <div class="comment-avatar @(isSeller ? "seller" : "")">
+                            @(authorName.Substring(0, 1).ToUpper())
+                        </div>
+                        <div class="comment-content">
+                            <div class="comment-header">
+                                <span class="comment-author">
+                                    @authorName
+                                    @if (isSeller)
+                                    {
+                                        <span class="badge badge-success ml-1" style="font-size: 0.7rem; vertical-align: middle;">Người bán</span>
+                                    }
+                                </span>
+                                <span class="comment-time">
+                                    <i class="far fa-clock mr-1"></i>
+                                    @(c.CreatedAt.HasValue ? c.CreatedAt.Value.ToString("dd/MM/yyyy HH:mm") : "")
+                                </span>
+                            </div>
+
+                            <p class="comment-text">@c.Comment</p>
+
+                            @if (isLoggedIn)
+                            {
+                                <a href="javascript:void(0);" onclick="replyTo('@authorName')" class="btn-reply">
+                                    <i class="fas fa-reply mr-1"></i>Trả lời
+                                </a>
+                            }
+                        </div>
+                    </div>
+                }
+            }
+            else
+            {
+                <div id="noCommentsPlaceholder" class="text-center py-4">
+                    <img src="https://cdn-icons-png.flaticon.com/512/7486/7486744.png" alt="No Comments" style="width: 80px; opacity: 0.3; filter: grayscale(100%) invert(100%); margin-bottom: 15px;" />
+                    <p class="text-muted">Chưa có bình luận nào. Hãy là người đầu tiên lên tiếng!</p>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@section scripts {
+<script>
+    // ═══════════════════════════════════════
+    // LIGHTBOX - tạo DOM trực tiếp trên body
+    // ═══════════════════════════════════════
+    var allMarketImages = @Html.Raw(Newtonsoft.Json.JsonConvert.SerializeObject(
+        (Model.MarketImages != null
+            ? Model.MarketImages.Where(img => !string.IsNullOrWhiteSpace(img.ImageUrl)).Select(img => img.ImageUrl).Distinct().ToList()
+            : new List<string>())
+        .Concat(!string.IsNullOrWhiteSpace(Model.MainImage) && (Model.MarketImages == null || !Model.MarketImages.Any(img => img.ImageUrl == Model.MainImage))
+            ? new List<string> { Model.MainImage }
+            : new List<string>())
+    ));
+    var lightboxIndex = 0;
+    var _lbEl = null;
+    var _lbImg = null;
+    var _lbCounter = null;
+
+    function _ensureLightbox() {
+        if (_lbEl) return;
+        _lbEl = document.createElement('div');
+        _lbEl.id = 'marketLightbox';
+        _lbEl.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:99999;display:none;align-items:center;justify-content:center;flex-direction:column;gap:14px;';
+        _lbEl.onclick = function(e) { if (e.target === _lbEl) closeLightbox(); };
+
+        // Close button
+        var closeBtn = document.createElement('button');
+        closeBtn.innerHTML = '&times;';
+        closeBtn.style.cssText = 'position:absolute;top:12px;right:14px;background:rgba(255,255,255,0.18);border:none;color:#fff;font-size:26px;width:42px;height:42px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:10;';
+        closeBtn.onmouseover = function() { this.style.background='rgba(255,255,255,0.25)'; };
+        closeBtn.onmouseout = function() { this.style.background='rgba(255,255,255,0.12)'; };
+        closeBtn.onclick = closeLightbox;
+        _lbEl.appendChild(closeBtn);
+
+        // Prev button
+        var prevBtn = document.createElement('button');
+        prevBtn.innerHTML = '<i class="fas fa-chevron-left"></i>';
+        prevBtn.style.cssText = 'position:absolute;top:50%;left:10px;transform:translateY(-50%);background:rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.15);color:#fff;font-size:18px;width:42px;height:42px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:10;';
+        prevBtn.onmouseover = function() { this.style.background='rgba(255,255,255,0.2)'; };
+        prevBtn.onmouseout = function() { this.style.background='rgba(255,255,255,0.08)'; };
+        prevBtn.onclick = function(e) { e.stopPropagation(); navLightbox(-1); };
+        _lbEl.appendChild(prevBtn);
+
+        // Next button
+        var nextBtn = document.createElement('button');
+        nextBtn.innerHTML = '<i class="fas fa-chevron-right"></i>';
+        nextBtn.style.cssText = 'position:absolute;top:50%;right:10px;transform:translateY(-50%);background:rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.15);color:#fff;font-size:18px;width:42px;height:42px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:10;';
+        nextBtn.onmouseover = function() { this.style.background='rgba(255,255,255,0.2)'; };
+        nextBtn.onmouseout = function() { this.style.background='rgba(255,255,255,0.08)'; };
+        nextBtn.onclick = function(e) { e.stopPropagation(); navLightbox(1); };
+        _lbEl.appendChild(nextBtn);
+
+        // Image
+        _lbImg = document.createElement('img');
+        _lbImg.style.cssText = 'max-width:90vw;max-height:80vh;object-fit:contain;border-radius:8px;box-shadow:0 10px 40px rgba(0,0,0,0.5);';
+        _lbEl.appendChild(_lbImg);
+
+        // Counter
+        _lbCounter = document.createElement('div');
+        _lbCounter.style.cssText = 'color:rgba(255,255,255,0.6);font-size:13px;font-weight:600;';
+        _lbEl.appendChild(_lbCounter);
+
+        // Touch swipe support for mobile
+        var touchStartX = 0;
+        var touchEndX = 0;
+        _lbEl.addEventListener('touchstart', function(e) {
+            touchStartX = e.changedTouches[0].screenX;
+        }, { passive: true });
+        _lbEl.addEventListener('touchend', function(e) {
+            touchEndX = e.changedTouches[0].screenX;
+            var diff = touchEndX - touchStartX;
+            if (diff < -45) navLightbox(1);
+            else if (diff > 45) navLightbox(-1);
+        }, { passive: true });
+
+        document.body.appendChild(_lbEl);
+    }
+
+    // Auto-scroll on focus for mobile virtual keyboard
+    $(document).ready(function () {
+        $('#commentContent').on('focus', function () {
+            setTimeout(function () {
+                var el = document.getElementById('commentContent');
+                if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 300);
+        });
+    });
+
+    function openLightbox(idx) {
+        if (!allMarketImages.length) return;
+        _ensureLightbox();
+        lightboxIndex = idx;
+        updateLightbox();
+        _lbEl.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeLightbox() {
+        if (!_lbEl) return;
+        _lbEl.style.display = 'none';
+        document.body.style.overflow = '';
+    }
+
+    function navLightbox(dir) {
+        lightboxIndex += dir;
+        if (lightboxIndex < 0) lightboxIndex = allMarketImages.length - 1;
+        if (lightboxIndex >= allMarketImages.length) lightboxIndex = 0;
+        updateLightbox();
+    }
+
+    function updateLightbox() {
+        _lbImg.src = allMarketImages[lightboxIndex];
+        _lbCounter.textContent = (lightboxIndex + 1) + ' / ' + allMarketImages.length;
+    }
+
+    document.addEventListener('keydown', function(e) {
+        if (!_lbEl || _lbEl.style.display === 'none') return;
+        if (e.key === 'Escape') closeLightbox();
+        else if (e.key === 'ArrowLeft') navLightbox(-1);
+        else if (e.key === 'ArrowRight') navLightbox(1);
+    });
+
+    const postId = @Model.PostID;
+    const isLoggedIn = @(isLoggedIn ? "true" : "false");
+    let chatHub = null;
+
+    // Khởi tạo SignalR Real-time Comments
+    $(function() {
+        if ($.connection && $.connection.chatHub) {
+            chatHub = $.connection.chatHub;
+
+            chatHub.client.onNewMarketComment = function(c) {
+                if (c && c.postId == postId) {
+                    appendCommentRealtime(c);
+                }
+            };
+
+            window.marketPostId = postId;
+        }
+    });
+
+    function submitMarketComment(e) {
+        e.preventDefault();
+        const content = $('#commentContent').val().trim();
+        if (!content) return;
+
+        $('#btnSubmitComment').prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Đang gửi...');
+
+        $.post('/Market/AddCommentAjax', { postId: postId, content: content }, function(res) {
+            $('#btnSubmitComment').prop('disabled', false).html('<i class="fas fa-paper-plane mr-1"></i> Gửi bình luận');
+            if (res.success) {
+                $('#commentContent').val('');
+                appendCommentRealtime(res.comment);
+            } else {
+                Swal.fire('Thông báo', res.message || 'Không thể gửi bình luận.', 'error');
+            }
+        }).fail(function() {
+            $('#btnSubmitComment').prop('disabled', false).html('<i class="fas fa-paper-plane mr-1"></i> Gửi bình luận');
+            Swal.fire('Lỗi', 'Không thể kết nối máy chủ.', 'error');
+        });
+    }
+
+    function appendCommentRealtime(c) {
+        if ($('#comment-item-' + c.reviewId).length > 0) return; // Tránh trùng
+
+        $('#noCommentsPlaceholder').remove();
+
+        const initial = c.username ? c.username.charAt(0).toUpperCase() : 'U';
+        const sellerBadge = c.isSeller ? '<span class="badge badge-success ml-1" style="font-size: 0.7rem; vertical-align: middle;">Người bán</span>' : '';
+        const replyBtn = isLoggedIn ? `<a href="javascript:void(0);" onclick="replyTo('${c.username}')" class="btn-reply"><i class="fas fa-reply mr-1"></i>Trả lời</a>` : '';
+
+        const html = `
+            <div class="comment-item" id="comment-item-${c.reviewId}" style="animation: fadeIn 0.5s ease;">
+                <div class="comment-avatar ${c.isSeller ? 'seller' : ''}">
+                    ${initial}
+                </div>
+                <div class="comment-content">
+                    <div class="comment-header">
+                        <span class="comment-author">
+                            ${c.username}
+                            ${sellerBadge}
+                        </span>
+                        <span class="comment-time">
+                            <i class="far fa-clock mr-1"></i> ${c.createdAt}
+                        </span>
+                    </div>
+                    <p class="comment-text">${$('<div>').text(c.comment).html()}</p>
+                    ${replyBtn}
+                </div>
+            </div>
+        `;
+
+        $('#commentListContainer').append(html);
+        let count = parseInt($('#commentTotalCount').text()) || 0;
+        $('#commentTotalCount').text(count + 1);
+    }
+
+    function replyTo(username) {
+        var textarea = document.getElementById('commentContent');
+        if (textarea) {
+            textarea.value = '@@' + username + ' ' + textarea.value;
+            textarea.focus();
+            textarea.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    }
+
+    function confirmDelete() {
+        Swal.fire({
+            title: 'Xóa bài đăng?',
+            html: `<div style="font-size:13px; color:#8b94a5; line-height:1.6;">
+                       Bài <strong style="color:#fff;">@Html.Raw(Model.Title.Replace("'", "\\'"))</strong>
+                       sẽ bị xóa vĩnh viễn.<br/>
+                       <span style="color:rgba(226,75,74,0.8); font-size:12px;">
+                           Hành động này không thể hoàn tác.
+                       </span>
+                   </div>`,
+            icon: 'warning',
+            background: '#0d1626',
+            color: '#fff',
+            showCancelButton: true,
+            confirmButtonText: '<i class="fas fa-trash-alt"></i> Xóa ngay',
+            cancelButtonText: 'Hủy bỏ',
+            confirmButtonColor: '#e24b4a',
+            cancelButtonColor: 'transparent',
+            customClass: {
+                popup:         'swal-dark-popup',
+                confirmButton: 'swal-confirm-btn',
+                cancelButton:  'swal-cancel-btn',
+                title:         'swal-dark-title',
+                icon:          'swal-dark-icon',
+            },
+            reverseButtons: true
+        }).then(result => {
+            if (result.isConfirmed) {
+                document.getElementById('deleteMarketForm').submit();
+            }
+        });
+    }
+</script>
+}

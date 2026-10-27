@@ -1,0 +1,399 @@
+@{
+    string currentCtrl = ViewContext.RouteData.Values["controller"]?.ToString();
+    // Ẩn widget nổi khi ở chính trang /Assistant hoặc khu vực Trò chuyện /Chat (cả sảnh chính và phòng chat)
+    bool isAssistantPage = string.Equals(currentCtrl, "Assistant", StringComparison.OrdinalIgnoreCase);
+    bool isChatPage = string.Equals(currentCtrl, "Chat", StringComparison.OrdinalIgnoreCase) || (ViewBag.IsChatPage == true);
+    bool shouldHideWidget = isAssistantPage || isChatPage;
+}
+
+@if (!shouldHideWidget)
+{
+    <style>
+        /* Floating Button */
+        .ai-fab-btn {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            width: 54px;
+            height: 54px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #00c8ff, #7b61ff);
+            color: #fff;
+            border: 2px solid rgba(255, 255, 255, 0.25);
+            box-shadow: 0 8px 24px rgba(0, 200, 255, 0.45);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            cursor: pointer;
+            z-index: 1040;
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            outline: none;
+        }
+
+        .ai-fab-btn:hover {
+            transform: scale(1.1) rotate(5deg);
+            box-shadow: 0 10px 30px rgba(0, 200, 255, 0.65);
+            color: #fff;
+        }
+
+        .ai-fab-badge {
+            position: absolute;
+            top: -2px;
+            right: -2px;
+            width: 14px;
+            height: 14px;
+            background: #00c850;
+            border: 2px solid #050a14;
+            border-radius: 50%;
+        }
+
+        /* Widget Window */
+        .ai-widget-box {
+            position: fixed;
+            bottom: 88px;
+            right: 24px;
+            width: 370px;
+            max-width: calc(100vw - 32px);
+            height: 520px;
+            max-height: calc(100vh - 120px);
+            background: #0d1626;
+            border: 1px solid rgba(0, 200, 255, 0.3);
+            border-radius: 18px;
+            box-shadow: 0 16px 48px rgba(0, 0, 0, 0.7);
+            z-index: 1045;
+            display: none;
+            flex-direction: column;
+            overflow: hidden;
+            backdrop-filter: blur(20px);
+            transform-origin: bottom right;
+            animation: widgetPop 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @@keyframes widgetPop {
+            from { opacity: 0; transform: scale(0.85) translateY(20px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        .ai-widget-header {
+            background: linear-gradient(135deg, rgba(20, 32, 55, 0.95), rgba(13, 22, 38, 0.95));
+            border-bottom: 1px solid rgba(0, 200, 255, 0.2);
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .ai-widget-title-area {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .ai-widget-avatar {
+            width: 34px;
+            height: 34px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #00c8ff, #7b61ff);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            color: #fff;
+        }
+
+        .ai-widget-name {
+            font-size: 14px;
+            font-weight: 600;
+            color: #fff;
+            margin: 0;
+            line-height: 1.2;
+        }
+
+        .ai-widget-status {
+            font-size: 10px;
+            color: #00c850;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .ai-widget-tools {
+            display: flex;
+            gap: 6px;
+        }
+
+        .ai-widget-btn-tool {
+            background: transparent;
+            border: none;
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 14px;
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none !important;
+        }
+
+        .ai-widget-btn-tool:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+        }
+
+        /* Message body */
+        .ai-widget-body {
+            flex: 1;
+            padding: 14px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            background: rgba(5, 10, 20, 0.7);
+        }
+
+        .w-msg {
+            max-width: 85%;
+            font-size: 13px;
+            line-height: 1.5;
+            padding: 10px 14px;
+            border-radius: 14px;
+            word-break: break-word;
+        }
+
+        .w-msg.ai {
+            align-self: flex-start;
+            background: rgba(18, 28, 48, 0.9);
+            border: 1px solid rgba(0, 200, 255, 0.2);
+            color: rgba(255, 255, 255, 0.85);
+            border-top-left-radius: 4px;
+        }
+
+        .w-msg.user {
+            align-self: flex-end;
+            background: linear-gradient(135deg, rgba(0, 200, 255, 0.3), rgba(123, 97, 255, 0.3));
+            border: 1px solid rgba(0, 200, 255, 0.4);
+            color: #fff;
+            border-top-right-radius: 4px;
+        }
+
+        .w-msg p { margin: 0 0 6px 0; }
+        .w-msg p:last-child { margin-bottom: 0; }
+        .w-msg ul { margin: 4px 0 4px 16px; padding: 0; }
+        .w-msg strong { color: #00c8ff; }
+
+        .w-typing {
+            display: none;
+            align-self: flex-start;
+            background: rgba(18, 28, 48, 0.9);
+            border: 1px solid rgba(0, 200, 255, 0.2);
+            padding: 8px 12px;
+            border-radius: 12px;
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.5);
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* Footer input */
+        .ai-widget-footer {
+            padding: 10px 12px;
+            background: #0d1626;
+            border-top: 1px solid rgba(0, 200, 255, 0.15);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .ai-widget-input {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 20px;
+            padding: 8px 14px;
+            font-size: 13px;
+            color: #fff;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .ai-widget-input:focus {
+            border-color: #00c8ff;
+        }
+
+        .ai-widget-send-btn {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #00c8ff, #7b61ff);
+            border: none;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            cursor: pointer;
+            transition: transform 0.15s;
+        }
+
+        .ai-widget-send-btn:hover {
+            transform: scale(1.08);
+        }
+    </style>
+
+    <!-- Floating Action Button -->
+    <button type="button" class="ai-fab-btn" id="aiFabBtn" title="Trò chuyện cùng Trợ lý ảo Mr. T">
+        <i class="bi bi-robot"></i>
+        <div class="ai-fab-badge"></div>
+    </button>
+
+    <!-- Widget Window -->
+    <div class="ai-widget-box" id="aiWidgetBox">
+        <div class="ai-widget-header">
+            <div class="ai-widget-title-area">
+                <div class="ai-widget-avatar">
+                    <i class="bi bi-robot"></i>
+                </div>
+                <div>
+                    <h6 class="ai-widget-name">Trợ lý ảo Mr. T</h6>
+                    <span class="ai-widget-status">● Online</span>
+                </div>
+            </div>
+            <div class="ai-widget-tools">
+                <a href="@Url.Action("Index", "Assistant")" class="ai-widget-btn-tool" title="Mở toàn màn hình">
+                    <i class="bi bi-arrows-angle-expand"></i>
+                </a>
+                <button type="button" class="ai-widget-btn-tool" id="aiWidgetClose" title="Đóng">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            </div>
+        </div>
+
+        <div class="ai-widget-body" id="aiWidgetBody">
+            <div class="w-msg ai">
+                <p>Xin chào! Mình là <strong>Trợ lý ảo Mr. T</strong>, trợ lý AI của StudentConnect. Bạn cần tìm bài viết, tìm đồ Chợ sinh viên hay bạn trọ gì cứ nhắn mình nhé!</p>
+            </div>
+            <div class="w-typing" id="wTyping">
+                <span>Mr. T đang suy nghĩ...</span>
+            </div>
+        </div>
+
+        <div class="ai-widget-footer">
+            <input type="text" class="ai-widget-input" id="aiWidgetInput" placeholder="Hỏi Trợ lý ảo Mr. T..." autocomplete="off" />
+            <button type="button" class="ai-widget-send-btn" id="aiWidgetSend" title="Gửi">
+                <i class="bi bi-send-fill"></i>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        $(function () {
+            var $fab = $('#aiFabBtn');
+            var $box = $('#aiWidgetBox');
+            var $close = $('#aiWidgetClose');
+            var $body = $('#aiWidgetBody');
+            var $input = $('#aiWidgetInput');
+            var $send = $('#aiWidgetSend');
+            var $typing = $('#wTyping');
+
+            $fab.on('click', function () {
+                $box.css('display', 'flex');
+                $input.focus();
+                $body.scrollTop($body.prop("scrollHeight"));
+            });
+
+            $close.on('click', function () {
+                $box.hide();
+            });
+
+            function scrollWidget() {
+                $body.stop().animate({ scrollTop: $body.prop("scrollHeight") }, 200);
+            }
+
+            function formatAiWidgetText(text) {
+                if (!text) return '';
+                var formatted = $('<div>').text(text).html();
+                formatted = formatted.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                var lines = formatted.split('\n');
+                var res = [];
+                for (var i = 0; i < lines.length; i++) {
+                    var l = lines[i].trim();
+                    if (l.length > 0) res.push('<p>' + l + '</p>');
+                }
+                return res.join('');
+            }
+
+            function sendWidgetMsg() {
+                var q = $input.val().trim();
+                if (!q) return;
+
+                $input.val('');
+                var userHtml = '<div class="w-msg user"><p>' + $('<div>').text(q).html() + '</p></div>';
+                $typing.before(userHtml);
+                $typing.css('display', 'flex');
+                scrollWidget();
+
+                $.ajax({
+                    url: '@Url.Action("Ask", "Assistant")',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({ message: q }),
+                    success: function (res) {
+                        $typing.hide();
+                        var reply = (res && res.Success) ? res.Reply : ('⚠️ ' + ((res && res.Error) ? res.Error : 'Lỗi xử lý.'));
+                        var confirmHtml = '';
+                        if (res && res.RequiresConfirmation && res.ConfirmationId) {
+                            confirmHtml = '<div class="mt-2 p-2" id="w-conf-' + res.ConfirmationId + '" style="background: rgba(255,170,0,0.1); border: 1px dashed rgba(255,170,0,0.5); border-radius: 8px;">' +
+                                '<div style="color: #ffaa00; font-size: 11px; font-weight: bold; margin-bottom: 4px;">⚠️ Xác nhận: ' + (res.ActionName || 'Thao tác nhạy cảm') + '</div>' +
+                                '<div style="display: flex; gap: 6px;">' +
+                                    '<button type="button" class="btn-w-conf" data-id="' + res.ConfirmationId + '" data-approve="true" style="background: #00c850; color:#fff; border:none; border-radius:4px; padding:3px 8px; font-size:11px; cursor:pointer;">Đồng ý</button>' +
+                                    '<button type="button" class="btn-w-conf" data-id="' + res.ConfirmationId + '" data-approve="false" style="background: rgba(255,255,255,0.1); color:#ff6b6b; border:1px solid rgba(255,80,80,0.3); border-radius:4px; padding:3px 8px; font-size:11px; cursor:pointer;">Hủy</button>' +
+                                '</div>' +
+                            '</div>';
+                        }
+                        var aiHtml = '<div class="w-msg ai">' + formatAiWidgetText(reply) + confirmHtml + '</div>';
+                        $typing.before(aiHtml);
+                        scrollWidget();
+                    },
+                    error: function () {
+                        $typing.hide();
+                        $typing.before('<div class="w-msg ai"><p>⚠️ Không thể kết nối đến máy chủ AI.</p></div>');
+                        scrollWidget();
+                    }
+                });
+            }
+
+            $send.on('click', sendWidgetMsg);
+            $input.on('keypress', function (e) {
+                if (e.which === 13) {
+                    e.preventDefault();
+                    sendWidgetMsg();
+                }
+            });
+
+            $(document).on('click', '.btn-w-conf', function () {
+                var $btn = $(this);
+                var confId = $btn.data('id');
+                var isApprove = $btn.data('approve') === true || $btn.data('approve') === 'true';
+                var $box = $('#w-conf-' + confId);
+
+                $box.find('button').prop('disabled', true);
+                $.post('@Url.Action("ConfirmAction", "Assistant")', { confirmationId: confId, approve: isApprove }, function (res) {
+                    if (res && res.success) {
+                        var color = isApprove ? '#00c850' : '#ff6b6b';
+                        $box.html('<div style="color:' + color + '; font-size:11px; font-weight:bold;">' + (res.message || 'Đã xử lý.') + '</div>');
+                    } else {
+                        if (window.AppDialog) AppDialog.warning(res ? res.message : 'Lỗi xử lý xác nhận.', 'Xác nhận Agent');
+                        else alert(res ? res.message : 'Lỗi xử lý xác nhận.');
+                        $box.find('button').prop('disabled', false);
+                    }
+                }).fail(function (xhr) {
+                    if (window.AppDialog) AppDialog.handleAjaxError(xhr, 'Lỗi kết nối máy chủ.');
+                    else alert('Lỗi kết nối máy chủ.');
+                    $box.find('button').prop('disabled', false);
+                });
+            });
+        });
+    </script>
+}

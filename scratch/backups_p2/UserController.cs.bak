@@ -1,0 +1,1263 @@
+﻿using StudentConnect.Helpers;
+using StudentConnect.Models;
+using System;
+using System.Collections.Generic;
+using System.Data.Entity;
+using System.IO;
+using System.Linq;
+using System.Net;
+using System.Net.Mail;
+using System.Text.RegularExpressions;
+using System.Web;
+using System.Web.Mvc;
+namespace StudentConnect.Controllers
+{
+    public class UserController : BaseController
+    {
+        // ==========================================
+        // 1. ĐĂNG KÝ TÀI KHOẢN
+        public ActionResult Register()
+        {
+            return View();
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public ActionResult Register(User taiKhoanMoi, string confirmPassword)
+        {
+            if (ModelState.IsValid)
+            {
+                // 1. Kiểm tra xác nhận mật khẩu
+                if (taiKhoanMoi.PasswordHash != confirmPassword)
+                {
+                    ViewBag.ErrorRegister = "Mật khẩu xác nhận không khớp!";
+                    return View(taiKhoanMoi);
+                }
+
+                // 2. Kiểm tra mật khẩu mạnh (tối thiểu 8 ký tự, có chữ, số, ký tự đặc biệt)
+                var hasNumber = new Regex(@"[0-9]+");
+                var hasChar = new Regex(@"[a-zA-Z]+");
+                var hasSymbols = new Regex(@"[!@#$%^&*()_+=\[{\]};:<>|./?,-]");
+                if (string.IsNullOrEmpty(taiKhoanMoi.PasswordHash) ||
+                    taiKhoanMoi.PasswordHash.Length < 8 ||
+                    !hasNumber.IsMatch(taiKhoanMoi.PasswordHash) ||
+                    !hasChar.IsMatch(taiKhoanMoi.PasswordHash) ||
+                    !hasSymbols.IsMatch(taiKhoanMoi.PasswordHash))
+                {
+                    ViewBag.ErrorRegister = "Mật khẩu phải có ít nhất 8 ký tự, bao gồm cả chữ cái, số và ký tự đặc biệt!";
+                    return View(taiKhoanMoi);
+                }
+
+                // 3. Kiểm tra tên miền email sinh viên TDMU nghiêm ngặt ở Backend
+                string normalizedEmail;
+                string emailError;
+                if (!StudentEmailValidator.IsValid(taiKhoanMoi.Email, out normalizedEmail, out emailError))
+                {
+                    ViewBag.ErrorRegister = emailError;
+                    return View(taiKhoanMoi);
+                }
+                taiKhoanMoi.Email = normalizedEmail;
+
+                // 4. Kiểm tra tài khoản đã tồn tại trong database
+                var existingEmailUser = db.Users.FirstOrDefault(u => u.Email.ToLower() == normalizedEmail);
+                if (existingEmailUser != null)
+                {
+                    // Nếu tài khoản đã xác minh hoặc là tài khoản cũ legacy
+                    if (existingEmailUser.IsEmailVerified == true || existingEmailUser.IsEmailVerified == null)
+                    {
+                        ViewBag.ErrorRegister = "Email này đã được sử dụng trong hệ thống! Vui lòng đăng nhập hoặc dùng chức năng Quên mật khẩu.";
+                        return View(taiKhoanMoi);
+                    }
+
+                    // Nếu tài khoản đã đăng ký nhưng chưa xác thực OTP, kiểm tra cooldown gửi lại
+                    int remainingSecs;
+                    if (!OtpHelper.CanResend(existingEmailUser.OtpLastSent, out remainingSecs))
+                    {
+                        ViewBag.ErrorRegister = $"Mã OTP vừa được gửi đến email này. Vui lòng chờ {remainingSecs} giây trước khi yêu cầu mã mới.";
+                        return View(taiKhoanMoi);
+                    }
+                }
+
+                // 5. Kiểm tra trùng Username
+                string cleanUsername = (taiKhoanMoi.Username ?? "").Trim();
+                var existingNameUser = db.Users.FirstOrDefault(u => u.Username.ToLower() == cleanUsername.ToLower());
+                if (existingNameUser != null && (existingEmailUser == null || existingNameUser.UserID != existingEmailUser.UserID))
+                {
+                    ViewBag.ErrorRegister = "Tên đăng nhập này đã được sử dụng! Vui lòng chọn tên khác.";
+                    return View(taiKhoanMoi);
+                }
+
+                // 6. Sinh mã OTP ngẫu nhiên mật mã 6 chữ số
+                string otp = OtpHelper.GenerateOtp();
+
+                // 7. GỬI EMAIL THỰC TẾ QUA SMTP TRƯỚC KHI TẠO/KÍCH HOẠT TÀI KHOẢN
+                string sendError;
+                bool emailSent = EmailService.SendRegistrationOtp(normalizedEmail, cleanUsername, otp, out sendError);
+                if (!emailSent)
+                {
+                    // Gửi email thất bại: Không tạo OTP, không đánh dấu thành công
+                    ViewBag.ErrorRegister = sendError ?? "Không thể gửi email OTP đến hộp thư sinh viên. Vui lòng kiểm tra lại email hoặc thử lại sau.";
+                    return View(taiKhoanMoi);
+                }
+
+                // 8. Băm mã OTP bằng SHA-256 + Salt (Email sinh viên) - Tuyệt đối không lưu plain text
+                string otpHash = OtpHelper.HashOtp(otp, normalizedEmail);
+                DateTime expiry = DateTime.Now.AddMinutes(OtpHelper.OtpValidityMinutes);
+                string hashedPassword = PasswordHelper.HashPassword(taiKhoanMoi.PasswordHash);
+
+                if (existingEmailUser != null)
+                {
+                    // Cập nhật thông tin cho tài khoản chưa xác thực trước đó
+                    existingEmailUser.Username = cleanUsername;
+                    existingEmailUser.PasswordHash = hashedPassword;
+                    existingEmailUser.PhoneNumber = taiKhoanMoi.PhoneNumber;
+                    existingEmailUser.IsEmailVerified = false;
+                    existingEmailUser.IsTDMUStudent = false;
+                    existingEmailUser.OtpHash = otpHash;
+                    existingEmailUser.OtpExpiry = expiry;
+                    existingEmailUser.OtpAttempts = 0;
+                    existingEmailUser.OtpLastSent = DateTime.Now;
+                }
+                else
+                {
+                    // Tạo bản ghi mới ở trạng thái CHƯA XÁC THỰC (IsEmailVerified = false)
+                    taiKhoanMoi.Username = cleanUsername;
+                    taiKhoanMoi.PasswordHash = hashedPassword;
+                    taiKhoanMoi.IsEmailVerified = false;
+                    taiKhoanMoi.IsTDMUStudent = false;
+                    taiKhoanMoi.OtpHash = otpHash;
+                    taiKhoanMoi.OtpExpiry = expiry;
+                    taiKhoanMoi.OtpAttempts = 0;
+                    taiKhoanMoi.OtpLastSent = DateTime.Now;
+                    taiKhoanMoi.CreatedAt = DateTime.Now;
+                    db.Users.Add(taiKhoanMoi);
+                }
+
+                db.SaveChanges();
+
+                // Lưu email phiên vào Session và TempData để chuyển hướng sang bước nhập OTP
+                Session["PendingRegisterEmail"] = normalizedEmail;
+                TempData["RegisterEmail"] = normalizedEmail;
+
+                return RedirectToAction("VerifyRegisterOTP");
+            }
+
+            return View(taiKhoanMoi);
+        }
+
+        // ==========================================
+        // 2. XÁC THỰC OTP ĐĂNG KÝ
+        [HttpGet]
+        public ActionResult VerifyRegisterOTP(string email = null)
+        {
+            string targetEmail = email;
+            if (string.IsNullOrWhiteSpace(targetEmail))
+            {
+                targetEmail = Session["PendingRegisterEmail"] as string ?? TempData["RegisterEmail"] as string;
+            }
+
+            if (string.IsNullOrWhiteSpace(targetEmail))
+            {
+                return RedirectToAction("Register");
+            }
+
+            targetEmail = StudentEmailValidator.NormalizeEmail(targetEmail);
+            var user = db.Users.FirstOrDefault(u => u.Email.ToLower() == targetEmail);
+            if (user == null)
+            {
+                return RedirectToAction("Register");
+            }
+
+            if (user.IsEmailVerified == true)
+            {
+                TempData["SuccessMessage"] = "Tài khoản của bạn đã được xác minh trước đó. Vui lòng đăng nhập.";
+                return RedirectToAction("Login");
+            }
+
+            ViewBag.TargetEmail = targetEmail;
+            ViewBag.RemainingCooldown = 0;
+            if (!OtpHelper.CanResend(user.OtpLastSent, out int rem))
+            {
+                ViewBag.RemainingCooldown = rem;
+            }
+
+            return View();
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public ActionResult VerifyRegisterOTP(string email, string otp)
+        {
+            string targetEmail = StudentEmailValidator.NormalizeEmail(email);
+            if (string.IsNullOrWhiteSpace(targetEmail))
+            {
+                targetEmail = Session["PendingRegisterEmail"] as string;
+            }
+
+            if (string.IsNullOrWhiteSpace(targetEmail))
+            {
+                return RedirectToAction("Register");
+            }
+
+            ViewBag.TargetEmail = targetEmail;
+
+            var user = db.Users.FirstOrDefault(u => u.Email.ToLower() == targetEmail);
+            if (user == null)
+            {
+                ViewBag.ErrorMessage = "Không tìm thấy thông tin tài khoản đăng ký.";
+                return View();
+            }
+
+            if (user.IsEmailVerified == true)
+            {
+                TempData["SuccessMessage"] = "Tài khoản của bạn đã được kích hoạt thành công! Vui lòng đăng nhập.";
+                return RedirectToAction("Login");
+            }
+
+            // 1. Chống brute-force: Giới hạn tối đa 5 lần nhập sai
+            int currentAttempts = user.OtpAttempts ?? 0;
+            if (currentAttempts >= OtpHelper.MaxOtpAttempts)
+            {
+                ViewBag.ErrorMessage = "Bạn đã nhập sai OTP quá 5 lần. Mã xác thực đã bị vô hiệu hóa vì lý do an toàn. Vui lòng bấm 'Gửi lại mã'.";
+                return View();
+            }
+
+            // 2. Kiểm tra thời hạn OTP (5 phút)
+            if (OtpHelper.IsExpired(user.OtpExpiry) || string.IsNullOrEmpty(user.OtpHash))
+            {
+                ViewBag.ErrorMessage = "Mã OTP đã hết hạn sử dụng (5 phút). Vui lòng bấm 'Gửi lại mã' để nhận mã mới.";
+                return View();
+            }
+
+            // 3. Kiểm tra tính khớp của mã OTP (so sánh Hash theo thời gian cố định)
+            string cleanOtp = (otp ?? "").Trim();
+            bool isMatch = OtpHelper.VerifyOtp(cleanOtp, targetEmail, user.OtpHash);
+
+            if (!isMatch)
+            {
+                user.OtpAttempts = currentAttempts + 1;
+                db.SaveChanges();
+
+                int remaining = OtpHelper.MaxOtpAttempts - (currentAttempts + 1);
+                if (remaining > 0)
+                {
+                    ViewBag.ErrorMessage = $"Mã OTP không chính xác. Bạn còn {remaining} lần thử.";
+                }
+                else
+                {
+                    // Vô hiệu hóa OTP sau 5 lần nhập sai
+                    user.OtpHash = null;
+                    user.OtpExpiry = null;
+                    db.SaveChanges();
+                    ViewBag.ErrorMessage = "Bạn đã nhập sai quá số lần quy định. Mã xác thực đã bị hủy. Vui lòng bấm 'Gửi lại mã'.";
+                }
+                return View();
+            }
+
+            // 4. OTP HỢP LỆ -> KÍCH HOẠT TÀI KHOẢN CHÍNH THỨC
+            user.IsEmailVerified = true;
+            user.EmailVerifiedAt = DateTime.Now;
+            user.IsTDMUStudent = true; // Kích hoạt danh hiệu Sinh viên TDMU chính thức
+            user.OtpHash = null; // Hủy mã OTP ngay sau khi dùng (chỉ sử dụng 1 lần)
+            user.OtpExpiry = null;
+            user.OtpAttempts = 0;
+            db.SaveChanges();
+
+            // Dọn dẹp session tạm
+            Session.Remove("PendingRegisterEmail");
+
+            // Tự động đăng nhập người dùng
+            Session["UserID"] = user.UserID;
+            UserAuthHelper.SetAuthCookie(Response, user.UserID);
+            Session["Username"] = user.Username;
+            Session["Avatar"] = user.SafeAvatar;
+
+            TempData["SuccessMessage"] = "Chúc mừng bạn! Tài khoản sinh viên TDMU đã được xác thực và kích hoạt thành công.";
+            return RedirectToAction("Index", "Home");
+        }
+
+        // ==========================================
+        // 3. GỬI LẠI MÃ OTP ĐĂNG KÝ (AJAX)
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public ActionResult ResendRegisterOtp(string email)
+        {
+            string targetEmail = StudentEmailValidator.NormalizeEmail(email);
+            if (string.IsNullOrWhiteSpace(targetEmail))
+            {
+                targetEmail = Session["PendingRegisterEmail"] as string;
+            }
+
+            if (string.IsNullOrWhiteSpace(targetEmail))
+            {
+                return Json(new { success = false, message = "Email không hợp lệ hoặc phiên đăng ký đã hết hạn." });
+            }
+
+            var user = db.Users.FirstOrDefault(u => u.Email.ToLower() == targetEmail);
+            if (user == null)
+            {
+                return Json(new { success = false, message = "Không tìm thấy tài khoản tương ứng." });
+            }
+
+            if (user.IsEmailVerified == true)
+            {
+                return Json(new { success = false, message = "Tài khoản này đã được xác thực trước đó. Vui lòng đăng nhập." });
+            }
+
+            // Kiểm tra cooldown 60 giây giữa các lần gửi lại
+            if (!OtpHelper.CanResend(user.OtpLastSent, out int remainingSecs))
+            {
+                return Json(new { success = false, message = $"Vui lòng chờ {remainingSecs} giây trước khi yêu cầu gửi lại mã." });
+            }
+
+            // Sinh mã mới và gửi qua SMTP
+            string newOtp = OtpHelper.GenerateOtp();
+            string sendErr;
+            bool ok = EmailService.SendRegistrationOtp(targetEmail, user.Username, newOtp, out sendErr);
+            if (!ok)
+            {
+                return Json(new { success = false, message = sendErr ?? "Không thể gửi email OTP. Vui lòng thử lại sau." });
+            }
+
+            // Cập nhật hash và hạn sử dụng mới
+            user.OtpHash = OtpHelper.HashOtp(newOtp, targetEmail);
+            user.OtpExpiry = DateTime.Now.AddMinutes(OtpHelper.OtpValidityMinutes);
+            user.OtpAttempts = 0;
+            user.OtpLastSent = DateTime.Now;
+            db.SaveChanges();
+
+            return Json(new { success = true, message = "Mã OTP mới đã được gửi đến email của bạn.", cooldown = OtpHelper.ResendCooldownSeconds });
+        }
+
+        // ==========================================
+        // 4. ĐĂNG NHẬP
+        public ActionResult Login(string returnUrl = null)
+        {
+            ViewBag.ReturnUrl = returnUrl;
+            return View();
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public ActionResult Login(string email, string password, string returnUrl = null)
+        {
+            if (ModelState.IsValid)
+            {
+                string normEmail = StudentEmailValidator.NormalizeEmail(email);
+                var checkUser = db.Users.FirstOrDefault(u => u.Email.ToLower() == normEmail);
+                if (checkUser != null && PasswordHelper.VerifyPassword(password, checkUser.PasswordHash))
+                {
+                    // Kiểm tra trạng thái xác thực email
+                    // Tài khoản mới chưa xác thực (IsEmailVerified == false) bị CHẶN đăng nhập
+                    // Lưu ý: Tài khoản cũ (IsEmailVerified == null) vẫn được an toàn đăng nhập theo phương án chuyển tiếp
+                    if (checkUser.IsEmailVerified == false)
+                    {
+                        ViewBag.ErrorLogin = "Tài khoản của bạn chưa được kích hoạt qua OTP email sinh viên. Vui lòng hoàn tất xác thực để đăng nhập.";
+                        ViewBag.UnverifiedEmail = checkUser.Email;
+                        Session["PendingRegisterEmail"] = checkUser.Email;
+                        ViewBag.ReturnUrl = returnUrl;
+                        return View();
+                    }
+
+                    // Tự động nâng cấp hash MD5 cũ lên PBKDF2 nếu đăng nhập thành công
+                    if (PasswordHelper.IsLegacyMD5(checkUser.PasswordHash))
+                    {
+                        checkUser.PasswordHash = PasswordHelper.HashPassword(password);
+                        db.SaveChanges();
+                    }
+                    Session["UserID"] = checkUser.UserID;
+                    UserAuthHelper.SetAuthCookie(Response, checkUser.UserID);
+                    Session["Username"] = checkUser.Username;
+                    Session["Avatar"] = checkUser.SafeAvatar;
+                    if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+                    {
+                        return Redirect(returnUrl);
+                    }
+                    return RedirectToAction("Index", "Home");
+                }
+                else
+                {
+                    ViewBag.ErrorLogin = "Email hoặc Mật khẩu không chính xác!";
+                }
+            }
+            ViewBag.ReturnUrl = returnUrl;
+            return View();
+        }
+
+        // ==========================================
+        // 5. ĐĂNG XUẤT
+        public ActionResult Logout()
+        {
+            Session.Clear();
+            UserAuthHelper.ClearAuthCookie(Response);
+            return RedirectToAction("Index", "Home");
+        }
+
+        // ==========================================
+        // 6. QUÊN MẬT KHẨU
+        public ActionResult ForgotPassword()
+        {
+            return View();
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public ActionResult ForgotPassword(string email)
+        {
+            string normEmail;
+            string err;
+            if (!StudentEmailValidator.IsValid(email, out normEmail, out err))
+            {
+                ViewBag.ErrorMessage = err;
+                return View();
+            }
+
+            var user = db.Users.FirstOrDefault(u => u.Email.ToLower() == normEmail);
+            if (user != null)
+            {
+                // Kiểm tra cooldown gửi lại mã
+                if (!OtpHelper.CanResend(user.OtpLastSent, out int remainingSecs))
+                {
+                    ViewBag.ErrorMessage = $"Mã xác thực vừa được gửi. Vui lòng chờ {remainingSecs} giây trước khi yêu cầu mã mới.";
+                    return View();
+                }
+
+                string otp = OtpHelper.GenerateOtp();
+                string sendErr;
+                bool ok = EmailService.SendPasswordResetOtp(normEmail, user.Username, otp, out sendErr);
+                if (!ok)
+                {
+                    ViewBag.ErrorMessage = sendErr ?? "Không thể gửi email OTP. Vui lòng thử lại sau.";
+                    return View();
+                }
+
+                // Lưu mã OTP đã được băm an toàn vào database
+                user.OtpHash = OtpHelper.HashOtp(otp, normEmail);
+                user.OtpExpiry = DateTime.Now.AddMinutes(OtpHelper.OtpValidityMinutes);
+                user.OtpAttempts = 0;
+                user.OtpLastSent = DateTime.Now;
+                db.SaveChanges();
+
+                Session["ResetEmail"] = normEmail;
+                return RedirectToAction("VerifyOTP");
+            }
+            else
+            {
+                ViewBag.ErrorMessage = "Email này chưa được đăng ký trong hệ thống!";
+            }
+            return View();
+        }
+
+        // ==========================================
+        // 7. XÁC NHẬN OTP QUÊN MẬT KHẨU
+        public ActionResult VerifyOTP()
+        {
+            if (Session["ResetEmail"] == null)
+            {
+                return RedirectToAction("ForgotPassword");
+            }
+            return View();
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public ActionResult VerifyOTP(string otp)
+        {
+            string resetEmail = Session["ResetEmail"] as string;
+            if (string.IsNullOrWhiteSpace(resetEmail))
+            {
+                return RedirectToAction("ForgotPassword");
+            }
+
+            var user = db.Users.FirstOrDefault(u => u.Email.ToLower() == resetEmail.ToLower());
+            if (user == null)
+            {
+                return RedirectToAction("ForgotPassword");
+            }
+
+            // Kiểm tra số lần nhập sai
+            int currentAttempts = user.OtpAttempts ?? 0;
+            if (currentAttempts >= OtpHelper.MaxOtpAttempts)
+            {
+                ViewBag.ErrorMessage = "Bạn đã nhập sai OTP quá 5 lần. Mã này đã bị hủy. Vui lòng yêu cầu mã mới.";
+                return View();
+            }
+
+            // Kiểm tra hết hạn
+            if (OtpHelper.IsExpired(user.OtpExpiry) || string.IsNullOrEmpty(user.OtpHash))
+            {
+                ViewBag.ErrorMessage = "Mã OTP đã hết hạn. Vui lòng yêu cầu mã xác minh mới.";
+                return View();
+            }
+
+            // Kiểm tra khớp hash
+            bool isMatch = OtpHelper.VerifyOtp(otp, resetEmail, user.OtpHash);
+            if (!isMatch)
+            {
+                user.OtpAttempts = currentAttempts + 1;
+                db.SaveChanges();
+                int remaining = OtpHelper.MaxOtpAttempts - (currentAttempts + 1);
+                ViewBag.ErrorMessage = $"Mã OTP không chính xác. Bạn còn {remaining} lần thử.";
+                return View();
+            }
+
+            // Hợp lệ: đánh dấu session được phép đổi mật khẩu
+            Session["OTPVerified"] = true;
+            return RedirectToAction("ResetPassword");
+        }
+
+        // ==========================================
+        // 8. ĐẶT LẠI MẬT KHẨU
+        public ActionResult ResetPassword()
+        {
+            if (Session["ResetEmail"] == null || Session["OTPVerified"] == null)
+            {
+                return RedirectToAction("ForgotPassword");
+            }
+            return View();
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public ActionResult ResetPassword(string newPassword, string confirmPassword)
+        {
+            if (Session["ResetEmail"] == null || Session["OTPVerified"] == null)
+            {
+                return RedirectToAction("ForgotPassword");
+            }
+
+            if (newPassword != confirmPassword)
+            {
+                ViewBag.ErrorMessage = "Mật khẩu xác nhận không khớp!";
+                return View();
+            }
+
+            // Kiểm tra mật khẩu mạnh
+            var hasNumber = new Regex(@"[0-9]+");
+            var hasChar = new Regex(@"[a-zA-Z]+");
+            var hasSymbols = new Regex(@"[!@#$%^&*()_+=\[{\]};:<>|./?,-]");
+            if (string.IsNullOrEmpty(newPassword) ||
+                newPassword.Length < 8 ||
+                !hasNumber.IsMatch(newPassword) ||
+                !hasChar.IsMatch(newPassword) ||
+                !hasSymbols.IsMatch(newPassword))
+            {
+                ViewBag.ErrorMessage = "Mật khẩu phải có ít nhất 8 ký tự, bao gồm cả chữ cái, số và ký tự đặc biệt!";
+                return View();
+            }
+
+            string email = Session["ResetEmail"].ToString();
+            var user = db.Users.FirstOrDefault(u => u.Email.ToLower() == email.ToLower());
+            if (user != null)
+            {
+                user.PasswordHash = PasswordHelper.HashPassword(newPassword);
+                user.OtpHash = null; // Xóa OTP
+                user.OtpExpiry = null;
+                user.OtpAttempts = 0;
+                db.SaveChanges();
+
+                Session.Remove("ResetEmail");
+                Session.Remove("OTPVerified");
+
+                TempData["SuccessMessage"] = "Đổi mật khẩu thành công! Vui lòng đăng nhập lại với mật khẩu mới.";
+                return RedirectToAction("Login");
+            }
+
+            ViewBag.ErrorMessage = "Đã xảy ra lỗi, vui lòng thử lại!";
+            return View();
+        }
+
+        // PROFILE CÁ NHÂN VÀ MẠNG XÃ HỘI
+        public new ActionResult Profile(int? id)
+        {
+            int currentUserId = Session["UserID"] as int? ?? 0;
+            if (currentUserId == 0 && (!id.HasValue || id.Value <= 0))
+            {
+                return RedirectToAction("Login", "User");
+            }
+            int targetUserId = id.HasValue && id.Value > 0 ? id.Value : currentUserId;
+            var targetUser = db.Users
+                .Include(u => u.UserProfiles)
+                .Include(u => u.MarketPosts.Select(p => p.MarketImages))
+                .Include(u => u.MarketPosts.Select(p => p.MarketCategory))
+                .Include(u => u.ConnectPosts.Select(p => p.ConnectCategory))
+                .FirstOrDefault(u => u.UserID == targetUserId);
+            if (targetUser == null)
+            {
+                return RedirectToAction("Index", "Home");
+            }
+            var userProfile = targetUser.UserProfiles?.FirstOrDefault();
+            // Quan hệ với người đang xem
+            int? friendshipId = null;
+            var relStatus = currentUserId > 0
+                ? SocialHelper.GetRelationshipStatus(currentUserId, targetUserId, db, out friendshipId)
+                : UserRelationshipStatus.None;
+            bool isFollowing = currentUserId > 0 && db.Follows.Any(f => f.FollowerID == currentUserId && f.FollowingID == targetUserId);
+            // Thống kê bạn bè & tương tác
+            var friendIds = SocialHelper.GetFriendIds(targetUserId, db);
+            int friendCount = friendIds.Count;
+            int followerCount = db.Follows.Count(f => f.FollowingID == targetUserId);
+            int followingCount = db.Follows.Count(f => f.FollowerID == targetUserId);
+            int postCount = db.Posts.Count(p => p.UserID == targetUserId);
+            // Bạn bè xem trước (tối đa 9 người)
+            var friendsPreview = db.Users
+                .Where(u => friendIds.Contains(u.UserID))
+                .Take(9)
+                .ToList()
+                .Select(u => new UserProfilePreviewItem
+                {
+                    UserID = u.UserID,
+                    Username = u.DisplayName,
+                    Avatar = u.SafeAvatar,
+                    Faculty = u.UserProfiles?.FirstOrDefault()?.Faculty,
+                    MutualFriendsCount = (currentUserId > 0 && currentUserId != u.UserID)
+                        ? SocialHelper.GetMutualFriendsCount(currentUserId, u.UserID, db)
+                        : 0
+                })
+                .ToList();
+            // Tin 24h đang còn hiệu lực
+            var now = DateTime.Now;
+            var activeStories = db.Stories
+                .Where(s => s.UserID == targetUserId && s.ExpiresAt > now)
+                .OrderBy(s => s.CreatedAt)
+                .ToList()
+                .Select(s => new StoryItemViewModel
+                {
+                    StoryID = s.StoryID,
+                    UserID = s.UserID,
+                    MediaUrl = s.MediaUrl,
+                    Caption = s.Caption,
+                    CreatedAt = s.CreatedAt,
+                    ExpiresAt = s.ExpiresAt,
+                    TimeAgo = SocialHelper.FormatTimeAgo(s.CreatedAt),
+                    ViewCount = s.StoryViews?.Count ?? 0,
+                    HasViewed = currentUserId > 0 && s.StoryViews.Any(v => v.ViewerID == currentUserId),
+                    IsOwner = currentUserId == targetUserId
+                })
+                .ToList();
+            // Danh sách ảnh gần đây từ bài viết
+            var recentPhotos = db.PostMedias
+                .Where(m => m.Post.UserID == targetUserId && m.MediaType == "image")
+                .OrderByDescending(m => m.Post.CreatedAt)
+                .Take(9)
+                .Select(m => m.MediaUrl)
+                .ToList();
+            // Dòng thời gian bài viết (kiểm tra tài khoản riêng tư)
+            var postsVm = new List<PostItemViewModel>();
+            bool isOwner = currentUserId == targetUserId;
+            bool isFriend = relStatus == UserRelationshipStatus.Friends;
+            bool canViewTimeline = isOwner || !targetUser.IsPrivate || isFriend;
+            if (canViewTimeline)
+            {
+                var rawPosts = db.Posts
+                    .Include(p => p.User)
+                    .Include(p => p.User.UserProfiles)
+                    .Include(p => p.PostMedias)
+                    .Include(p => p.PostLikes)
+                    .Include(p => p.PostComments.Select(c => c.User))
+                    .Include(p => p.PostComments.Select(c => c.PostComments1.Select(r => r.User)))
+                    .Where(p => p.UserID == targetUserId)
+                    .OrderByDescending(p => p.CreatedAt)
+                    .ToList();
+                postsVm = rawPosts
+                    .Where(p => SocialHelper.CanViewPost(p, currentUserId, db, friendIds))
+                    .Select(p => SocialHelper.MapToPostViewModel(p, currentUserId))
+                    .ToList();
+                // Lấy các bài viết mà người này đã chia sẻ
+                var rawShares = db.PostShares
+                    .Include(s => s.User)
+                    .Include(s => s.User.UserProfiles)
+                    .Include(s => s.Post)
+                    .Include(s => s.Post.User)
+                    .Include(s => s.Post.User.UserProfiles)
+                    .Include(s => s.Post.PostMedias)
+                    .Include(s => s.Post.PostLikes)
+                    .Include(s => s.Post.PostComments.Select(c => c.User))
+                    .Include(s => s.Post.PostComments.Select(c => c.PostComments1.Select(r => r.User)))
+                    .Where(s => s.UserID == targetUserId)
+                    .OrderByDescending(s => s.CreatedAt)
+                    .ToList();
+                var sharedPostsVm = rawShares
+                    .Where(s => s.Post == null || SocialHelper.CanViewPost(s.Post, currentUserId, db, friendIds))
+                    .Select(s => SocialHelper.MapShareToPostViewModel(s, currentUserId))
+                    .Where(vmItem => vmItem != null)
+                    .ToList();
+                // Lấy các bài chia sẻ từ Chợ và Kết nối
+                var rawSharedItems = db.SharedPosts
+                    .Include(s => s.User)
+                    .Include(s => s.User.UserProfiles)
+                    .Where(s => s.UserID == targetUserId)
+                    .OrderByDescending(s => s.CreatedAt)
+                    .ToList();
+                var sharedItemsVm = rawSharedItems
+                    .Select(s => SocialHelper.MapSharedPostToPostViewModel(s, currentUserId, db))
+                    .Where(vmItem => vmItem != null)
+                    .ToList();
+                // Trộn bài viết tự đăng và bài viết đã chia sẻ theo thứ tự thời gian
+                postsVm = postsVm.Concat(sharedPostsVm).Concat(sharedItemsVm)
+                    .OrderByDescending(p => p.CreatedAt)
+                    .ToList();
+            }
+            if (currentUserId > 0)
+            {
+                try
+                {
+                    var hiddenPostIds = db.Database.SqlQuery<int>(
+                        "SELECT PostID FROM UserHiddenPosts WHERE UserID = @uid",
+                        new System.Data.SqlClient.SqlParameter("@uid", currentUserId)).ToList();
+                    postsVm = postsVm.Where(p => !hiddenPostIds.Contains(p.PostID)).ToList();
+                }
+                catch { }
+            }
+            SocialHelper.ApplyCommentModeration(postsVm, db, currentUserId);
+            var vm = new SocialProfileViewModel
+            {
+                UserID = targetUser.UserID,
+                Username = targetUser.DisplayName,
+                Email = targetUser.Email,
+                PhoneNumber = targetUser.PhoneNumber,
+                Avatar = targetUser.SafeAvatar,
+                IsTDMUStudent = targetUser.IsTDMUStudent,
+                IsPrivate = targetUser.IsPrivate,
+                CreatedAt = targetUser.CreatedAt,
+                ProfileID = userProfile?.ProfileID,
+                CoverPhoto = !string.IsNullOrEmpty(userProfile?.CoverPhoto) ? userProfile.CoverPhoto : "/Content/Images/default-cover.jpg",
+                Bio = userProfile?.Bio,
+                Faculty = userProfile?.Faculty,
+                Major = userProfile?.Major,
+                StudentYear = userProfile?.StudentYear,
+                Hometown = userProfile?.Hometown,
+                RelationshipStatus = isOwner ? UserRelationshipStatus.Self : relStatus,
+                FriendshipID = friendshipId,
+                IsFollowing = isFollowing,
+                FriendCount = friendCount,
+                MutualFriendCount = (currentUserId > 0 && currentUserId != targetUserId)
+                    ? SocialHelper.GetMutualFriendsCount(currentUserId, targetUserId, db)
+                    : 0,
+                FollowerCount = followerCount,
+                FollowingCount = followingCount,
+                PostCount = postCount,
+                FriendsPreview = friendsPreview,
+                RecentPhotos = recentPhotos,
+                Posts = postsVm,
+                ActiveStories = activeStories,
+                Highlights = StoryHelper.GetHighlights(targetUserId)
+            };
+            ViewBag.MarketPosts = targetUser.MarketPosts?.OrderByDescending(p => p.CreatedAt).ToList() ?? new List<MarketPost>();
+            ViewBag.ConnectPosts = targetUser.ConnectPosts?.OrderByDescending(p => p.CreatedAt).ToList() ?? new List<ConnectPost>();
+            ViewBag.IsOwner = isOwner;
+            if (isOwner)
+            {
+                bool canChange;
+                DateTime? lastChange, nextAllowed;
+                int daysRemaining;
+                GetNameChangeStatus(currentUserId, out canChange, out lastChange, out nextAllowed, out daysRemaining);
+                vm.CanChangeUsername = canChange;
+                vm.LastUsernameChangeDate = lastChange;
+                vm.NextUsernameChangeDate = nextAllowed;
+                vm.DaysUntilNextNameChange = daysRemaining;
+            }
+            return View(vm);
+        }
+        // ==========================================
+        // QUẢN LÝ KẾT BẠN & THEO DÕI
+        // ==========================================
+        [HttpPost]
+        public ActionResult SendFriendRequest(int targetId, string message = null)
+        {
+            if (Session["UserID"] == null || Session["Username"] == null)
+                return Json(new { success = false, requireLogin = true, message = "Vui lòng đăng nhập để kết bạn!" });
+            int currentUserId = (int)Session["UserID"];
+            if (currentUserId == targetId)
+                return Json(new { success = false, message = "Bạn không thể tự kết bạn với chính mình!" });
+            var existing = db.Friendships.FirstOrDefault(f =>
+                (f.RequesterID == currentUserId && f.ReceiverID == targetId) ||
+                (f.RequesterID == targetId && f.ReceiverID == currentUserId));
+            if (existing != null)
+            {
+                if (existing.Status == FriendshipStatus.Accepted)
+                    return Json(new { success = false, message = "Hai bạn đã là bạn bè rồi!" });
+                if (existing.Status == FriendshipStatus.Pending)
+                    return Json(new { success = false, message = "Đang chờ chấp nhận lời mời kết bạn!" });
+                existing.RequesterID = currentUserId;
+                existing.ReceiverID = targetId;
+                existing.Status = FriendshipStatus.Pending;
+                existing.CreatedAt = DateTime.Now;
+            }
+            else
+            {
+                existing = new Friendship
+                {
+                    RequesterID = currentUserId,
+                    ReceiverID = targetId,
+                    Status = FriendshipStatus.Pending,
+                    CreatedAt = DateTime.Now
+                };
+                db.Friendships.Add(existing);
+            }
+            db.SaveChanges();
+            var sender = db.Users.Find(currentUserId);
+            var senderName = sender?.DisplayName ?? "Ai đó";
+            var notifContent = string.IsNullOrWhiteSpace(message)
+                ? $"{senderName} đã gửi cho bạn một lời mời kết bạn."
+                : $"{senderName} đã gửi cho bạn một lời mời kết bạn: \"{message}\"";
+            CreateNotification(targetId, "friend_request", notifContent, $"/User/Profile/{currentUserId}");
+            return Json(new { success = true, status = "PendingSent", friendshipId = existing.FriendshipID, message = "Đã gửi lời mời kết bạn!" });
+        }
+        [HttpPost]
+        public ActionResult AcceptFriendRequest(int? friendshipId, int? targetId)
+        {
+            if (Session["UserID"] == null || Session["Username"] == null)
+                return Json(new { success = false, requireLogin = true, message = "Vui lòng đăng nhập để chấp nhận lời mời kết bạn!" });
+            int currentUserId = (int)Session["UserID"];
+            Friendship friendship = null;
+            if (friendshipId.HasValue && friendshipId.Value > 0)
+            {
+                friendship = db.Friendships.Find(friendshipId.Value);
+            }
+            else if (targetId.HasValue)
+            {
+                friendship = db.Friendships.FirstOrDefault(f => f.RequesterID == targetId.Value && f.ReceiverID == currentUserId);
+            }
+            if (friendship == null || friendship.ReceiverID != currentUserId)
+                return Json(new { success = false, message = "Không tìm thấy lời mời kết bạn hợp lệ!" });
+            friendship.Status = FriendshipStatus.Accepted;
+            db.SaveChanges();
+            var user = db.Users.Find(currentUserId);
+            CreateNotification(friendship.RequesterID, "friend_accepted", $"{user?.DisplayName ?? "Ai đó"} đã chấp nhận lời mời kết bạn của bạn.", $"/User/Profile/{currentUserId}");
+            return Json(new { success = true, status = "Friends", message = "Đã trở thành bạn bè!" });
+        }
+        [HttpPost]
+        public ActionResult DeclineFriendRequest(int? friendshipId, int? targetId)
+        {
+            if (Session["UserID"] == null || Session["Username"] == null)
+                return Json(new { success = false, requireLogin = true, message = "Vui lòng đăng nhập để thực hiện thao tác này!" });
+            int currentUserId = (int)Session["UserID"];
+            Friendship friendship = null;
+            if (friendshipId.HasValue && friendshipId.Value > 0)
+            {
+                friendship = db.Friendships.Find(friendshipId.Value);
+            }
+            else if (targetId.HasValue)
+            {
+                friendship = db.Friendships.FirstOrDefault(f =>
+                    (f.RequesterID == targetId.Value && f.ReceiverID == currentUserId) ||
+                    (f.RequesterID == currentUserId && f.ReceiverID == targetId.Value));
+            }
+            if (friendship != null)
+            {
+                db.Friendships.Remove(friendship);
+                db.SaveChanges();
+            }
+            return Json(new { success = true, status = "None", message = "Đã từ chối/hủy lời mời kết bạn." });
+        }
+        [HttpPost]
+        public ActionResult CancelFriendRequest(int targetId)
+        {
+            return DeclineFriendRequest(null, targetId);
+        }
+        [HttpPost]
+        public ActionResult Unfriend(int targetId)
+        {
+            if (Session["UserID"] == null || Session["Username"] == null)
+                return Json(new { success = false, requireLogin = true, message = "Vui lòng đăng nhập để thực hiện thao tác này!" });
+            int currentUserId = (int)Session["UserID"];
+            var friendship = db.Friendships.FirstOrDefault(f =>
+                (f.RequesterID == currentUserId && f.ReceiverID == targetId) ||
+                (f.RequesterID == targetId && f.ReceiverID == currentUserId));
+            if (friendship != null)
+            {
+                db.Friendships.Remove(friendship);
+                db.SaveChanges();
+            }
+            return Json(new { success = true, status = "None", message = "Đã hủy kết bạn." });
+        }
+        [HttpPost]
+        public ActionResult ToggleFollow(int targetId)
+        {
+            if (Session["UserID"] == null || Session["Username"] == null)
+                return Json(new { success = false, requireLogin = true, message = "Vui lòng đăng nhập để theo dõi người dùng này!" });
+            int currentUserId = (int)Session["UserID"];
+            if (currentUserId == targetId)
+                return Json(new { success = false, message = "Không thể theo dõi chính mình!" });
+            var follow = db.Follows.FirstOrDefault(f => f.FollowerID == currentUserId && f.FollowingID == targetId);
+            bool isFollowing;
+            if (follow != null)
+            {
+                db.Follows.Remove(follow);
+                isFollowing = false;
+            }
+            else
+            {
+                follow = new Follow
+                {
+                    FollowerID = currentUserId,
+                    FollowingID = targetId,
+                    CreatedAt = DateTime.Now
+                };
+                db.Follows.Add(follow);
+                isFollowing = true;
+                var sender = db.Users.Find(currentUserId);
+                CreateNotification(targetId, "follow", $"{sender?.DisplayName ?? "Ai đó"} đã bắt đầu theo dõi bạn.", $"/User/Profile/{currentUserId}");
+            }
+            db.SaveChanges();
+            int newFollowerCount = db.Follows.Count(f => f.FollowingID == targetId);
+            return Json(new { success = true, isFollowing = isFollowing, followerCount = newFollowerCount, message = isFollowing ? "Đã theo dõi!" : "Đã bỏ theo dõi." });
+        }
+        [HttpPost]
+        public ActionResult TogglePrivacy()
+        {
+            if (Session["UserID"] == null)
+                return Json(new { success = false, message = "Vui lòng đăng nhập!" });
+            int currentUserId = (int)Session["UserID"];
+            var user = db.Users.Find(currentUserId);
+            if (user == null)
+                return Json(new { success = false, message = "Không tìm thấy người dùng!" });
+            user.IsPrivate = !user.IsPrivate;
+            db.SaveChanges();
+            return Json(new { success = true, isPrivate = user.IsPrivate, message = user.IsPrivate ? "Đã bật chế độ tài khoản Riêng tư." : "Đã tắt chế độ Riêng tư (Công khai)." });
+        }
+        // ==========================================
+        // CẬP NHẬT TRANG CÁ NHÂN MẠNG XÃ HỘI
+        // ==========================================
+        [HttpPost]
+        [ValidateInput(false)]
+        public ActionResult UpdateSocialProfile(UpdateProfileInputModel model, HttpPostedFileBase avatarFile, HttpPostedFileBase coverFile)
+        {
+            if (Session["UserID"] == null)
+                return Json(new { success = false, message = "Vui lòng đăng nhập!" });
+            int currentUserId = (int)Session["UserID"];
+            var user = db.Users.Find(currentUserId);
+            if (user == null)
+                return Json(new { success = false, message = "Không tìm thấy người dùng!" });
+            // An toàn kiểm tra AntiForgery Token nếu có (hỗ trợ cả header hoặc token bị trùng lặp)
+            try
+            {
+                string cookieToken = "";
+                string formToken = "";
+                var cookie = Request.Cookies[System.Web.Helpers.AntiForgeryConfig.CookieName];
+                if (cookie != null) cookieToken = cookie.Value;
+                formToken = Request.Form["__RequestVerificationToken"] ?? Request.Headers["__RequestVerificationToken"];
+                if (!string.IsNullOrEmpty(formToken) && formToken.Contains(","))
+                {
+                    formToken = formToken.Split(',')[0].Trim();
+                }
+                if (!string.IsNullOrEmpty(cookieToken) && !string.IsNullOrEmpty(formToken))
+                {
+                    System.Web.Helpers.AntiForgery.Validate(cookieToken, formToken);
+                }
+            }
+            catch
+            {
+                // Bỏ qua lỗi token nếu phiên đăng nhập Session của người dùng vẫn hợp lệ
+            }
+            try
+            {
+                model = model ?? new UpdateProfileInputModel();
+                var effectiveAvatarFile = avatarFile ?? model?.AvatarFile;
+                var effectiveCoverFile = coverFile ?? model?.CoverFile;
+                string avatarValidationError = ValidateProfileImage(effectiveAvatarFile, "Ảnh đại diện");
+                string coverValidationError = ValidateProfileImage(effectiveCoverFile, "Ảnh bìa");
+                if (!string.IsNullOrEmpty(avatarValidationError) || !string.IsNullOrEmpty(coverValidationError))
+                    return Json(new { success = false, message = avatarValidationError ?? coverValidationError });
+                bool isFullForm = Request.Form["isProfileFormSubmit"] == "true";
+                // Chỉ cập nhật thông tin cá nhân và IsPrivate khi submit từ form chỉnh sửa hồ sơ
+                if (isFullForm)
+                {
+                    // Kiểm tra và đổi tên nếu có thay đổi
+                    string requestedNewName = (model.NewUsername ?? "").Trim();
+                    if (!string.IsNullOrWhiteSpace(requestedNewName) && !string.Equals(requestedNewName, user.Username, StringComparison.OrdinalIgnoreCase))
+                    {
+                        if (requestedNewName.Length < 3 || requestedNewName.Length > 50)
+                            return Json(new { success = false, message = "Tên người dùng phải có độ dài từ 3 đến 50 ký tự!" });
+                        if (!Regex.IsMatch(requestedNewName, @"^[\p{L}\p{N}\s._-]+$"))
+                            return Json(new { success = false, message = "Tên người dùng chỉ được chứa chữ cái, số, khoảng trắng và các ký tự (._-)!" });
+                        if (WordModerationHelper.ContainsViolation(requestedNewName))
+                            return Json(new { success = false, message = "Tên người dùng chứa từ ngữ không phù hợp quy tắc cộng đồng!" });
+                        bool isTaken = db.Users.Any(u => u.UserID != currentUserId && u.Username == requestedNewName);
+                        if (isTaken)
+                            return Json(new { success = false, message = "Tên này đã có người sử dụng. Vui lòng chọn tên khác!" });
+                        bool canChange;
+                        DateTime? lastChange, nextAllowed;
+                        int daysRemaining;
+                        GetNameChangeStatus(currentUserId, out canChange, out lastChange, out nextAllowed, out daysRemaining);
+                        if (!canChange)
+                        {
+                            return Json(new
+                            {
+                                success = false,
+                                message = $"Bạn chỉ được đổi tên 14 ngày một lần. Lần đổi tiếp theo của bạn là sau {daysRemaining} ngày nữa (ngày {nextAllowed:dd/MM/yyyy})."
+                            });
+                        }
+                        string oldName = user.Username;
+                        db.Database.ExecuteSqlCommand(
+                            "INSERT INTO UserNameChanges (UserID, OldUsername, NewUsername, ChangedAt) VALUES (@uid, @oldName, @newName, GETDATE())",
+                            new System.Data.SqlClient.SqlParameter("@uid", currentUserId),
+                            new System.Data.SqlClient.SqlParameter("@oldName", (object)oldName ?? DBNull.Value),
+                            new System.Data.SqlClient.SqlParameter("@newName", requestedNewName)
+                        );
+                        user.Username = requestedNewName;
+                        Session["Username"] = requestedNewName;
+                    }
+                    user.IsPrivate = model.IsPrivate;
+                    var profile = db.UserProfiles.FirstOrDefault(p => p.UserID == currentUserId);
+                    if (profile == null)
+                    {
+                        profile = new UserProfile { UserID = currentUserId };
+                        db.UserProfiles.Add(profile);
+                    }
+                    if (model.Bio != null)
+                    {
+                        string b = model.Bio.Trim();
+                        profile.Bio = b.Length > 500 ? b.Substring(0, 500) : b;
+                    }
+                    else { profile.Bio = null; }
+                    if (model.Faculty != null)
+                    {
+                        string f = model.Faculty.Trim();
+                        profile.Faculty = f.Length > 100 ? f.Substring(0, 100) : f;
+                    }
+                    else { profile.Faculty = null; }
+                    if (model.Major != null)
+                    {
+                        string m = model.Major.Trim();
+                        profile.Major = m.Length > 100 ? m.Substring(0, 100) : m;
+                    }
+                    else { profile.Major = null; }
+                    profile.StudentYear = model.StudentYear;
+                    if (model.Hometown != null)
+                    {
+                        string h = model.Hometown.Trim();
+                        profile.Hometown = h.Length > 100 ? h.Substring(0, 100) : h;
+                    }
+                    else { profile.Hometown = null; }
+                }
+                // Avatar
+                if (effectiveAvatarFile != null && effectiveAvatarFile.ContentLength > 0)
+                {
+                    string dir = Server.MapPath("~/Content/Uploads/Avatars/");
+                    if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
+                    string ext = Path.GetExtension(effectiveAvatarFile.FileName).ToLower();
+                    string fileName = $"avatar_{currentUserId}_{DateTime.Now.Ticks}{ext}";
+                    effectiveAvatarFile.SaveAs(Path.Combine(dir, fileName));
+                    user.Avatar = "/Content/Uploads/Avatars/" + fileName;
+                }
+                // Cover photo
+                if (effectiveCoverFile != null && effectiveCoverFile.ContentLength > 0)
+                {
+                    var profile = db.UserProfiles.FirstOrDefault(p => p.UserID == currentUserId);
+                    if (profile == null)
+                    {
+                        profile = new UserProfile { UserID = currentUserId };
+                        db.UserProfiles.Add(profile);
+                    }
+                    string dir = Server.MapPath("~/Content/Uploads/Covers/");
+                    if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
+                    string ext = Path.GetExtension(effectiveCoverFile.FileName).ToLower();
+                    string fileName = $"cover_{currentUserId}_{DateTime.Now.Ticks}{ext}";
+                    effectiveCoverFile.SaveAs(Path.Combine(dir, fileName));
+                    profile.CoverPhoto = "/Content/Uploads/Covers/" + fileName;
+                }
+                db.SaveChanges();
+                Session["Avatar"] = user.SafeAvatar;
+                var currentProfile = db.UserProfiles.FirstOrDefault(p => p.UserID == currentUserId);
+                return Json(new
+                {
+                    success = true,
+                    message = "Cập nhật trang cá nhân thành công!",
+                    avatar = user.SafeAvatar,
+                    coverPhoto = currentProfile?.CoverPhoto ?? "/Content/Images/default-cover.jpg",
+                    isPrivate = user.IsPrivate
+                });
+            }
+            catch (System.Data.Entity.Validation.DbEntityValidationException dbEx)
+            {
+                var errorMessages = dbEx.EntityValidationErrors
+                    .SelectMany(x => x.ValidationErrors)
+                    .Select(x => x.ErrorMessage);
+                return Json(new { success = false, message = "Lỗi dữ liệu: " + string.Join(", ", errorMessages) });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Lỗi khi cập nhật: " + ex.Message });
+            }
+        }
+        private static string ValidateProfileImage(HttpPostedFileBase file, string label)
+        {
+            if (file == null || file.ContentLength <= 0)
+                return null;
+            var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".webp" };
+            string extension = Path.GetExtension(file.FileName ?? string.Empty).ToLowerInvariant();
+            if (!allowedExtensions.Contains(extension))
+                return label + " phải có định dạng JPG, PNG, GIF hoặc WEBP.";
+            if (file.ContentLength > 5 * 1024 * 1024)
+                return label + " không được vượt quá 5MB.";
+            return null;
+        }
+        // ==========================================
+        // QUẢN LÝ ĐỔI TÊN NGƯỜI DÙNG (14 NGÀY / LẦN)
+        // ==========================================
+        private const int UsernameChangeCooldownDays = 14;
+        private void EnsureUserNameChangesTable()
+        {
+            try
+            {
+                string sql = @"
+                    IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='UserNameChanges' AND xtype='U')
+                    BEGIN
+                        CREATE TABLE UserNameChanges (
+                            ChangeID INT IDENTITY(1,1) PRIMARY KEY,
+                            UserID INT NOT NULL,
+                            OldUsername NVARCHAR(100),
+                            NewUsername NVARCHAR(100),
+                            ChangedAt DATETIME NOT NULL DEFAULT GETDATE()
+                        );
+                    END";
+                db.Database.ExecuteSqlCommand(sql);
+            }
+            catch { }
+        }
+        private void GetNameChangeStatus(int userId, out bool canChange, out DateTime? lastChange, out DateTime? nextAllowed, out int daysRemaining)
+        {
+            EnsureUserNameChangesTable();
+            canChange = true;
+            lastChange = null;
+            nextAllowed = null;
+            daysRemaining = 0;
+            try
+            {
+                lastChange = db.Database.SqlQuery<DateTime?>(
+                    "SELECT TOP 1 ChangedAt FROM UserNameChanges WHERE UserID = @uid ORDER BY ChangedAt DESC",
+                    new System.Data.SqlClient.SqlParameter("@uid", userId)
+                ).FirstOrDefault();
+                if (lastChange.HasValue)
+                {
+                    var timeSpan = DateTime.Now - lastChange.Value;
+                    if (timeSpan.TotalDays < UsernameChangeCooldownDays)
+                    {
+                        canChange = false;
+                        nextAllowed = lastChange.Value.AddDays(UsernameChangeCooldownDays);
+                        daysRemaining = (int)Math.Ceiling(UsernameChangeCooldownDays - timeSpan.TotalDays);
+                        if (daysRemaining < 1) daysRemaining = 1;
+                    }
+                }
+            }
+            catch
+            {
+                canChange = true;
+            }
+        }
+        [HttpGet]
+        public ActionResult CheckNameChangeStatus()
+        {
+            if (Session["UserID"] == null)
+                return Json(new { success = false, message = "Vui lòng đăng nhập!" }, JsonRequestBehavior.AllowGet);
+            int currentUserId = (int)Session["UserID"];
+            bool canChange;
+            DateTime? lastChange, nextAllowed;
+            int daysRemaining;
+            GetNameChangeStatus(currentUserId, out canChange, out lastChange, out nextAllowed, out daysRemaining);
+            return Json(new
+            {
+                success = true,
+                canChange = canChange,
+                lastChange = lastChange.HasValue ? lastChange.Value.ToString("dd/MM/yyyy HH:mm") : null,
+                nextAllowed = nextAllowed.HasValue ? nextAllowed.Value.ToString("dd/MM/yyyy HH:mm") : null,
+                daysRemaining = daysRemaining
+            }, JsonRequestBehavior.AllowGet);
+        }
+        [HttpPost]
+        [ValidateInput(false)]
+        public ActionResult ChangeUsername(string newUsername)
+        {
+            if (Session["UserID"] == null)
+                return Json(new { success = false, message = "Vui lòng đăng nhập để đổi tên!" });
+            int currentUserId = (int)Session["UserID"];
+            var user = db.Users.Find(currentUserId);
+            if (user == null)
+                return Json(new { success = false, message = "Không tìm thấy thông tin tài khoản!" });
+            // An toàn kiểm tra AntiForgery Token nếu có gửi kèm (hỗ trợ cả header hoặc token bị trùng lặp)
+            try
+            {
+                string cookieToken = "";
+                string formToken = "";
+                var cookie = Request.Cookies[System.Web.Helpers.AntiForgeryConfig.CookieName];
+                if (cookie != null) cookieToken = cookie.Value;
+                formToken = Request.Form["__RequestVerificationToken"] ?? Request.Headers["__RequestVerificationToken"];
+                if (!string.IsNullOrEmpty(formToken) && formToken.Contains(","))
+                {
+                    formToken = formToken.Split(',')[0].Trim();
+                }
+                if (!string.IsNullOrEmpty(cookieToken) && !string.IsNullOrEmpty(formToken))
+                {
+                    System.Web.Helpers.AntiForgery.Validate(cookieToken, formToken);
+                }
+            }
+            catch
+            {
+                // Bỏ qua lỗi token nếu Session đăng nhập của người dùng còn hợp lệ
+            }
+            string cleanName = (newUsername ?? "").Trim();
+            // 1. Kiểm tra độ dài
+            if (string.IsNullOrWhiteSpace(cleanName))
+                return Json(new { success = false, message = "Vui lòng nhập tên người dùng mới!" });
+            if (cleanName.Length < 3 || cleanName.Length > 50)
+                return Json(new { success = false, message = "Tên người dùng phải có độ dài từ 3 đến 50 ký tự!" });
+            // 2. Kiểm tra ký tự hợp lệ (chữ, số, khoảng trắng và các ký tự ._-)
+            if (!Regex.IsMatch(cleanName, @"^[\p{L}\p{N}\s._-]+$"))
+                return Json(new { success = false, message = "Tên người dùng chỉ được chứa chữ cái, số, khoảng trắng và các ký tự (._-)!" });
+            // 3. Trùng tên hiện tại
+            if (string.Equals(cleanName, user.Username, StringComparison.OrdinalIgnoreCase))
+                return Json(new { success = false, message = "Tên mới không được trùng với tên hiện tại của bạn!" });
+            // 4. Kiểm tra từ ngữ thô tục nhạy cảm
+            if (WordModerationHelper.ContainsViolation(cleanName))
+                return Json(new { success = false, message = "Tên người dùng chứa từ ngữ không phù hợp quy tắc cộng đồng!" });
+            // 5. Kiểm tra trùng lặp với người dùng khác
+            bool isTaken = db.Users.Any(u => u.UserID != currentUserId && u.Username == cleanName);
+            if (isTaken)
+                return Json(new { success = false, message = "Tên này đã có người sử dụng. Vui lòng chọn tên khác!" });
+            // 6. Kiểm tra giới hạn 14 ngày
+            bool canChange;
+            DateTime? lastChange, nextAllowed;
+            int daysRemaining;
+            GetNameChangeStatus(currentUserId, out canChange, out lastChange, out nextAllowed, out daysRemaining);
+            if (!canChange)
+            {
+                return Json(new
+                {
+                    success = false,
+                    canChange = false,
+                    daysRemaining = daysRemaining,
+                    nextAllowed = nextAllowed.HasValue ? nextAllowed.Value.ToString("dd/MM/yyyy") : "",
+                    message = $"Bạn chỉ được đổi tên 14 ngày một lần. Lần đổi tiếp theo của bạn là sau {daysRemaining} ngày nữa (ngày {nextAllowed:dd/MM/yyyy})."
+                });
+            }
+            try
+            {
+                string oldName = user.Username;
+                // Ghi nhận lịch sử đổi tên
+                db.Database.ExecuteSqlCommand(
+                    "INSERT INTO UserNameChanges (UserID, OldUsername, NewUsername, ChangedAt) VALUES (@uid, @oldName, @newName, GETDATE())",
+                    new System.Data.SqlClient.SqlParameter("@uid", currentUserId),
+                    new System.Data.SqlClient.SqlParameter("@oldName", (object)oldName ?? DBNull.Value),
+                    new System.Data.SqlClient.SqlParameter("@newName", cleanName)
+                );
+                // Cập nhật User
+                user.Username = cleanName;
+                db.SaveChanges();
+                // Cập nhật Session
+                Session["Username"] = cleanName;
+                return Json(new
+                {
+                    success = true,
+                    newUsername = cleanName,
+                    message = "Đổi tên thành công! Bạn có thể đổi lại tên sau 14 ngày nữa."
+                });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Lỗi khi đổi tên: " + ex.Message });
+            }
+        }
+    }
+}

@@ -1,0 +1,2980 @@
+<?xml version="1.0" encoding="utf-8"?>
+<edmx:Edmx Version="3.0" xmlns:edmx="http://schemas.microsoft.com/ado/2009/11/edmx">
+  <!-- EF Runtime content -->
+  <edmx:Runtime>
+    <!-- SSDL content -->
+    <edmx:StorageModels>
+    <Schema Namespace="TDMUEcoSystemModel.Store" Provider="System.Data.SqlClient" ProviderManifestToken="2012" Alias="Self" xmlns:store="http://schemas.microsoft.com/ado/2007/12/edm/EntityStoreSchemaGenerator" xmlns:customannotation="http://schemas.microsoft.com/ado/2013/11/edm/customannotation" xmlns="http://schemas.microsoft.com/ado/2009/11/edm/ssdl">
+        <EntityType Name="AgentActionLogs">
+          <Key>
+            <PropertyRef Name="LogID" />
+          </Key>
+          <Property Name="LogID" Type="bigint" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="UserID" Type="int" Nullable="false" />
+          <Property Name="RunID" Type="bigint" />
+          <Property Name="ActionName" Type="nvarchar" MaxLength="100" Nullable="false" />
+          <Property Name="TargetType" Type="nvarchar" MaxLength="50" />
+          <Property Name="TargetID" Type="bigint" />
+          <Property Name="Status" Type="nvarchar" MaxLength="20" Nullable="false" />
+          <Property Name="InputSummary" Type="nvarchar(max)" />
+          <Property Name="ResultSummary" Type="nvarchar(max)" />
+          <Property Name="ErrorMessage" Type="nvarchar(max)" />
+          <Property Name="CreatedAt" Type="datetime2" Precision="7" Nullable="false" />
+          <Property Name="ConversationID" Type="bigint" />
+        </EntityType>
+        <EntityType Name="AgentPendingConfirmations">
+          <Key>
+            <PropertyRef Name="ConfirmationID" />
+          </Key>
+          <Property Name="ConfirmationID" Type="bigint" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="UserID" Type="int" Nullable="false" />
+          <Property Name="TaskID" Type="bigint" />
+          <Property Name="ActionName" Type="nvarchar" MaxLength="100" Nullable="false" />
+          <Property Name="ActionPayload" Type="nvarchar(max)" Nullable="false" />
+          <Property Name="Status" Type="nvarchar" MaxLength="20" Nullable="false" />
+          <Property Name="CreatedAt" Type="datetime2" Precision="7" Nullable="false" />
+          <Property Name="ExpiresAt" Type="datetime2" Precision="7" />
+          <Property Name="ResolvedAt" Type="datetime2" Precision="7" />
+        </EntityType>
+        <EntityType Name="AgentPermissions">
+          <Key>
+            <PropertyRef Name="PermissionID" />
+          </Key>
+          <Property Name="PermissionID" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="UserID" Type="int" Nullable="false" />
+          <Property Name="CanReadData" Type="bit" Nullable="false" />
+          <Property Name="CanManageContent" Type="bit" Nullable="false" />
+          <Property Name="CanInteract" Type="bit" Nullable="false" />
+          <Property Name="CanAutomation" Type="bit" Nullable="false" />
+          <Property Name="IsEnabled" Type="bit" Nullable="false" />
+          <Property Name="CreatedAt" Type="datetime2" Precision="7" Nullable="false" />
+          <Property Name="UpdatedAt" Type="datetime2" Precision="7" Nullable="false" />
+        </EntityType>
+        <EntityType Name="AgentTaskRuns">
+          <Key>
+            <PropertyRef Name="RunID" />
+          </Key>
+          <Property Name="RunID" Type="bigint" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="TaskID" Type="bigint" Nullable="false" />
+          <Property Name="UserID" Type="int" Nullable="false" />
+          <Property Name="StartedAt" Type="datetime2" Precision="7" Nullable="false" />
+          <Property Name="FinishedAt" Type="datetime2" Precision="7" />
+          <Property Name="Status" Type="nvarchar" MaxLength="20" Nullable="false" />
+          <Property Name="AttemptCount" Type="int" Nullable="false" />
+          <Property Name="ResultSummary" Type="nvarchar(max)" />
+          <Property Name="ErrorMessage" Type="nvarchar(max)" />
+          <Property Name="CreatedAt" Type="datetime2" Precision="7" Nullable="false" />
+        </EntityType>
+        <EntityType Name="AgentTasks">
+          <Key>
+            <PropertyRef Name="TaskID" />
+          </Key>
+          <Property Name="TaskID" Type="bigint" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="UserID" Type="int" Nullable="false" />
+          <Property Name="TaskName" Type="nvarchar" MaxLength="200" Nullable="false" />
+          <Property Name="UserPrompt" Type="nvarchar(max)" Nullable="false" />
+          <Property Name="TaskType" Type="nvarchar" MaxLength="50" Nullable="false" />
+          <Property Name="ScheduleType" Type="nvarchar" MaxLength="30" Nullable="false" />
+          <Property Name="ScheduleConfig" Type="nvarchar(max)" />
+          <Property Name="TimeZone" Type="nvarchar" MaxLength="100" Nullable="false" />
+          <Property Name="Status" Type="nvarchar" MaxLength="20" Nullable="false" />
+          <Property Name="NextRunAt" Type="datetime2" Precision="7" />
+          <Property Name="LastRunAt" Type="datetime2" Precision="7" />
+          <Property Name="CreatedAt" Type="datetime2" Precision="7" Nullable="false" />
+          <Property Name="UpdatedAt" Type="datetime2" Precision="7" Nullable="false" />
+        </EntityType>
+        <EntityType Name="AgentConversations">
+          <Key>
+            <PropertyRef Name="ConversationID" />
+          </Key>
+          <Property Name="ConversationID" Type="bigint" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="UserID" Type="int" Nullable="false" />
+          <Property Name="Title" Type="nvarchar" MaxLength="200" Nullable="false" />
+          <Property Name="TaskID" Type="bigint" />
+          <Property Name="Status" Type="nvarchar" MaxLength="30" Nullable="false" />
+          <Property Name="Summary" Type="nvarchar(max)" />
+          <Property Name="MessageCount" Type="int" Nullable="false" />
+          <Property Name="CreatedAt" Type="datetime2" Precision="7" Nullable="false" />
+          <Property Name="UpdatedAt" Type="datetime2" Precision="7" Nullable="false" />
+          <Property Name="LastMessageAt" Type="datetime2" Precision="7" Nullable="false" />
+        </EntityType>
+        <EntityType Name="AgentMessages">
+          <Key>
+            <PropertyRef Name="MessageID" />
+          </Key>
+          <Property Name="MessageID" Type="bigint" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="ConversationID" Type="bigint" Nullable="false" />
+          <Property Name="SenderType" Type="nvarchar" MaxLength="20" Nullable="false" />
+          <Property Name="Content" Type="nvarchar(max)" Nullable="false" />
+          <Property Name="ToolCallDetails" Type="nvarchar(max)" />
+          <Property Name="ToolResultDetails" Type="nvarchar(max)" />
+          <Property Name="ErrorMessage" Type="nvarchar(max)" />
+          <Property Name="CreatedAt" Type="datetime2" Precision="7" Nullable="false" />
+        </EntityType>
+        <EntityType Name="ChatMessages">
+          <Key>
+            <PropertyRef Name="MessageID" />
+          </Key>
+          <Property Name="MessageID" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="RoomID" Type="int" />
+          <Property Name="SenderID" Type="int" />
+          <Property Name="Content" Type="nvarchar(max)" Nullable="false" />
+          <Property Name="ImageUrl" Type="nvarchar(max)" />
+          <Property Name="SentAt" Type="datetime" />
+          <Property Name="ReplyToID" Type="int" />
+          <Property Name="IsHidden" Type="bit" />
+          <Property Name="HiddenReason" Type="nvarchar" MaxLength="255" />
+          <Property Name="HiddenBy" Type="int" />
+          <Property Name="HiddenAt" Type="datetime" />
+        </EntityType>
+        <EntityType Name="ChatParticipants">
+          <Key>
+            <PropertyRef Name="ParticipantID" />
+          </Key>
+          <Property Name="ParticipantID" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="RoomID" Type="int" />
+          <Property Name="UserID" Type="int" />
+          <Property Name="JoinedAt" Type="datetime" />
+          <Property Name="IsLeft" Type="bit" />
+        </EntityType>
+        <EntityType Name="ChatRooms">
+          <Key>
+            <PropertyRef Name="RoomID" />
+          </Key>
+          <Property Name="RoomID" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="RoomType" Type="nvarchar" MaxLength="20" />
+          <Property Name="MaxUsers" Type="int" />
+          <Property Name="IsActive" Type="bit" />
+          <Property Name="CreatedAt" Type="datetime" />
+        </EntityType>
+        <EntityType Name="ConnectCategories">
+          <Key>
+            <PropertyRef Name="CategoryID" />
+          </Key>
+          <Property Name="CategoryID" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="CategoryName" Type="nvarchar" MaxLength="100" Nullable="false" />
+        </EntityType>
+        <EntityType Name="ConnectPosts">
+          <Key>
+            <PropertyRef Name="PostID" />
+          </Key>
+          <Property Name="PostID" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="UserID" Type="int" />
+          <Property Name="CategoryID" Type="int" />
+          <Property Name="Title" Type="nvarchar" MaxLength="200" Nullable="false" />
+          <Property Name="Description" Type="nvarchar(max)" Nullable="false" />
+          <Property Name="MainImage" Type="nvarchar" MaxLength="255" Nullable="false" />
+          <Property Name="CreatedAt" Type="datetime" />
+        </EntityType>
+        <EntityType Name="Follows">
+          <Key>
+            <PropertyRef Name="FollowID" />
+          </Key>
+          <Property Name="FollowID" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="FollowerID" Type="int" Nullable="false" />
+          <Property Name="FollowingID" Type="int" Nullable="false" />
+          <Property Name="CreatedAt" Type="datetime" />
+        </EntityType>
+        <EntityType Name="Friendships">
+          <Key>
+            <PropertyRef Name="FriendshipID" />
+          </Key>
+          <Property Name="FriendshipID" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="RequesterID" Type="int" Nullable="false" />
+          <Property Name="ReceiverID" Type="int" Nullable="false" />
+          <Property Name="Status" Type="nvarchar" MaxLength="20" Nullable="false" />
+          <Property Name="CreatedAt" Type="datetime" />
+        </EntityType>
+        <EntityType Name="MarketCategories">
+          <Key>
+            <PropertyRef Name="CategoryID" />
+          </Key>
+          <Property Name="CategoryID" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="CategoryName" Type="nvarchar" MaxLength="100" Nullable="false" />
+        </EntityType>
+        <EntityType Name="MarketChatRooms">
+          <Key>
+            <PropertyRef Name="MarketRoomID" />
+          </Key>
+          <Property Name="MarketRoomID" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="PostID" Type="int" />
+          <Property Name="BuyerID" Type="int" />
+          <Property Name="SellerID" Type="int" />
+          <Property Name="CreatedAt" Type="datetime" />
+        </EntityType>
+        <EntityType Name="MarketImages">
+          <Key>
+            <PropertyRef Name="ImageID" />
+          </Key>
+          <Property Name="ImageID" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="PostID" Type="int" />
+          <Property Name="ImageUrl" Type="nvarchar" MaxLength="255" Nullable="false" />
+        </EntityType>
+        <EntityType Name="MarketPosts">
+          <Key>
+            <PropertyRef Name="PostID" />
+          </Key>
+          <Property Name="PostID" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="UserID" Type="int" />
+          <Property Name="CategoryID" Type="int" />
+          <Property Name="Title" Type="nvarchar" MaxLength="200" Nullable="false" />
+          <Property Name="Description" Type="nvarchar(max)" Nullable="false" />
+          <Property Name="Price" Type="decimal" Precision="18" Scale="2" />
+          <Property Name="MainImage" Type="nvarchar" MaxLength="255" />
+          <Property Name="ExchangeLocation" Type="nvarchar" MaxLength="200" />
+          <Property Name="ViewCount" Type="int" />
+          <Property Name="Condition" Type="nvarchar" MaxLength="50" />
+          <Property Name="IsHide" Type="bit" />
+          <Property Name="CreatedAt" Type="datetime" />
+          <Property Name="Status" Type="int" />
+        </EntityType>
+        <EntityType Name="MarketWishlists">
+          <Key>
+            <PropertyRef Name="WishlistID" />
+          </Key>
+          <Property Name="WishlistID" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="UserID" Type="int" />
+          <Property Name="PostID" Type="int" />
+          <Property Name="SavedAt" Type="datetime" />
+        </EntityType>
+        <EntityType Name="Notifications">
+          <Key>
+            <PropertyRef Name="NotificationID" />
+          </Key>
+          <Property Name="NotificationID" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="UserID" Type="int" Nullable="false" />
+          <Property Name="Message" Type="nvarchar" MaxLength="500" Nullable="false" />
+          <Property Name="Type" Type="nvarchar" MaxLength="50" Nullable="false" />
+          <Property Name="Url" Type="nvarchar" MaxLength="300" />
+          <Property Name="IsRead" Type="bit" Nullable="false" />
+          <Property Name="CreatedAt" Type="datetime" Nullable="false" />
+          <Property Name="SenderID" Type="int" />
+          <Property Name="RefID" Type="int" />
+          <Property Name="RefType" Type="nvarchar" MaxLength="20" />
+        </EntityType>
+        <EntityType Name="PostComments">
+          <Key>
+            <PropertyRef Name="CommentID" />
+          </Key>
+          <Property Name="CommentID" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="PostID" Type="int" Nullable="false" />
+          <Property Name="UserID" Type="int" Nullable="false" />
+          <Property Name="Content" Type="nvarchar" MaxLength="1000" />
+          <Property Name="ImageUrl" Type="nvarchar" MaxLength="255" />
+          <Property Name="ParentID" Type="int" />
+          <Property Name="CreatedAt" Type="datetime" />
+        </EntityType>
+        <EntityType Name="PostLikes">
+          <Key>
+            <PropertyRef Name="LikeID" />
+          </Key>
+          <Property Name="LikeID" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="PostID" Type="int" Nullable="false" />
+          <Property Name="UserID" Type="int" Nullable="false" />
+          <Property Name="LikeType" Type="nvarchar" MaxLength="20" Nullable="false" />
+          <Property Name="CreatedAt" Type="datetime" />
+        </EntityType>
+        <EntityType Name="PostMedia">
+          <Key>
+            <PropertyRef Name="MediaID" />
+          </Key>
+          <Property Name="MediaID" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="PostID" Type="int" Nullable="false" />
+          <Property Name="MediaUrl" Type="nvarchar" MaxLength="255" Nullable="false" />
+          <Property Name="MediaType" Type="nvarchar" MaxLength="10" Nullable="false" />
+          <Property Name="SortOrder" Type="int" Nullable="false" />
+        </EntityType>
+        <EntityType Name="Posts">
+          <Key>
+            <PropertyRef Name="PostID" />
+          </Key>
+          <Property Name="PostID" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="UserID" Type="int" Nullable="false" />
+          <Property Name="Content" Type="nvarchar(max)" />
+          <Property Name="Privacy" Type="nvarchar" MaxLength="20" Nullable="false" />
+          <Property Name="CreatedAt" Type="datetime" />
+          <Property Name="UpdatedAt" Type="datetime" />
+        </EntityType>
+        <EntityType Name="PostShares">
+          <Key>
+            <PropertyRef Name="ShareID" />
+          </Key>
+          <Property Name="ShareID" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="PostID" Type="int" Nullable="false" />
+          <Property Name="UserID" Type="int" Nullable="false" />
+          <Property Name="Content" Type="nvarchar" MaxLength="500" />
+          <Property Name="CreatedAt" Type="datetime" />
+        </EntityType>
+        <EntityType Name="Reviews">
+          <Key>
+            <PropertyRef Name="ReviewID" />
+          </Key>
+          <Property Name="ReviewID" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="PostID" Type="int" />
+          <Property Name="PostType" Type="nvarchar" MaxLength="20" />
+          <Property Name="UserID" Type="int" />
+          <Property Name="RatingStar" Type="int" />
+          <Property Name="Comment" Type="nvarchar(max)" />
+          <Property Name="CreatedAt" Type="datetime" />
+        </EntityType>
+        <EntityType Name="Stories">
+          <Key>
+            <PropertyRef Name="StoryID" />
+          </Key>
+          <Property Name="StoryID" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="UserID" Type="int" Nullable="false" />
+          <Property Name="MediaUrl" Type="nvarchar" MaxLength="255" Nullable="false" />
+          <Property Name="Caption" Type="nvarchar" MaxLength="200" />
+          <Property Name="CreatedAt" Type="datetime" />
+          <Property Name="ExpiresAt" Type="datetime" Nullable="false" />
+        </EntityType>
+        <EntityType Name="StoryViews">
+          <Key>
+            <PropertyRef Name="ViewID" />
+          </Key>
+          <Property Name="ViewID" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="StoryID" Type="int" Nullable="false" />
+          <Property Name="ViewerID" Type="int" Nullable="false" />
+          <Property Name="ViewedAt" Type="datetime" />
+        </EntityType>
+        <EntityType Name="UserNameChanges">
+          <Key>
+            <PropertyRef Name="ChangeID" />
+          </Key>
+          <Property Name="ChangeID" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="UserID" Type="int" Nullable="false" />
+          <Property Name="OldUsername" Type="nvarchar" MaxLength="100" />
+          <Property Name="NewUsername" Type="nvarchar" MaxLength="100" />
+          <Property Name="ChangedAt" Type="datetime" Nullable="false" />
+        </EntityType>
+        <EntityType Name="UserProfiles">
+          <Key>
+            <PropertyRef Name="ProfileID" />
+          </Key>
+          <Property Name="ProfileID" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="UserID" Type="int" Nullable="false" />
+          <Property Name="CoverPhoto" Type="nvarchar" MaxLength="255" />
+          <Property Name="Bio" Type="nvarchar" MaxLength="500" />
+          <Property Name="Faculty" Type="nvarchar" MaxLength="100" />
+          <Property Name="Major" Type="nvarchar" MaxLength="100" />
+          <Property Name="StudentYear" Type="int" />
+          <Property Name="Hometown" Type="nvarchar" MaxLength="100" />
+        </EntityType>
+        <EntityType Name="Users">
+          <Key>
+            <PropertyRef Name="UserID" />
+          </Key>
+          <Property Name="UserID" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="Email" Type="nvarchar" MaxLength="100" Nullable="false" />
+          <Property Name="Username" Type="nvarchar" MaxLength="50" />
+          <Property Name="PasswordHash" Type="nvarchar" MaxLength="255" />
+          <Property Name="PhoneNumber" Type="nvarchar" MaxLength="15" />
+          <Property Name="IsTDMUStudent" Type="bit" Nullable="false" />
+          <Property Name="IsAdmin" Type="bit" Nullable="false" />
+          <Property Name="Avatar" Type="nvarchar" MaxLength="255" />
+          <Property Name="LastActivityAt" Type="datetime" />
+          <Property Name="CreatedAt" Type="datetime" />
+          <Property Name="AdminRole" Type="nvarchar" MaxLength="50" />
+          <Property Name="IsPrivate" Type="bit" Nullable="false" />
+          <Property Name="IsEmailVerified" Type="bit" />
+          <Property Name="EmailVerifiedAt" Type="datetime" />
+          <Property Name="OtpHash" Type="nvarchar" MaxLength="256" />
+          <Property Name="OtpExpiry" Type="datetime" />
+          <Property Name="OtpAttempts" Type="int" />
+          <Property Name="OtpLastSent" Type="datetime" />
+        </EntityType>
+        <Association Name="FK__ChatMessa__RoomI__0B91BA14">
+          <End Role="ChatRooms" Type="Self.ChatRooms" Multiplicity="0..1" />
+          <End Role="ChatMessages" Type="Self.ChatMessages" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="ChatRooms">
+              <PropertyRef Name="RoomID" />
+            </Principal>
+            <Dependent Role="ChatMessages">
+              <PropertyRef Name="RoomID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK__ChatMessa__Sende__0C85DE4D">
+          <End Role="Users" Type="Self.Users" Multiplicity="0..1" />
+          <End Role="ChatMessages" Type="Self.ChatMessages" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Users">
+              <PropertyRef Name="UserID" />
+            </Principal>
+            <Dependent Role="ChatMessages">
+              <PropertyRef Name="SenderID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK__ChatParti__RoomI__0E6E26BF">
+          <End Role="ChatRooms" Type="Self.ChatRooms" Multiplicity="0..1" />
+          <End Role="ChatParticipants" Type="Self.ChatParticipants" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="ChatRooms">
+              <PropertyRef Name="RoomID" />
+            </Principal>
+            <Dependent Role="ChatParticipants">
+              <PropertyRef Name="RoomID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK__ChatParti__UserI__0F624AF8">
+          <End Role="Users" Type="Self.Users" Multiplicity="0..1" />
+          <End Role="ChatParticipants" Type="Self.ChatParticipants" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Users">
+              <PropertyRef Name="UserID" />
+            </Principal>
+            <Dependent Role="ChatParticipants">
+              <PropertyRef Name="UserID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK__ConnectPo__Categ__10566F31">
+          <End Role="ConnectCategories" Type="Self.ConnectCategories" Multiplicity="0..1" />
+          <End Role="ConnectPosts" Type="Self.ConnectPosts" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="ConnectCategories">
+              <PropertyRef Name="CategoryID" />
+            </Principal>
+            <Dependent Role="ConnectPosts">
+              <PropertyRef Name="CategoryID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK__ConnectPo__UserI__114A936A">
+          <End Role="Users" Type="Self.Users" Multiplicity="0..1" />
+          <End Role="ConnectPosts" Type="Self.ConnectPosts" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Users">
+              <PropertyRef Name="UserID" />
+            </Principal>
+            <Dependent Role="ConnectPosts">
+              <PropertyRef Name="UserID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK__MarketCha__Buyer__160F4887">
+          <End Role="Users" Type="Self.Users" Multiplicity="0..1" />
+          <End Role="MarketChatRooms" Type="Self.MarketChatRooms" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Users">
+              <PropertyRef Name="UserID" />
+            </Principal>
+            <Dependent Role="MarketChatRooms">
+              <PropertyRef Name="BuyerID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK__MarketCha__PostI__17036CC0">
+          <End Role="MarketPosts" Type="Self.MarketPosts" Multiplicity="0..1" />
+          <End Role="MarketChatRooms" Type="Self.MarketChatRooms" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="MarketPosts">
+              <PropertyRef Name="PostID" />
+            </Principal>
+            <Dependent Role="MarketChatRooms">
+              <PropertyRef Name="PostID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK__MarketCha__Selle__17F790F9">
+          <End Role="Users" Type="Self.Users" Multiplicity="0..1" />
+          <End Role="MarketChatRooms" Type="Self.MarketChatRooms" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Users">
+              <PropertyRef Name="UserID" />
+            </Principal>
+            <Dependent Role="MarketChatRooms">
+              <PropertyRef Name="SellerID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK__MarketIma__PostI__18EBB532">
+          <End Role="MarketPosts" Type="Self.MarketPosts" Multiplicity="0..1" />
+          <End Role="MarketImages" Type="Self.MarketImages" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="MarketPosts">
+              <PropertyRef Name="PostID" />
+            </Principal>
+            <Dependent Role="MarketImages">
+              <PropertyRef Name="PostID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK__MarketPos__Categ__19DFD96B">
+          <End Role="MarketCategories" Type="Self.MarketCategories" Multiplicity="0..1" />
+          <End Role="MarketPosts" Type="Self.MarketPosts" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="MarketCategories">
+              <PropertyRef Name="CategoryID" />
+            </Principal>
+            <Dependent Role="MarketPosts">
+              <PropertyRef Name="CategoryID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK__MarketPos__UserI__1AD3FDA4">
+          <End Role="Users" Type="Self.Users" Multiplicity="0..1" />
+          <End Role="MarketPosts" Type="Self.MarketPosts" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Users">
+              <PropertyRef Name="UserID" />
+            </Principal>
+            <Dependent Role="MarketPosts">
+              <PropertyRef Name="UserID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK__MarketWis__PostI__1BC821DD">
+          <End Role="MarketPosts" Type="Self.MarketPosts" Multiplicity="0..1" />
+          <End Role="MarketWishlists" Type="Self.MarketWishlists" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="MarketPosts">
+              <PropertyRef Name="PostID" />
+            </Principal>
+            <Dependent Role="MarketWishlists">
+              <PropertyRef Name="PostID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK__MarketWis__UserI__1CBC4616">
+          <End Role="Users" Type="Self.Users" Multiplicity="0..1" />
+          <End Role="MarketWishlists" Type="Self.MarketWishlists" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Users">
+              <PropertyRef Name="UserID" />
+            </Principal>
+            <Dependent Role="MarketWishlists">
+              <PropertyRef Name="UserID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK__Notificat__UserI__1DB06A4F">
+          <End Role="Users" Type="Self.Users" Multiplicity="1" />
+          <End Role="Notifications" Type="Self.Notifications" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Users">
+              <PropertyRef Name="UserID" />
+            </Principal>
+            <Dependent Role="Notifications">
+              <PropertyRef Name="UserID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK__Reviews__UserID__282DF8C2">
+          <End Role="Users" Type="Self.Users" Multiplicity="0..1" />
+          <End Role="Reviews" Type="Self.Reviews" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Users">
+              <PropertyRef Name="UserID" />
+            </Principal>
+            <Dependent Role="Reviews">
+              <PropertyRef Name="UserID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_AgentActionLogs_Runs">
+          <End Role="AgentTaskRuns" Type="Self.AgentTaskRuns" Multiplicity="0..1" />
+          <End Role="AgentActionLogs" Type="Self.AgentActionLogs" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="AgentTaskRuns">
+              <PropertyRef Name="RunID" />
+            </Principal>
+            <Dependent Role="AgentActionLogs">
+              <PropertyRef Name="RunID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_AgentActionLogs_Users">
+          <End Role="Users" Type="Self.Users" Multiplicity="1" />
+          <End Role="AgentActionLogs" Type="Self.AgentActionLogs" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Users">
+              <PropertyRef Name="UserID" />
+            </Principal>
+            <Dependent Role="AgentActionLogs">
+              <PropertyRef Name="UserID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_AgentConfirmations_Tasks">
+          <End Role="AgentTasks" Type="Self.AgentTasks" Multiplicity="0..1" />
+          <End Role="AgentPendingConfirmations" Type="Self.AgentPendingConfirmations" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="AgentTasks">
+              <PropertyRef Name="TaskID" />
+            </Principal>
+            <Dependent Role="AgentPendingConfirmations">
+              <PropertyRef Name="TaskID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_AgentConfirmations_Users">
+          <End Role="Users" Type="Self.Users" Multiplicity="1" />
+          <End Role="AgentPendingConfirmations" Type="Self.AgentPendingConfirmations" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Users">
+              <PropertyRef Name="UserID" />
+            </Principal>
+            <Dependent Role="AgentPendingConfirmations">
+              <PropertyRef Name="UserID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_AgentPermissions_Users">
+          <End Role="Users" Type="Self.Users" Multiplicity="1" />
+          <End Role="AgentPermissions" Type="Self.AgentPermissions" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Users">
+              <PropertyRef Name="UserID" />
+            </Principal>
+            <Dependent Role="AgentPermissions">
+              <PropertyRef Name="UserID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_AgentTaskRuns_Tasks">
+          <End Role="AgentTasks" Type="Self.AgentTasks" Multiplicity="1" />
+          <End Role="AgentTaskRuns" Type="Self.AgentTaskRuns" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="AgentTasks">
+              <PropertyRef Name="TaskID" />
+            </Principal>
+            <Dependent Role="AgentTaskRuns">
+              <PropertyRef Name="TaskID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_AgentTaskRuns_Users">
+          <End Role="Users" Type="Self.Users" Multiplicity="1" />
+          <End Role="AgentTaskRuns" Type="Self.AgentTaskRuns" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Users">
+              <PropertyRef Name="UserID" />
+            </Principal>
+            <Dependent Role="AgentTaskRuns">
+              <PropertyRef Name="UserID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_AgentTasks_Users">
+          <End Role="Users" Type="Self.Users" Multiplicity="1" />
+          <End Role="AgentTasks" Type="Self.AgentTasks" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Users">
+              <PropertyRef Name="UserID" />
+            </Principal>
+            <Dependent Role="AgentTasks">
+              <PropertyRef Name="UserID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_ChatMessages_Reply">
+          <End Role="ChatMessages" Type="Self.ChatMessages" Multiplicity="0..1" />
+          <End Role="ChatMessages1" Type="Self.ChatMessages" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="ChatMessages">
+              <PropertyRef Name="MessageID" />
+            </Principal>
+            <Dependent Role="ChatMessages1">
+              <PropertyRef Name="ReplyToID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_Follows_Follower">
+          <End Role="Users" Type="Self.Users" Multiplicity="1" />
+          <End Role="Follows" Type="Self.Follows" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Users">
+              <PropertyRef Name="UserID" />
+            </Principal>
+            <Dependent Role="Follows">
+              <PropertyRef Name="FollowerID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_Follows_Following">
+          <End Role="Users" Type="Self.Users" Multiplicity="1" />
+          <End Role="Follows" Type="Self.Follows" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Users">
+              <PropertyRef Name="UserID" />
+            </Principal>
+            <Dependent Role="Follows">
+              <PropertyRef Name="FollowingID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_Friendships_Receiver">
+          <End Role="Users" Type="Self.Users" Multiplicity="1" />
+          <End Role="Friendships" Type="Self.Friendships" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Users">
+              <PropertyRef Name="UserID" />
+            </Principal>
+            <Dependent Role="Friendships">
+              <PropertyRef Name="ReceiverID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_Friendships_Requester">
+          <End Role="Users" Type="Self.Users" Multiplicity="1" />
+          <End Role="Friendships" Type="Self.Friendships" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Users">
+              <PropertyRef Name="UserID" />
+            </Principal>
+            <Dependent Role="Friendships">
+              <PropertyRef Name="RequesterID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_Notifications_Sender">
+          <End Role="Users" Type="Self.Users" Multiplicity="0..1" />
+          <End Role="Notifications" Type="Self.Notifications" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Users">
+              <PropertyRef Name="UserID" />
+            </Principal>
+            <Dependent Role="Notifications">
+              <PropertyRef Name="SenderID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_PostComments_ParentID">
+          <End Role="PostComments" Type="Self.PostComments" Multiplicity="0..1" />
+          <End Role="PostComments1" Type="Self.PostComments" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="PostComments">
+              <PropertyRef Name="CommentID" />
+            </Principal>
+            <Dependent Role="PostComments1">
+              <PropertyRef Name="ParentID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_PostComments_PostID">
+          <End Role="Posts" Type="Self.Posts" Multiplicity="1">
+            <OnDelete Action="Cascade" />
+          </End>
+          <End Role="PostComments" Type="Self.PostComments" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Posts">
+              <PropertyRef Name="PostID" />
+            </Principal>
+            <Dependent Role="PostComments">
+              <PropertyRef Name="PostID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_PostComments_UserID">
+          <End Role="Users" Type="Self.Users" Multiplicity="1" />
+          <End Role="PostComments" Type="Self.PostComments" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Users">
+              <PropertyRef Name="UserID" />
+            </Principal>
+            <Dependent Role="PostComments">
+              <PropertyRef Name="UserID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_PostLikes_PostID">
+          <End Role="Posts" Type="Self.Posts" Multiplicity="1">
+            <OnDelete Action="Cascade" />
+          </End>
+          <End Role="PostLikes" Type="Self.PostLikes" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Posts">
+              <PropertyRef Name="PostID" />
+            </Principal>
+            <Dependent Role="PostLikes">
+              <PropertyRef Name="PostID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_PostLikes_UserID">
+          <End Role="Users" Type="Self.Users" Multiplicity="1" />
+          <End Role="PostLikes" Type="Self.PostLikes" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Users">
+              <PropertyRef Name="UserID" />
+            </Principal>
+            <Dependent Role="PostLikes">
+              <PropertyRef Name="UserID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_PostMedia_PostID">
+          <End Role="Posts" Type="Self.Posts" Multiplicity="1">
+            <OnDelete Action="Cascade" />
+          </End>
+          <End Role="PostMedia" Type="Self.PostMedia" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Posts">
+              <PropertyRef Name="PostID" />
+            </Principal>
+            <Dependent Role="PostMedia">
+              <PropertyRef Name="PostID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_Posts_UserID">
+          <End Role="Users" Type="Self.Users" Multiplicity="1" />
+          <End Role="Posts" Type="Self.Posts" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Users">
+              <PropertyRef Name="UserID" />
+            </Principal>
+            <Dependent Role="Posts">
+              <PropertyRef Name="UserID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_PostShares_PostID">
+          <End Role="Posts" Type="Self.Posts" Multiplicity="1">
+            <OnDelete Action="Cascade" />
+          </End>
+          <End Role="PostShares" Type="Self.PostShares" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Posts">
+              <PropertyRef Name="PostID" />
+            </Principal>
+            <Dependent Role="PostShares">
+              <PropertyRef Name="PostID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_PostShares_UserID">
+          <End Role="Users" Type="Self.Users" Multiplicity="1" />
+          <End Role="PostShares" Type="Self.PostShares" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Users">
+              <PropertyRef Name="UserID" />
+            </Principal>
+            <Dependent Role="PostShares">
+              <PropertyRef Name="UserID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_Stories_UserID">
+          <End Role="Users" Type="Self.Users" Multiplicity="1" />
+          <End Role="Stories" Type="Self.Stories" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Users">
+              <PropertyRef Name="UserID" />
+            </Principal>
+            <Dependent Role="Stories">
+              <PropertyRef Name="UserID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_StoryViews_StoryID">
+          <End Role="Stories" Type="Self.Stories" Multiplicity="1">
+            <OnDelete Action="Cascade" />
+          </End>
+          <End Role="StoryViews" Type="Self.StoryViews" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Stories">
+              <PropertyRef Name="StoryID" />
+            </Principal>
+            <Dependent Role="StoryViews">
+              <PropertyRef Name="StoryID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_StoryViews_ViewerID">
+          <End Role="Users" Type="Self.Users" Multiplicity="1" />
+          <End Role="StoryViews" Type="Self.StoryViews" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Users">
+              <PropertyRef Name="UserID" />
+            </Principal>
+            <Dependent Role="StoryViews">
+              <PropertyRef Name="ViewerID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_UserProfiles_UserID">
+          <End Role="Users" Type="Self.Users" Multiplicity="1">
+            <OnDelete Action="Cascade" />
+          </End>
+          <End Role="UserProfiles" Type="Self.UserProfiles" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Users">
+              <PropertyRef Name="UserID" />
+            </Principal>
+            <Dependent Role="UserProfiles">
+              <PropertyRef Name="UserID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_AgentMessages_Conversations">
+          <End Role="AgentConversations" Type="Self.AgentConversations" Multiplicity="1">
+            <OnDelete Action="Cascade" />
+          </End>
+          <End Role="AgentMessages" Type="Self.AgentMessages" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="AgentConversations">
+              <PropertyRef Name="ConversationID" />
+            </Principal>
+            <Dependent Role="AgentMessages">
+              <PropertyRef Name="ConversationID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <EntityContainer Name="TDMUEcoSystemModelStoreContainer">
+          <EntitySet Name="AgentActionLogs" EntityType="Self.AgentActionLogs" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="AgentConversations" EntityType="Self.AgentConversations" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="AgentMessages" EntityType="Self.AgentMessages" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="AgentPendingConfirmations" EntityType="Self.AgentPendingConfirmations" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="AgentPermissions" EntityType="Self.AgentPermissions" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="AgentTaskRuns" EntityType="Self.AgentTaskRuns" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="AgentTasks" EntityType="Self.AgentTasks" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="ChatMessages" EntityType="Self.ChatMessages" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="ChatParticipants" EntityType="Self.ChatParticipants" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="ChatRooms" EntityType="Self.ChatRooms" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="ConnectCategories" EntityType="Self.ConnectCategories" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="ConnectPosts" EntityType="Self.ConnectPosts" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="Follows" EntityType="Self.Follows" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="Friendships" EntityType="Self.Friendships" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="MarketCategories" EntityType="Self.MarketCategories" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="MarketChatRooms" EntityType="Self.MarketChatRooms" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="MarketImages" EntityType="Self.MarketImages" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="MarketPosts" EntityType="Self.MarketPosts" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="MarketWishlists" EntityType="Self.MarketWishlists" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="Notifications" EntityType="Self.Notifications" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="PostComments" EntityType="Self.PostComments" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="PostLikes" EntityType="Self.PostLikes" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="PostMedia" EntityType="Self.PostMedia" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="Posts" EntityType="Self.Posts" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="PostShares" EntityType="Self.PostShares" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="Reviews" EntityType="Self.Reviews" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="Stories" EntityType="Self.Stories" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="StoryViews" EntityType="Self.StoryViews" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="UserNameChanges" EntityType="Self.UserNameChanges" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="UserProfiles" EntityType="Self.UserProfiles" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="Users" EntityType="Self.Users" Schema="dbo" store:Type="Tables" />
+          <AssociationSet Name="FK__ChatMessa__RoomI__0B91BA14" Association="Self.FK__ChatMessa__RoomI__0B91BA14">
+            <End Role="ChatRooms" EntitySet="ChatRooms" />
+            <End Role="ChatMessages" EntitySet="ChatMessages" />
+          </AssociationSet>
+          <AssociationSet Name="FK__ChatMessa__Sende__0C85DE4D" Association="Self.FK__ChatMessa__Sende__0C85DE4D">
+            <End Role="Users" EntitySet="Users" />
+            <End Role="ChatMessages" EntitySet="ChatMessages" />
+          </AssociationSet>
+          <AssociationSet Name="FK__ChatParti__RoomI__0E6E26BF" Association="Self.FK__ChatParti__RoomI__0E6E26BF">
+            <End Role="ChatRooms" EntitySet="ChatRooms" />
+            <End Role="ChatParticipants" EntitySet="ChatParticipants" />
+          </AssociationSet>
+          <AssociationSet Name="FK__ChatParti__UserI__0F624AF8" Association="Self.FK__ChatParti__UserI__0F624AF8">
+            <End Role="Users" EntitySet="Users" />
+            <End Role="ChatParticipants" EntitySet="ChatParticipants" />
+          </AssociationSet>
+          <AssociationSet Name="FK__ConnectPo__Categ__10566F31" Association="Self.FK__ConnectPo__Categ__10566F31">
+            <End Role="ConnectCategories" EntitySet="ConnectCategories" />
+            <End Role="ConnectPosts" EntitySet="ConnectPosts" />
+          </AssociationSet>
+          <AssociationSet Name="FK__ConnectPo__UserI__114A936A" Association="Self.FK__ConnectPo__UserI__114A936A">
+            <End Role="Users" EntitySet="Users" />
+            <End Role="ConnectPosts" EntitySet="ConnectPosts" />
+          </AssociationSet>
+          <AssociationSet Name="FK__MarketCha__Buyer__160F4887" Association="Self.FK__MarketCha__Buyer__160F4887">
+            <End Role="Users" EntitySet="Users" />
+            <End Role="MarketChatRooms" EntitySet="MarketChatRooms" />
+          </AssociationSet>
+          <AssociationSet Name="FK__MarketCha__PostI__17036CC0" Association="Self.FK__MarketCha__PostI__17036CC0">
+            <End Role="MarketPosts" EntitySet="MarketPosts" />
+            <End Role="MarketChatRooms" EntitySet="MarketChatRooms" />
+          </AssociationSet>
+          <AssociationSet Name="FK__MarketCha__Selle__17F790F9" Association="Self.FK__MarketCha__Selle__17F790F9">
+            <End Role="Users" EntitySet="Users" />
+            <End Role="MarketChatRooms" EntitySet="MarketChatRooms" />
+          </AssociationSet>
+          <AssociationSet Name="FK__MarketIma__PostI__18EBB532" Association="Self.FK__MarketIma__PostI__18EBB532">
+            <End Role="MarketPosts" EntitySet="MarketPosts" />
+            <End Role="MarketImages" EntitySet="MarketImages" />
+          </AssociationSet>
+          <AssociationSet Name="FK__MarketPos__Categ__19DFD96B" Association="Self.FK__MarketPos__Categ__19DFD96B">
+            <End Role="MarketCategories" EntitySet="MarketCategories" />
+            <End Role="MarketPosts" EntitySet="MarketPosts" />
+          </AssociationSet>
+          <AssociationSet Name="FK__MarketPos__UserI__1AD3FDA4" Association="Self.FK__MarketPos__UserI__1AD3FDA4">
+            <End Role="Users" EntitySet="Users" />
+            <End Role="MarketPosts" EntitySet="MarketPosts" />
+          </AssociationSet>
+          <AssociationSet Name="FK__MarketWis__PostI__1BC821DD" Association="Self.FK__MarketWis__PostI__1BC821DD">
+            <End Role="MarketPosts" EntitySet="MarketPosts" />
+            <End Role="MarketWishlists" EntitySet="MarketWishlists" />
+          </AssociationSet>
+          <AssociationSet Name="FK__MarketWis__UserI__1CBC4616" Association="Self.FK__MarketWis__UserI__1CBC4616">
+            <End Role="Users" EntitySet="Users" />
+            <End Role="MarketWishlists" EntitySet="MarketWishlists" />
+          </AssociationSet>
+          <AssociationSet Name="FK__Notificat__UserI__1DB06A4F" Association="Self.FK__Notificat__UserI__1DB06A4F">
+            <End Role="Users" EntitySet="Users" />
+            <End Role="Notifications" EntitySet="Notifications" />
+          </AssociationSet>
+          <AssociationSet Name="FK__Reviews__UserID__282DF8C2" Association="Self.FK__Reviews__UserID__282DF8C2">
+            <End Role="Users" EntitySet="Users" />
+            <End Role="Reviews" EntitySet="Reviews" />
+          </AssociationSet>
+          <AssociationSet Name="FK_AgentActionLogs_Runs" Association="Self.FK_AgentActionLogs_Runs">
+            <End Role="AgentTaskRuns" EntitySet="AgentTaskRuns" />
+            <End Role="AgentActionLogs" EntitySet="AgentActionLogs" />
+          </AssociationSet>
+          <AssociationSet Name="FK_AgentActionLogs_Users" Association="Self.FK_AgentActionLogs_Users">
+            <End Role="Users" EntitySet="Users" />
+            <End Role="AgentActionLogs" EntitySet="AgentActionLogs" />
+          </AssociationSet>
+          <AssociationSet Name="FK_AgentConfirmations_Tasks" Association="Self.FK_AgentConfirmations_Tasks">
+            <End Role="AgentTasks" EntitySet="AgentTasks" />
+            <End Role="AgentPendingConfirmations" EntitySet="AgentPendingConfirmations" />
+          </AssociationSet>
+          <AssociationSet Name="FK_AgentConfirmations_Users" Association="Self.FK_AgentConfirmations_Users">
+            <End Role="Users" EntitySet="Users" />
+            <End Role="AgentPendingConfirmations" EntitySet="AgentPendingConfirmations" />
+          </AssociationSet>
+          <AssociationSet Name="FK_AgentPermissions_Users" Association="Self.FK_AgentPermissions_Users">
+            <End Role="Users" EntitySet="Users" />
+            <End Role="AgentPermissions" EntitySet="AgentPermissions" />
+          </AssociationSet>
+          <AssociationSet Name="FK_AgentTaskRuns_Tasks" Association="Self.FK_AgentTaskRuns_Tasks">
+            <End Role="AgentTasks" EntitySet="AgentTasks" />
+            <End Role="AgentTaskRuns" EntitySet="AgentTaskRuns" />
+          </AssociationSet>
+          <AssociationSet Name="FK_AgentTaskRuns_Users" Association="Self.FK_AgentTaskRuns_Users">
+            <End Role="Users" EntitySet="Users" />
+            <End Role="AgentTaskRuns" EntitySet="AgentTaskRuns" />
+          </AssociationSet>
+          <AssociationSet Name="FK_AgentTasks_Users" Association="Self.FK_AgentTasks_Users">
+            <End Role="Users" EntitySet="Users" />
+            <End Role="AgentTasks" EntitySet="AgentTasks" />
+          </AssociationSet>
+          <AssociationSet Name="FK_ChatMessages_Reply" Association="Self.FK_ChatMessages_Reply">
+            <End Role="ChatMessages" EntitySet="ChatMessages" />
+            <End Role="ChatMessages1" EntitySet="ChatMessages" />
+          </AssociationSet>
+          <AssociationSet Name="FK_Follows_Follower" Association="Self.FK_Follows_Follower">
+            <End Role="Users" EntitySet="Users" />
+            <End Role="Follows" EntitySet="Follows" />
+          </AssociationSet>
+          <AssociationSet Name="FK_Follows_Following" Association="Self.FK_Follows_Following">
+            <End Role="Users" EntitySet="Users" />
+            <End Role="Follows" EntitySet="Follows" />
+          </AssociationSet>
+          <AssociationSet Name="FK_Friendships_Receiver" Association="Self.FK_Friendships_Receiver">
+            <End Role="Users" EntitySet="Users" />
+            <End Role="Friendships" EntitySet="Friendships" />
+          </AssociationSet>
+          <AssociationSet Name="FK_Friendships_Requester" Association="Self.FK_Friendships_Requester">
+            <End Role="Users" EntitySet="Users" />
+            <End Role="Friendships" EntitySet="Friendships" />
+          </AssociationSet>
+          <AssociationSet Name="FK_Notifications_Sender" Association="Self.FK_Notifications_Sender">
+            <End Role="Users" EntitySet="Users" />
+            <End Role="Notifications" EntitySet="Notifications" />
+          </AssociationSet>
+          <AssociationSet Name="FK_PostComments_ParentID" Association="Self.FK_PostComments_ParentID">
+            <End Role="PostComments" EntitySet="PostComments" />
+            <End Role="PostComments1" EntitySet="PostComments" />
+          </AssociationSet>
+          <AssociationSet Name="FK_PostComments_PostID" Association="Self.FK_PostComments_PostID">
+            <End Role="Posts" EntitySet="Posts" />
+            <End Role="PostComments" EntitySet="PostComments" />
+          </AssociationSet>
+          <AssociationSet Name="FK_PostComments_UserID" Association="Self.FK_PostComments_UserID">
+            <End Role="Users" EntitySet="Users" />
+            <End Role="PostComments" EntitySet="PostComments" />
+          </AssociationSet>
+          <AssociationSet Name="FK_PostLikes_PostID" Association="Self.FK_PostLikes_PostID">
+            <End Role="Posts" EntitySet="Posts" />
+            <End Role="PostLikes" EntitySet="PostLikes" />
+          </AssociationSet>
+          <AssociationSet Name="FK_PostLikes_UserID" Association="Self.FK_PostLikes_UserID">
+            <End Role="Users" EntitySet="Users" />
+            <End Role="PostLikes" EntitySet="PostLikes" />
+          </AssociationSet>
+          <AssociationSet Name="FK_PostMedia_PostID" Association="Self.FK_PostMedia_PostID">
+            <End Role="Posts" EntitySet="Posts" />
+            <End Role="PostMedia" EntitySet="PostMedia" />
+          </AssociationSet>
+          <AssociationSet Name="FK_Posts_UserID" Association="Self.FK_Posts_UserID">
+            <End Role="Users" EntitySet="Users" />
+            <End Role="Posts" EntitySet="Posts" />
+          </AssociationSet>
+          <AssociationSet Name="FK_PostShares_PostID" Association="Self.FK_PostShares_PostID">
+            <End Role="Posts" EntitySet="Posts" />
+            <End Role="PostShares" EntitySet="PostShares" />
+          </AssociationSet>
+          <AssociationSet Name="FK_PostShares_UserID" Association="Self.FK_PostShares_UserID">
+            <End Role="Users" EntitySet="Users" />
+            <End Role="PostShares" EntitySet="PostShares" />
+          </AssociationSet>
+          <AssociationSet Name="FK_Stories_UserID" Association="Self.FK_Stories_UserID">
+            <End Role="Users" EntitySet="Users" />
+            <End Role="Stories" EntitySet="Stories" />
+          </AssociationSet>
+          <AssociationSet Name="FK_StoryViews_StoryID" Association="Self.FK_StoryViews_StoryID">
+            <End Role="Stories" EntitySet="Stories" />
+            <End Role="StoryViews" EntitySet="StoryViews" />
+          </AssociationSet>
+          <AssociationSet Name="FK_StoryViews_ViewerID" Association="Self.FK_StoryViews_ViewerID">
+            <End Role="Users" EntitySet="Users" />
+            <End Role="StoryViews" EntitySet="StoryViews" />
+          </AssociationSet>
+          <AssociationSet Name="FK_UserProfiles_UserID" Association="Self.FK_UserProfiles_UserID">
+            <End Role="Users" EntitySet="Users" />
+            <End Role="UserProfiles" EntitySet="UserProfiles" />
+          </AssociationSet>
+          <AssociationSet Name="FK_AgentMessages_Conversations" Association="Self.FK_AgentMessages_Conversations">
+            <End Role="AgentConversations" EntitySet="AgentConversations" />
+            <End Role="AgentMessages" EntitySet="AgentMessages" />
+          </AssociationSet>
+                            <EntitySet Name="ChatReports" EntityType="Self.ChatReports" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="ChatRestrictions" EntityType="Self.ChatRestrictions" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="SharedPosts" EntityType="Self.SharedPosts" Schema="dbo" store:Type="Tables" />
+          <AssociationSet Name="FK_SharedPosts_Users" Association="Self.FK_SharedPosts_Users">
+            <End Role="Users" EntitySet="Users" />
+            <End Role="SharedPosts" EntitySet="SharedPosts" />
+          </AssociationSet>
+</EntityContainer>
+                      <EntityType Name="ChatReports">
+          <Key>
+            <PropertyRef Name="ReportID" />
+          </Key>
+          <Property Name="ReportID" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="ReporterID" Type="int" Nullable="false" />
+          <Property Name="ReportedUserID" Type="int" />
+          <Property Name="RoomID" Type="int" />
+          <Property Name="MessageID" Type="int" />
+          <Property Name="Reason" Type="nvarchar" MaxLength="255" Nullable="false" />
+          <Property Name="Details" Type="nvarchar(max)" />
+          <Property Name="EvidenceSnippet" Type="nvarchar(max)" />
+          <Property Name="Status" Type="nvarchar" MaxLength="50" Nullable="false" />
+          <Property Name="CreatedAt" Type="datetime" Nullable="false" />
+          <Property Name="HandledBy" Type="int" />
+          <Property Name="HandledAt" Type="datetime" />
+          <Property Name="HandlingNotes" Type="nvarchar(max)" />
+          <Property Name="ActionTaken" Type="nvarchar" MaxLength="100" />
+        </EntityType>
+        <EntityType Name="ChatRestrictions">
+          <Key>
+            <PropertyRef Name="RestrictionID" />
+          </Key>
+          <Property Name="RestrictionID" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="UserID" Type="int" Nullable="false" />
+          <Property Name="RestrictionType" Type="nvarchar" MaxLength="50" Nullable="false" />
+          <Property Name="Reason" Type="nvarchar" MaxLength="500" Nullable="false" />
+          <Property Name="CreatedAt" Type="datetime" Nullable="false" />
+          <Property Name="ExpiresAt" Type="datetime" />
+          <Property Name="CreatedByAdminID" Type="int" Nullable="false" />
+          <Property Name="IsActive" Type="bit" Nullable="false" />
+          <Property Name="RevokedAt" Type="datetime" />
+          <Property Name="RevokedByAdminID" Type="int" />
+          <Property Name="RevokeReason" Type="nvarchar" MaxLength="500" />
+        </EntityType>
+        <EntityType Name="SharedPosts">
+          <Key>
+            <PropertyRef Name="ShareID" />
+          </Key>
+          <Property Name="ShareID" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="ItemType" Type="nvarchar" MaxLength="20" Nullable="false" />
+          <Property Name="PostID" Type="int" Nullable="false" />
+          <Property Name="UserID" Type="int" Nullable="false" />
+          <Property Name="Content" Type="nvarchar" MaxLength="500" />
+          <Property Name="CreatedAt" Type="datetime" Nullable="false" />
+        </EntityType>
+        <Association Name="FK_SharedPosts_Users">
+          <End Role="Users" Type="Self.Users" Multiplicity="1">
+            <OnDelete Action="Cascade" />
+          </End>
+          <End Role="SharedPosts" Type="Self.SharedPosts" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Users">
+              <PropertyRef Name="UserID" />
+            </Principal>
+            <Dependent Role="SharedPosts">
+              <PropertyRef Name="UserID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+</Schema></edmx:StorageModels>
+    <!-- CSDL content -->
+    <edmx:ConceptualModels>
+      <Schema Namespace="TDMUEcoSystemModel" Alias="Self" annotation:UseStrongSpatialTypes="false" xmlns:annotation="http://schemas.microsoft.com/ado/2009/02/edm/annotation" xmlns:customannotation="http://schemas.microsoft.com/ado/2013/11/edm/customannotation" xmlns="http://schemas.microsoft.com/ado/2009/11/edm">
+        <EntityContainer Name="TDMUEcoSystemEntities" annotation:LazyLoadingEnabled="true">
+          <EntitySet Name="ChatMessages" EntityType="TDMUEcoSystemModel.ChatMessage" />
+          <EntitySet Name="ChatParticipants" EntityType="TDMUEcoSystemModel.ChatParticipant" />
+          <EntitySet Name="ChatRooms" EntityType="TDMUEcoSystemModel.ChatRoom" />
+          <EntitySet Name="ConnectCategories" EntityType="TDMUEcoSystemModel.ConnectCategory" />
+          <EntitySet Name="ConnectPosts" EntityType="TDMUEcoSystemModel.ConnectPost" />
+          <EntitySet Name="MarketCategories" EntityType="TDMUEcoSystemModel.MarketCategory" />
+          <EntitySet Name="MarketChatRooms" EntityType="TDMUEcoSystemModel.MarketChatRoom" />
+          <EntitySet Name="MarketImages" EntityType="TDMUEcoSystemModel.MarketImage" />
+          <EntitySet Name="MarketPosts" EntityType="TDMUEcoSystemModel.MarketPost" />
+          <EntitySet Name="MarketWishlists" EntityType="TDMUEcoSystemModel.MarketWishlist" />
+          <EntitySet Name="Reviews" EntityType="TDMUEcoSystemModel.Review" />
+          <EntitySet Name="Users" EntityType="TDMUEcoSystemModel.User" />
+          <AssociationSet Name="FK__ChatMessa__RoomI__37A5467C" Association="TDMUEcoSystemModel.FK__ChatMessa__RoomI__37A5467C">
+            <End Role="ChatRoom" EntitySet="ChatRooms" />
+            <End Role="ChatMessage" EntitySet="ChatMessages" />
+          </AssociationSet>
+          <AssociationSet Name="FK__ChatMessa__Sende__38996AB5" Association="TDMUEcoSystemModel.FK__ChatMessa__Sende__38996AB5">
+            <End Role="User" EntitySet="Users" />
+            <End Role="ChatMessage" EntitySet="ChatMessages" />
+          </AssociationSet>
+          <AssociationSet Name="FK__ChatParti__RoomI__31EC6D26" Association="TDMUEcoSystemModel.FK__ChatParti__RoomI__31EC6D26">
+            <End Role="ChatRoom" EntitySet="ChatRooms" />
+            <End Role="ChatParticipant" EntitySet="ChatParticipants" />
+          </AssociationSet>
+          <AssociationSet Name="FK__ChatParti__UserI__32E0915F" Association="TDMUEcoSystemModel.FK__ChatParti__UserI__32E0915F">
+            <End Role="User" EntitySet="Users" />
+            <End Role="ChatParticipant" EntitySet="ChatParticipants" />
+          </AssociationSet>
+          <AssociationSet Name="FK__ConnectPo__Categ__571DF1D5" Association="TDMUEcoSystemModel.FK__ConnectPo__Categ__571DF1D5">
+            <End Role="ConnectCategory" EntitySet="ConnectCategories" />
+            <End Role="ConnectPost" EntitySet="ConnectPosts" />
+          </AssociationSet>
+          <AssociationSet Name="FK__ConnectPo__UserI__5629CD9C" Association="TDMUEcoSystemModel.FK__ConnectPo__UserI__5629CD9C">
+            <End Role="User" EntitySet="Users" />
+            <End Role="ConnectPost" EntitySet="ConnectPosts" />
+          </AssociationSet>
+          <AssociationSet Name="FK__MarketPos__Categ__3F466844" Association="TDMUEcoSystemModel.FK__MarketPos__Categ__3F466844">
+            <End Role="MarketCategory" EntitySet="MarketCategories" />
+            <End Role="MarketPost" EntitySet="MarketPosts" />
+          </AssociationSet>
+          <AssociationSet Name="FK__MarketCha__Buyer__4F7CD00D" Association="TDMUEcoSystemModel.FK__MarketCha__Buyer__4F7CD00D">
+            <End Role="User" EntitySet="Users" />
+            <End Role="MarketChatRoom" EntitySet="MarketChatRooms" />
+          </AssociationSet>
+          <AssociationSet Name="FK__MarketCha__PostI__4E88ABD4" Association="TDMUEcoSystemModel.FK__MarketCha__PostI__4E88ABD4">
+            <End Role="MarketPost" EntitySet="MarketPosts" />
+            <End Role="MarketChatRoom" EntitySet="MarketChatRooms" />
+          </AssociationSet>
+          <AssociationSet Name="FK__MarketCha__Selle__5070F446" Association="TDMUEcoSystemModel.FK__MarketCha__Selle__5070F446">
+            <End Role="User" EntitySet="Users" />
+            <End Role="MarketChatRoom" EntitySet="MarketChatRooms" />
+          </AssociationSet>
+          <AssociationSet Name="FK__MarketIma__PostI__46E78A0C" Association="TDMUEcoSystemModel.FK__MarketIma__PostI__46E78A0C">
+            <End Role="MarketPost" EntitySet="MarketPosts" />
+            <End Role="MarketImage" EntitySet="MarketImages" />
+          </AssociationSet>
+          <AssociationSet Name="FK__MarketPos__UserI__3E52440B" Association="TDMUEcoSystemModel.FK__MarketPos__UserI__3E52440B">
+            <End Role="User" EntitySet="Users" />
+            <End Role="MarketPost" EntitySet="MarketPosts" />
+          </AssociationSet>
+          <AssociationSet Name="FK__MarketWis__PostI__4AB81AF0" Association="TDMUEcoSystemModel.FK__MarketWis__PostI__4AB81AF0">
+            <End Role="MarketPost" EntitySet="MarketPosts" />
+            <End Role="MarketWishlist" EntitySet="MarketWishlists" />
+          </AssociationSet>
+          <AssociationSet Name="FK__MarketWis__UserI__49C3F6B7" Association="TDMUEcoSystemModel.FK__MarketWis__UserI__49C3F6B7">
+            <End Role="User" EntitySet="Users" />
+            <End Role="MarketWishlist" EntitySet="MarketWishlists" />
+          </AssociationSet>
+          <AssociationSet Name="FK__Reviews__UserID__5AEE82B9" Association="TDMUEcoSystemModel.FK__Reviews__UserID__5AEE82B9">
+            <End Role="User" EntitySet="Users" />
+            <End Role="Review" EntitySet="Reviews" />
+          </AssociationSet>
+          <AssociationSet Name="FK_ChatMessages_Reply" Association="TDMUEcoSystemModel.FK_ChatMessages_Reply">
+            <End Role="ChatMessage" EntitySet="ChatMessages" />
+            <End Role="ChatMessage1" EntitySet="ChatMessages" />
+          </AssociationSet>
+          <EntitySet Name="Notifications" EntityType="TDMUEcoSystemModel.Notification" />
+          <AssociationSet Name="FK__Notificat__UserI__04E4BC85" Association="TDMUEcoSystemModel.FK__Notificat__UserI__04E4BC85">
+            <End Role="User" EntitySet="Users" />
+            <End Role="Notification" EntitySet="Notifications" />
+          </AssociationSet>
+          <EntitySet Name="Follows" EntityType="TDMUEcoSystemModel.Follow" />
+          <EntitySet Name="Friendships" EntityType="TDMUEcoSystemModel.Friendship" />
+          <EntitySet Name="PostComments" EntityType="TDMUEcoSystemModel.PostComment" />
+          <EntitySet Name="PostLikes" EntityType="TDMUEcoSystemModel.PostLike" />
+          <EntitySet Name="PostMedias" EntityType="TDMUEcoSystemModel.PostMedia" />
+          <EntitySet Name="Posts" EntityType="TDMUEcoSystemModel.Post" />
+          <EntitySet Name="PostShares" EntityType="TDMUEcoSystemModel.PostShare" />
+          <EntitySet Name="Stories" EntityType="TDMUEcoSystemModel.Story" />
+          <EntitySet Name="StoryViews" EntityType="TDMUEcoSystemModel.StoryView" />
+          <EntitySet Name="UserProfiles" EntityType="TDMUEcoSystemModel.UserProfile" />
+          <AssociationSet Name="FK_Follows_Follower" Association="TDMUEcoSystemModel.FK_Follows_Follower">
+            <End Role="User" EntitySet="Users" />
+            <End Role="Follow" EntitySet="Follows" />
+          </AssociationSet>
+          <AssociationSet Name="FK_Follows_Following" Association="TDMUEcoSystemModel.FK_Follows_Following">
+            <End Role="User" EntitySet="Users" />
+            <End Role="Follow" EntitySet="Follows" />
+          </AssociationSet>
+          <AssociationSet Name="FK_Friendships_Receiver" Association="TDMUEcoSystemModel.FK_Friendships_Receiver">
+            <End Role="User" EntitySet="Users" />
+            <End Role="Friendship" EntitySet="Friendships" />
+          </AssociationSet>
+          <AssociationSet Name="FK_Friendships_Requester" Association="TDMUEcoSystemModel.FK_Friendships_Requester">
+            <End Role="User" EntitySet="Users" />
+            <End Role="Friendship" EntitySet="Friendships" />
+          </AssociationSet>
+          <AssociationSet Name="FK_Notifications_Sender" Association="TDMUEcoSystemModel.FK_Notifications_Sender">
+            <End Role="User" EntitySet="Users" />
+            <End Role="Notification" EntitySet="Notifications" />
+          </AssociationSet>
+          <AssociationSet Name="FK_PostComments_ParentID" Association="TDMUEcoSystemModel.FK_PostComments_ParentID">
+            <End Role="PostComment" EntitySet="PostComments" />
+            <End Role="PostComment1" EntitySet="PostComments" />
+          </AssociationSet>
+          <AssociationSet Name="FK_PostComments_PostID" Association="TDMUEcoSystemModel.FK_PostComments_PostID">
+            <End Role="Post" EntitySet="Posts" />
+            <End Role="PostComment" EntitySet="PostComments" />
+          </AssociationSet>
+          <AssociationSet Name="FK_PostComments_UserID" Association="TDMUEcoSystemModel.FK_PostComments_UserID">
+            <End Role="User" EntitySet="Users" />
+            <End Role="PostComment" EntitySet="PostComments" />
+          </AssociationSet>
+          <AssociationSet Name="FK_PostLikes_PostID" Association="TDMUEcoSystemModel.FK_PostLikes_PostID">
+            <End Role="Post" EntitySet="Posts" />
+            <End Role="PostLike" EntitySet="PostLikes" />
+          </AssociationSet>
+          <AssociationSet Name="FK_PostLikes_UserID" Association="TDMUEcoSystemModel.FK_PostLikes_UserID">
+            <End Role="User" EntitySet="Users" />
+            <End Role="PostLike" EntitySet="PostLikes" />
+          </AssociationSet>
+          <AssociationSet Name="FK_PostMedia_PostID" Association="TDMUEcoSystemModel.FK_PostMedia_PostID">
+            <End Role="Post" EntitySet="Posts" />
+            <End Role="PostMedia" EntitySet="PostMedias" />
+          </AssociationSet>
+          <AssociationSet Name="FK_Posts_UserID" Association="TDMUEcoSystemModel.FK_Posts_UserID">
+            <End Role="User" EntitySet="Users" />
+            <End Role="Post" EntitySet="Posts" />
+          </AssociationSet>
+          <AssociationSet Name="FK_PostShares_PostID" Association="TDMUEcoSystemModel.FK_PostShares_PostID">
+            <End Role="Post" EntitySet="Posts" />
+            <End Role="PostShare" EntitySet="PostShares" />
+          </AssociationSet>
+          <AssociationSet Name="FK_PostShares_UserID" Association="TDMUEcoSystemModel.FK_PostShares_UserID">
+            <End Role="User" EntitySet="Users" />
+            <End Role="PostShare" EntitySet="PostShares" />
+          </AssociationSet>
+          <AssociationSet Name="FK_Stories_UserID" Association="TDMUEcoSystemModel.FK_Stories_UserID">
+            <End Role="User" EntitySet="Users" />
+            <End Role="Story" EntitySet="Stories" />
+          </AssociationSet>
+          <AssociationSet Name="FK_StoryViews_StoryID" Association="TDMUEcoSystemModel.FK_StoryViews_StoryID">
+            <End Role="Story" EntitySet="Stories" />
+            <End Role="StoryView" EntitySet="StoryViews" />
+          </AssociationSet>
+          <AssociationSet Name="FK_StoryViews_ViewerID" Association="TDMUEcoSystemModel.FK_StoryViews_ViewerID">
+            <End Role="User" EntitySet="Users" />
+            <End Role="StoryView" EntitySet="StoryViews" />
+          </AssociationSet>
+          <AssociationSet Name="FK_UserProfiles_UserID" Association="TDMUEcoSystemModel.FK_UserProfiles_UserID">
+            <End Role="User" EntitySet="Users" />
+            <End Role="UserProfile" EntitySet="UserProfiles" />
+          </AssociationSet>
+          <EntitySet Name="AgentActionLogs" EntityType="TDMUEcoSystemModel.AgentActionLog" />
+          <EntitySet Name="AgentPendingConfirmations" EntityType="TDMUEcoSystemModel.AgentPendingConfirmation" />
+          <EntitySet Name="AgentPermissions" EntityType="TDMUEcoSystemModel.AgentPermission" />
+          <EntitySet Name="AgentTaskRuns" EntityType="TDMUEcoSystemModel.AgentTaskRun" />
+          <EntitySet Name="AgentTasks" EntityType="TDMUEcoSystemModel.AgentTask" />
+          <EntitySet Name="AgentConversations" EntityType="TDMUEcoSystemModel.AgentConversation" />
+          <EntitySet Name="AgentMessages" EntityType="TDMUEcoSystemModel.AgentMessage" />
+          <EntitySet Name="UserNameChanges" EntityType="TDMUEcoSystemModel.UserNameChanx" />
+          <AssociationSet Name="FK_AgentActionLogs_Runs" Association="TDMUEcoSystemModel.FK_AgentActionLogs_Runs">
+            <End Role="AgentTaskRun" EntitySet="AgentTaskRuns" />
+            <End Role="AgentActionLog" EntitySet="AgentActionLogs" />
+          </AssociationSet>
+          <AssociationSet Name="FK_AgentActionLogs_Users" Association="TDMUEcoSystemModel.FK_AgentActionLogs_Users">
+            <End Role="User" EntitySet="Users" />
+            <End Role="AgentActionLog" EntitySet="AgentActionLogs" />
+          </AssociationSet>
+          <AssociationSet Name="FK_AgentConfirmations_Tasks" Association="TDMUEcoSystemModel.FK_AgentConfirmations_Tasks">
+            <End Role="AgentTask" EntitySet="AgentTasks" />
+            <End Role="AgentPendingConfirmation" EntitySet="AgentPendingConfirmations" />
+          </AssociationSet>
+          <AssociationSet Name="FK_AgentConfirmations_Users" Association="TDMUEcoSystemModel.FK_AgentConfirmations_Users">
+            <End Role="User" EntitySet="Users" />
+            <End Role="AgentPendingConfirmation" EntitySet="AgentPendingConfirmations" />
+          </AssociationSet>
+          <AssociationSet Name="FK_AgentPermissions_Users" Association="TDMUEcoSystemModel.FK_AgentPermissions_Users">
+            <End Role="User" EntitySet="Users" />
+            <End Role="AgentPermission" EntitySet="AgentPermissions" />
+          </AssociationSet>
+          <AssociationSet Name="FK_AgentTaskRuns_Tasks" Association="TDMUEcoSystemModel.FK_AgentTaskRuns_Tasks">
+            <End Role="AgentTask" EntitySet="AgentTasks" />
+            <End Role="AgentTaskRun" EntitySet="AgentTaskRuns" />
+          </AssociationSet>
+          <AssociationSet Name="FK_AgentTaskRuns_Users" Association="TDMUEcoSystemModel.FK_AgentTaskRuns_Users">
+            <End Role="User" EntitySet="Users" />
+            <End Role="AgentTaskRun" EntitySet="AgentTaskRuns" />
+          </AssociationSet>
+          <AssociationSet Name="FK_AgentTasks_Users" Association="TDMUEcoSystemModel.FK_AgentTasks_Users">
+            <End Role="User" EntitySet="Users" />
+            <End Role="AgentTask" EntitySet="AgentTasks" />
+          </AssociationSet>
+          <AssociationSet Name="FK_AgentMessages_Conversations" Association="TDMUEcoSystemModel.FK_AgentMessages_Conversations">
+            <End Role="AgentConversation" EntitySet="AgentConversations" />
+            <End Role="AgentMessage" EntitySet="AgentMessages" />
+          </AssociationSet>
+                            <EntitySet Name="ChatReports" EntityType="TDMUEcoSystemModel.ChatReport" />
+          <EntitySet Name="ChatRestrictions" EntityType="TDMUEcoSystemModel.ChatRestriction" />
+          <EntitySet Name="SharedPosts" EntityType="TDMUEcoSystemModel.SharedPost" />
+          <AssociationSet Name="FK_SharedPosts_Users" Association="Self.FK_SharedPosts_Users">
+            <End Role="Users" EntitySet="Users" />
+            <End Role="SharedPosts" EntitySet="SharedPosts" />
+          </AssociationSet>
+</EntityContainer>
+        <EntityType Name="ChatMessage">
+          <Key>
+            <PropertyRef Name="MessageID" />
+          </Key>
+          <Property Name="MessageID" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="RoomID" Type="Int32" />
+          <Property Name="SenderID" Type="Int32" />
+          <Property Name="Content" Type="String" Nullable="false" MaxLength="Max" FixedLength="false" Unicode="true" />
+          <Property Name="ImageUrl" Type="String" MaxLength="Max" FixedLength="false" Unicode="true" />
+          <Property Name="SentAt" Type="DateTime" Precision="3" />
+          <NavigationProperty Name="ChatRoom" Relationship="TDMUEcoSystemModel.FK__ChatMessa__RoomI__37A5467C" FromRole="ChatMessage" ToRole="ChatRoom" />
+          <NavigationProperty Name="User" Relationship="TDMUEcoSystemModel.FK__ChatMessa__Sende__38996AB5" FromRole="ChatMessage" ToRole="User" />
+          <Property Name="ReplyToID" Type="Int32" />
+          <NavigationProperty Name="ChatMessages1" Relationship="TDMUEcoSystemModel.FK_ChatMessages_Reply" FromRole="ChatMessage" ToRole="ChatMessage1" />
+          <NavigationProperty Name="ChatMessage1" Relationship="TDMUEcoSystemModel.FK_ChatMessages_Reply" FromRole="ChatMessage1" ToRole="ChatMessage" />
+          <Property Name="IsHidden" Type="Boolean" />
+          <Property Name="HiddenReason" Type="String" MaxLength="255" FixedLength="false" Unicode="true" />
+          <Property Name="HiddenBy" Type="Int32" />
+          <Property Name="HiddenAt" Type="DateTime" Precision="3" />
+        </EntityType>
+        <EntityType Name="ChatParticipant">
+          <Key>
+            <PropertyRef Name="ParticipantID" />
+          </Key>
+          <Property Name="ParticipantID" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="RoomID" Type="Int32" />
+          <Property Name="UserID" Type="Int32" />
+          <Property Name="JoinedAt" Type="DateTime" Precision="3" />
+          <Property Name="IsLeft" Type="Boolean" />
+          <NavigationProperty Name="ChatRoom" Relationship="TDMUEcoSystemModel.FK__ChatParti__RoomI__31EC6D26" FromRole="ChatParticipant" ToRole="ChatRoom" />
+          <NavigationProperty Name="User" Relationship="TDMUEcoSystemModel.FK__ChatParti__UserI__32E0915F" FromRole="ChatParticipant" ToRole="User" />
+        </EntityType>
+        <EntityType Name="ChatRoom">
+          <Key>
+            <PropertyRef Name="RoomID" />
+          </Key>
+          <Property Name="RoomID" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="RoomType" Type="String" MaxLength="20" FixedLength="false" Unicode="true" />
+          <Property Name="MaxUsers" Type="Int32" />
+          <Property Name="IsActive" Type="Boolean" />
+          <Property Name="CreatedAt" Type="DateTime" Precision="3" />
+          <NavigationProperty Name="ChatMessages" Relationship="TDMUEcoSystemModel.FK__ChatMessa__RoomI__37A5467C" FromRole="ChatRoom" ToRole="ChatMessage" />
+          <NavigationProperty Name="ChatParticipants" Relationship="TDMUEcoSystemModel.FK__ChatParti__RoomI__31EC6D26" FromRole="ChatRoom" ToRole="ChatParticipant" />
+        </EntityType>
+        <EntityType Name="ConnectCategory">
+          <Key>
+            <PropertyRef Name="CategoryID" />
+          </Key>
+          <Property Name="CategoryID" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="CategoryName" Type="String" Nullable="false" MaxLength="100" FixedLength="false" Unicode="true" />
+          <NavigationProperty Name="ConnectPosts" Relationship="TDMUEcoSystemModel.FK__ConnectPo__Categ__571DF1D5" FromRole="ConnectCategory" ToRole="ConnectPost" />
+        </EntityType>
+        <EntityType Name="ConnectPost">
+          <Key>
+            <PropertyRef Name="PostID" />
+          </Key>
+          <Property Name="PostID" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="UserID" Type="Int32" />
+          <Property Name="CategoryID" Type="Int32" />
+          <Property Name="Title" Type="String" Nullable="false" MaxLength="200" FixedLength="false" Unicode="true" />
+          <Property Name="Description" Type="String" Nullable="false" MaxLength="Max" FixedLength="false" Unicode="true" />
+          <Property Name="MainImage" Type="String" Nullable="false" MaxLength="255" FixedLength="false" Unicode="true" />
+          <Property Name="CreatedAt" Type="DateTime" Precision="3" />
+          <NavigationProperty Name="ConnectCategory" Relationship="TDMUEcoSystemModel.FK__ConnectPo__Categ__571DF1D5" FromRole="ConnectPost" ToRole="ConnectCategory" />
+          <NavigationProperty Name="User" Relationship="TDMUEcoSystemModel.FK__ConnectPo__UserI__5629CD9C" FromRole="ConnectPost" ToRole="User" />
+        </EntityType>
+        <EntityType Name="MarketCategory">
+          <Key>
+            <PropertyRef Name="CategoryID" />
+          </Key>
+          <Property Name="CategoryID" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="CategoryName" Type="String" Nullable="false" MaxLength="100" FixedLength="false" Unicode="true" />
+          <NavigationProperty Name="MarketPosts" Relationship="TDMUEcoSystemModel.FK__MarketPos__Categ__3F466844" FromRole="MarketCategory" ToRole="MarketPost" />
+        </EntityType>
+        <EntityType Name="MarketChatRoom">
+          <Key>
+            <PropertyRef Name="MarketRoomID" />
+          </Key>
+          <Property Name="MarketRoomID" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="PostID" Type="Int32" />
+          <Property Name="BuyerID" Type="Int32" />
+          <Property Name="SellerID" Type="Int32" />
+          <Property Name="CreatedAt" Type="DateTime" Precision="3" />
+          <NavigationProperty Name="User" Relationship="TDMUEcoSystemModel.FK__MarketCha__Buyer__4F7CD00D" FromRole="MarketChatRoom" ToRole="User" />
+          <NavigationProperty Name="MarketPost" Relationship="TDMUEcoSystemModel.FK__MarketCha__PostI__4E88ABD4" FromRole="MarketChatRoom" ToRole="MarketPost" />
+          <NavigationProperty Name="User1" Relationship="TDMUEcoSystemModel.FK__MarketCha__Selle__5070F446" FromRole="MarketChatRoom" ToRole="User" />
+        </EntityType>
+        <EntityType Name="MarketImage">
+          <Key>
+            <PropertyRef Name="ImageID" />
+          </Key>
+          <Property Name="ImageID" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="PostID" Type="Int32" />
+          <Property Name="ImageUrl" Type="String" Nullable="false" MaxLength="255" FixedLength="false" Unicode="true" />
+          <NavigationProperty Name="MarketPost" Relationship="TDMUEcoSystemModel.FK__MarketIma__PostI__46E78A0C" FromRole="MarketImage" ToRole="MarketPost" />
+        </EntityType>
+        <EntityType Name="MarketPost">
+          <Key>
+            <PropertyRef Name="PostID" />
+          </Key>
+          <Property Name="PostID" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="UserID" Type="Int32" />
+          <Property Name="CategoryID" Type="Int32" />
+          <Property Name="Title" Type="String" Nullable="false" MaxLength="200" FixedLength="false" Unicode="true" />
+          <Property Name="Description" Type="String" Nullable="false" MaxLength="Max" FixedLength="false" Unicode="true" />
+          <Property Name="Price" Type="Decimal" Precision="18" Scale="2" />
+          <Property Name="MainImage" Type="String" MaxLength="255" FixedLength="false" Unicode="true" />
+          <Property Name="ExchangeLocation" Type="String" MaxLength="200" FixedLength="false" Unicode="true" />
+          <Property Name="ViewCount" Type="Int32" />
+          <Property Name="Condition" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="IsHide" Type="Boolean" />
+          <Property Name="CreatedAt" Type="DateTime" Precision="3" />
+          <Property Name="Status" Type="Int32" />
+          <NavigationProperty Name="MarketCategory" Relationship="TDMUEcoSystemModel.FK__MarketPos__Categ__3F466844" FromRole="MarketPost" ToRole="MarketCategory" />
+          <NavigationProperty Name="MarketChatRooms" Relationship="TDMUEcoSystemModel.FK__MarketCha__PostI__4E88ABD4" FromRole="MarketPost" ToRole="MarketChatRoom" />
+          <NavigationProperty Name="MarketImages" Relationship="TDMUEcoSystemModel.FK__MarketIma__PostI__46E78A0C" FromRole="MarketPost" ToRole="MarketImage" />
+          <NavigationProperty Name="User" Relationship="TDMUEcoSystemModel.FK__MarketPos__UserI__3E52440B" FromRole="MarketPost" ToRole="User" />
+          <NavigationProperty Name="MarketWishlists" Relationship="TDMUEcoSystemModel.FK__MarketWis__PostI__4AB81AF0" FromRole="MarketPost" ToRole="MarketWishlist" />
+        </EntityType>
+        <EntityType Name="MarketWishlist">
+          <Key>
+            <PropertyRef Name="WishlistID" />
+          </Key>
+          <Property Name="WishlistID" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="UserID" Type="Int32" />
+          <Property Name="PostID" Type="Int32" />
+          <Property Name="SavedAt" Type="DateTime" Precision="3" />
+          <NavigationProperty Name="MarketPost" Relationship="TDMUEcoSystemModel.FK__MarketWis__PostI__4AB81AF0" FromRole="MarketWishlist" ToRole="MarketPost" />
+          <NavigationProperty Name="User" Relationship="TDMUEcoSystemModel.FK__MarketWis__UserI__49C3F6B7" FromRole="MarketWishlist" ToRole="User" />
+        </EntityType>
+        <EntityType Name="Review">
+          <Key>
+            <PropertyRef Name="ReviewID" />
+          </Key>
+          <Property Name="ReviewID" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="PostID" Type="Int32" />
+          <Property Name="PostType" Type="String" MaxLength="20" FixedLength="false" Unicode="true" />
+          <Property Name="UserID" Type="Int32" />
+          <Property Name="RatingStar" Type="Int32" />
+          <Property Name="Comment" Type="String" MaxLength="Max" FixedLength="false" Unicode="true" />
+          <Property Name="CreatedAt" Type="DateTime" Precision="3" />
+          <NavigationProperty Name="User" Relationship="TDMUEcoSystemModel.FK__Reviews__UserID__5AEE82B9" FromRole="Review" ToRole="User" />
+        </EntityType>
+        <EntityType Name="User">
+          <Key>
+            <PropertyRef Name="UserID" />
+          </Key>
+          <Property Name="UserID" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="Email" Type="String" Nullable="false" MaxLength="100" FixedLength="false" Unicode="true" />
+          <Property Name="Username" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="PasswordHash" Type="String" MaxLength="255" FixedLength="false" Unicode="true" />
+          <Property Name="PhoneNumber" Type="String" MaxLength="15" FixedLength="false" Unicode="true" />
+          <Property Name="IsTDMUStudent" Type="Boolean" Nullable="false" />
+          <Property Name="IsAdmin" Type="Boolean" Nullable="false" />
+          <Property Name="AdminRole" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="Avatar" Type="String" MaxLength="255" FixedLength="false" Unicode="true" />
+          <Property Name="LastActivityAt" Type="DateTime" Precision="3" />
+          <Property Name="CreatedAt" Type="DateTime" Precision="3" />
+          <NavigationProperty Name="ChatMessages" Relationship="TDMUEcoSystemModel.FK__ChatMessa__Sende__38996AB5" FromRole="User" ToRole="ChatMessage" />
+          <NavigationProperty Name="ChatParticipants" Relationship="TDMUEcoSystemModel.FK__ChatParti__UserI__32E0915F" FromRole="User" ToRole="ChatParticipant" />
+          <NavigationProperty Name="ConnectPosts" Relationship="TDMUEcoSystemModel.FK__ConnectPo__UserI__5629CD9C" FromRole="User" ToRole="ConnectPost" />
+          <NavigationProperty Name="MarketChatRooms" Relationship="TDMUEcoSystemModel.FK__MarketCha__Buyer__4F7CD00D" FromRole="User" ToRole="MarketChatRoom" />
+          <NavigationProperty Name="MarketChatRooms1" Relationship="TDMUEcoSystemModel.FK__MarketCha__Selle__5070F446" FromRole="User" ToRole="MarketChatRoom" />
+          <NavigationProperty Name="MarketPosts" Relationship="TDMUEcoSystemModel.FK__MarketPos__UserI__3E52440B" FromRole="User" ToRole="MarketPost" />
+          <NavigationProperty Name="MarketWishlists" Relationship="TDMUEcoSystemModel.FK__MarketWis__UserI__49C3F6B7" FromRole="User" ToRole="MarketWishlist" />
+          <NavigationProperty Name="Reviews" Relationship="TDMUEcoSystemModel.FK__Reviews__UserID__5AEE82B9" FromRole="User" ToRole="Review" />
+          <NavigationProperty Name="Notifications" Relationship="TDMUEcoSystemModel.FK__Notificat__UserI__04E4BC85" FromRole="User" ToRole="Notification" />
+          <Property Name="IsPrivate" Type="Boolean" Nullable="false" />
+          <Property Name="IsEmailVerified" Type="Boolean" />
+          <Property Name="EmailVerifiedAt" Type="DateTime" Precision="3" />
+          <Property Name="OtpHash" Type="String" MaxLength="256" FixedLength="false" Unicode="true" />
+          <Property Name="OtpExpiry" Type="DateTime" Precision="3" />
+          <Property Name="OtpAttempts" Type="Int32" />
+          <Property Name="OtpLastSent" Type="DateTime" Precision="3" />
+          <NavigationProperty Name="Follows" Relationship="TDMUEcoSystemModel.FK_Follows_Follower" FromRole="User" ToRole="Follow" />
+          <NavigationProperty Name="Follows1" Relationship="TDMUEcoSystemModel.FK_Follows_Following" FromRole="User" ToRole="Follow" />
+          <NavigationProperty Name="Friendships" Relationship="TDMUEcoSystemModel.FK_Friendships_Receiver" FromRole="User" ToRole="Friendship" />
+          <NavigationProperty Name="Friendships1" Relationship="TDMUEcoSystemModel.FK_Friendships_Requester" FromRole="User" ToRole="Friendship" />
+          <NavigationProperty Name="Notifications1" Relationship="TDMUEcoSystemModel.FK_Notifications_Sender" FromRole="User" ToRole="Notification" />
+          <NavigationProperty Name="PostComments" Relationship="TDMUEcoSystemModel.FK_PostComments_UserID" FromRole="User" ToRole="PostComment" />
+          <NavigationProperty Name="PostLikes" Relationship="TDMUEcoSystemModel.FK_PostLikes_UserID" FromRole="User" ToRole="PostLike" />
+          <NavigationProperty Name="Posts" Relationship="TDMUEcoSystemModel.FK_Posts_UserID" FromRole="User" ToRole="Post" />
+          <NavigationProperty Name="PostShares" Relationship="TDMUEcoSystemModel.FK_PostShares_UserID" FromRole="User" ToRole="PostShare" />
+          <NavigationProperty Name="Stories" Relationship="TDMUEcoSystemModel.FK_Stories_UserID" FromRole="User" ToRole="Story" />
+          <NavigationProperty Name="StoryViews" Relationship="TDMUEcoSystemModel.FK_StoryViews_ViewerID" FromRole="User" ToRole="StoryView" />
+          <NavigationProperty Name="UserProfiles" Relationship="TDMUEcoSystemModel.FK_UserProfiles_UserID" FromRole="User" ToRole="UserProfile" />
+          <NavigationProperty Name="AgentActionLogs" Relationship="TDMUEcoSystemModel.FK_AgentActionLogs_Users" FromRole="User" ToRole="AgentActionLog" />
+          <NavigationProperty Name="AgentPendingConfirmations" Relationship="TDMUEcoSystemModel.FK_AgentConfirmations_Users" FromRole="User" ToRole="AgentPendingConfirmation" />
+          <NavigationProperty Name="AgentPermissions" Relationship="TDMUEcoSystemModel.FK_AgentPermissions_Users" FromRole="User" ToRole="AgentPermission" />
+          <NavigationProperty Name="AgentTaskRuns" Relationship="TDMUEcoSystemModel.FK_AgentTaskRuns_Users" FromRole="User" ToRole="AgentTaskRun" />
+          <NavigationProperty Name="AgentTasks" Relationship="TDMUEcoSystemModel.FK_AgentTasks_Users" FromRole="User" ToRole="AgentTask" />
+        </EntityType>
+        <Association Name="FK__ChatMessa__RoomI__37A5467C">
+          <End Type="TDMUEcoSystemModel.ChatRoom" Role="ChatRoom" Multiplicity="0..1" />
+          <End Type="TDMUEcoSystemModel.ChatMessage" Role="ChatMessage" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="ChatRoom">
+              <PropertyRef Name="RoomID" />
+            </Principal>
+            <Dependent Role="ChatMessage">
+              <PropertyRef Name="RoomID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK__ChatMessa__Sende__38996AB5">
+          <End Type="TDMUEcoSystemModel.User" Role="User" Multiplicity="0..1" />
+          <End Type="TDMUEcoSystemModel.ChatMessage" Role="ChatMessage" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="User">
+              <PropertyRef Name="UserID" />
+            </Principal>
+            <Dependent Role="ChatMessage">
+              <PropertyRef Name="SenderID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK__ChatParti__RoomI__31EC6D26">
+          <End Type="TDMUEcoSystemModel.ChatRoom" Role="ChatRoom" Multiplicity="0..1" />
+          <End Type="TDMUEcoSystemModel.ChatParticipant" Role="ChatParticipant" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="ChatRoom">
+              <PropertyRef Name="RoomID" />
+            </Principal>
+            <Dependent Role="ChatParticipant">
+              <PropertyRef Name="RoomID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK__ChatParti__UserI__32E0915F">
+          <End Type="TDMUEcoSystemModel.User" Role="User" Multiplicity="0..1" />
+          <End Type="TDMUEcoSystemModel.ChatParticipant" Role="ChatParticipant" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="User">
+              <PropertyRef Name="UserID" />
+            </Principal>
+            <Dependent Role="ChatParticipant">
+              <PropertyRef Name="UserID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK__ConnectPo__Categ__571DF1D5">
+          <End Type="TDMUEcoSystemModel.ConnectCategory" Role="ConnectCategory" Multiplicity="0..1" />
+          <End Type="TDMUEcoSystemModel.ConnectPost" Role="ConnectPost" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="ConnectCategory">
+              <PropertyRef Name="CategoryID" />
+            </Principal>
+            <Dependent Role="ConnectPost">
+              <PropertyRef Name="CategoryID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK__ConnectPo__UserI__5629CD9C">
+          <End Type="TDMUEcoSystemModel.User" Role="User" Multiplicity="0..1" />
+          <End Type="TDMUEcoSystemModel.ConnectPost" Role="ConnectPost" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="User">
+              <PropertyRef Name="UserID" />
+            </Principal>
+            <Dependent Role="ConnectPost">
+              <PropertyRef Name="UserID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK__MarketPos__Categ__3F466844">
+          <End Type="TDMUEcoSystemModel.MarketCategory" Role="MarketCategory" Multiplicity="0..1" />
+          <End Type="TDMUEcoSystemModel.MarketPost" Role="MarketPost" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="MarketCategory">
+              <PropertyRef Name="CategoryID" />
+            </Principal>
+            <Dependent Role="MarketPost">
+              <PropertyRef Name="CategoryID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK__MarketCha__Buyer__4F7CD00D">
+          <End Type="TDMUEcoSystemModel.User" Role="User" Multiplicity="0..1" />
+          <End Type="TDMUEcoSystemModel.MarketChatRoom" Role="MarketChatRoom" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="User">
+              <PropertyRef Name="UserID" />
+            </Principal>
+            <Dependent Role="MarketChatRoom">
+              <PropertyRef Name="BuyerID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK__MarketCha__PostI__4E88ABD4">
+          <End Type="TDMUEcoSystemModel.MarketPost" Role="MarketPost" Multiplicity="0..1" />
+          <End Type="TDMUEcoSystemModel.MarketChatRoom" Role="MarketChatRoom" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="MarketPost">
+              <PropertyRef Name="PostID" />
+            </Principal>
+            <Dependent Role="MarketChatRoom">
+              <PropertyRef Name="PostID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK__MarketCha__Selle__5070F446">
+          <End Type="TDMUEcoSystemModel.User" Role="User" Multiplicity="0..1" />
+          <End Type="TDMUEcoSystemModel.MarketChatRoom" Role="MarketChatRoom" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="User">
+              <PropertyRef Name="UserID" />
+            </Principal>
+            <Dependent Role="MarketChatRoom">
+              <PropertyRef Name="SellerID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK__MarketIma__PostI__46E78A0C">
+          <End Type="TDMUEcoSystemModel.MarketPost" Role="MarketPost" Multiplicity="0..1" />
+          <End Type="TDMUEcoSystemModel.MarketImage" Role="MarketImage" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="MarketPost">
+              <PropertyRef Name="PostID" />
+            </Principal>
+            <Dependent Role="MarketImage">
+              <PropertyRef Name="PostID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK__MarketPos__UserI__3E52440B">
+          <End Type="TDMUEcoSystemModel.User" Role="User" Multiplicity="0..1" />
+          <End Type="TDMUEcoSystemModel.MarketPost" Role="MarketPost" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="User">
+              <PropertyRef Name="UserID" />
+            </Principal>
+            <Dependent Role="MarketPost">
+              <PropertyRef Name="UserID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK__MarketWis__PostI__4AB81AF0">
+          <End Type="TDMUEcoSystemModel.MarketPost" Role="MarketPost" Multiplicity="0..1" />
+          <End Type="TDMUEcoSystemModel.MarketWishlist" Role="MarketWishlist" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="MarketPost">
+              <PropertyRef Name="PostID" />
+            </Principal>
+            <Dependent Role="MarketWishlist">
+              <PropertyRef Name="PostID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK__MarketWis__UserI__49C3F6B7">
+          <End Type="TDMUEcoSystemModel.User" Role="User" Multiplicity="0..1" />
+          <End Type="TDMUEcoSystemModel.MarketWishlist" Role="MarketWishlist" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="User">
+              <PropertyRef Name="UserID" />
+            </Principal>
+            <Dependent Role="MarketWishlist">
+              <PropertyRef Name="UserID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK__Reviews__UserID__5AEE82B9">
+          <End Type="TDMUEcoSystemModel.User" Role="User" Multiplicity="0..1" />
+          <End Type="TDMUEcoSystemModel.Review" Role="Review" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="User">
+              <PropertyRef Name="UserID" />
+            </Principal>
+            <Dependent Role="Review">
+              <PropertyRef Name="UserID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_ChatMessages_Reply">
+          <End Type="TDMUEcoSystemModel.ChatMessage" Role="ChatMessage" Multiplicity="0..1" />
+          <End Type="TDMUEcoSystemModel.ChatMessage" Role="ChatMessage1" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="ChatMessage">
+              <PropertyRef Name="MessageID" />
+            </Principal>
+            <Dependent Role="ChatMessage1">
+              <PropertyRef Name="ReplyToID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <EntityType Name="Notification">
+          <Key>
+            <PropertyRef Name="NotificationID" />
+          </Key>
+          <Property Name="NotificationID" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="UserID" Type="Int32" Nullable="false" />
+          <Property Name="Message" Type="String" Nullable="false" MaxLength="500" FixedLength="false" Unicode="true" />
+          <Property Name="Type" Type="String" Nullable="false" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="Url" Type="String" MaxLength="300" FixedLength="false" Unicode="true" />
+          <Property Name="IsRead" Type="Boolean" Nullable="false" />
+          <Property Name="CreatedAt" Type="DateTime" Nullable="false" Precision="3" />
+          <NavigationProperty Name="User" Relationship="TDMUEcoSystemModel.FK__Notificat__UserI__04E4BC85" FromRole="Notification" ToRole="User" />
+          <Property Name="SenderID" Type="Int32" />
+          <Property Name="RefID" Type="Int32" />
+          <Property Name="RefType" Type="String" MaxLength="20" FixedLength="false" Unicode="true" />
+          <NavigationProperty Name="User1" Relationship="TDMUEcoSystemModel.FK_Notifications_Sender" FromRole="Notification" ToRole="User" />
+        </EntityType>
+        <Association Name="FK__Notificat__UserI__04E4BC85">
+          <End Type="TDMUEcoSystemModel.User" Role="User" Multiplicity="1" />
+          <End Type="TDMUEcoSystemModel.Notification" Role="Notification" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="User">
+              <PropertyRef Name="UserID" />
+            </Principal>
+            <Dependent Role="Notification">
+              <PropertyRef Name="UserID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <EntityType Name="Follow">
+          <Key>
+            <PropertyRef Name="FollowID" />
+          </Key>
+          <Property Name="FollowID" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="FollowerID" Type="Int32" Nullable="false" />
+          <Property Name="FollowingID" Type="Int32" Nullable="false" />
+          <Property Name="CreatedAt" Type="DateTime" Precision="3" />
+          <NavigationProperty Name="User" Relationship="TDMUEcoSystemModel.FK_Follows_Follower" FromRole="Follow" ToRole="User" />
+          <NavigationProperty Name="User1" Relationship="TDMUEcoSystemModel.FK_Follows_Following" FromRole="Follow" ToRole="User" />
+        </EntityType>
+        <EntityType Name="Friendship">
+          <Key>
+            <PropertyRef Name="FriendshipID" />
+          </Key>
+          <Property Name="FriendshipID" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="RequesterID" Type="Int32" Nullable="false" />
+          <Property Name="ReceiverID" Type="Int32" Nullable="false" />
+          <Property Name="Status" Type="String" Nullable="false" MaxLength="20" FixedLength="false" Unicode="true" />
+          <Property Name="CreatedAt" Type="DateTime" Precision="3" />
+          <NavigationProperty Name="User" Relationship="TDMUEcoSystemModel.FK_Friendships_Receiver" FromRole="Friendship" ToRole="User" />
+          <NavigationProperty Name="User1" Relationship="TDMUEcoSystemModel.FK_Friendships_Requester" FromRole="Friendship" ToRole="User" />
+        </EntityType>
+        <EntityType Name="PostComment">
+          <Key>
+            <PropertyRef Name="CommentID" />
+          </Key>
+          <Property Name="CommentID" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="PostID" Type="Int32" Nullable="false" />
+          <Property Name="UserID" Type="Int32" Nullable="false" />
+          <Property Name="Content" Type="String" MaxLength="1000" FixedLength="false" Unicode="true" />
+          <Property Name="ImageUrl" Type="String" MaxLength="255" FixedLength="false" Unicode="true" />
+          <Property Name="ParentID" Type="Int32" />
+          <Property Name="CreatedAt" Type="DateTime" Precision="3" />
+          <NavigationProperty Name="PostComments1" Relationship="TDMUEcoSystemModel.FK_PostComments_ParentID" FromRole="PostComment" ToRole="PostComment1" />
+          <NavigationProperty Name="PostComment1" Relationship="TDMUEcoSystemModel.FK_PostComments_ParentID" FromRole="PostComment1" ToRole="PostComment" />
+          <NavigationProperty Name="Post" Relationship="TDMUEcoSystemModel.FK_PostComments_PostID" FromRole="PostComment" ToRole="Post" />
+          <NavigationProperty Name="User" Relationship="TDMUEcoSystemModel.FK_PostComments_UserID" FromRole="PostComment" ToRole="User" />
+        </EntityType>
+        <EntityType Name="PostLike">
+          <Key>
+            <PropertyRef Name="LikeID" />
+          </Key>
+          <Property Name="LikeID" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="PostID" Type="Int32" Nullable="false" />
+          <Property Name="UserID" Type="Int32" Nullable="false" />
+          <Property Name="LikeType" Type="String" Nullable="false" MaxLength="20" FixedLength="false" Unicode="true" />
+          <Property Name="CreatedAt" Type="DateTime" Precision="3" />
+          <NavigationProperty Name="Post" Relationship="TDMUEcoSystemModel.FK_PostLikes_PostID" FromRole="PostLike" ToRole="Post" />
+          <NavigationProperty Name="User" Relationship="TDMUEcoSystemModel.FK_PostLikes_UserID" FromRole="PostLike" ToRole="User" />
+        </EntityType>
+        <EntityType Name="PostMedia">
+          <Key>
+            <PropertyRef Name="MediaID" />
+          </Key>
+          <Property Name="MediaID" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="PostID" Type="Int32" Nullable="false" />
+          <Property Name="MediaUrl" Type="String" Nullable="false" MaxLength="255" FixedLength="false" Unicode="true" />
+          <Property Name="MediaType" Type="String" Nullable="false" MaxLength="10" FixedLength="false" Unicode="true" />
+          <Property Name="SortOrder" Type="Int32" Nullable="false" />
+          <NavigationProperty Name="Post" Relationship="TDMUEcoSystemModel.FK_PostMedia_PostID" FromRole="PostMedia" ToRole="Post" />
+        </EntityType>
+        <EntityType Name="Post">
+          <Key>
+            <PropertyRef Name="PostID" />
+          </Key>
+          <Property Name="PostID" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="UserID" Type="Int32" Nullable="false" />
+          <Property Name="Content" Type="String" MaxLength="Max" FixedLength="false" Unicode="true" />
+          <Property Name="Privacy" Type="String" Nullable="false" MaxLength="20" FixedLength="false" Unicode="true" />
+          <Property Name="CreatedAt" Type="DateTime" Precision="3" />
+          <Property Name="UpdatedAt" Type="DateTime" Precision="3" />
+          <NavigationProperty Name="PostComments" Relationship="TDMUEcoSystemModel.FK_PostComments_PostID" FromRole="Post" ToRole="PostComment" />
+          <NavigationProperty Name="PostLikes" Relationship="TDMUEcoSystemModel.FK_PostLikes_PostID" FromRole="Post" ToRole="PostLike" />
+          <NavigationProperty Name="PostMedias" Relationship="TDMUEcoSystemModel.FK_PostMedia_PostID" FromRole="Post" ToRole="PostMedia" />
+          <NavigationProperty Name="User" Relationship="TDMUEcoSystemModel.FK_Posts_UserID" FromRole="Post" ToRole="User" />
+          <NavigationProperty Name="PostShares" Relationship="TDMUEcoSystemModel.FK_PostShares_PostID" FromRole="Post" ToRole="PostShare" />
+        </EntityType>
+        <EntityType Name="PostShare">
+          <Key>
+            <PropertyRef Name="ShareID" />
+          </Key>
+          <Property Name="ShareID" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="PostID" Type="Int32" Nullable="false" />
+          <Property Name="UserID" Type="Int32" Nullable="false" />
+          <Property Name="Content" Type="String" MaxLength="500" FixedLength="false" Unicode="true" />
+          <Property Name="CreatedAt" Type="DateTime" Precision="3" />
+          <NavigationProperty Name="Post" Relationship="TDMUEcoSystemModel.FK_PostShares_PostID" FromRole="PostShare" ToRole="Post" />
+          <NavigationProperty Name="User" Relationship="TDMUEcoSystemModel.FK_PostShares_UserID" FromRole="PostShare" ToRole="User" />
+        </EntityType>
+        <EntityType Name="Story">
+          <Key>
+            <PropertyRef Name="StoryID" />
+          </Key>
+          <Property Name="StoryID" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="UserID" Type="Int32" Nullable="false" />
+          <Property Name="MediaUrl" Type="String" Nullable="false" MaxLength="255" FixedLength="false" Unicode="true" />
+          <Property Name="Caption" Type="String" MaxLength="200" FixedLength="false" Unicode="true" />
+          <Property Name="CreatedAt" Type="DateTime" Precision="3" />
+          <Property Name="ExpiresAt" Type="DateTime" Nullable="false" Precision="3" />
+          <NavigationProperty Name="User" Relationship="TDMUEcoSystemModel.FK_Stories_UserID" FromRole="Story" ToRole="User" />
+          <NavigationProperty Name="StoryViews" Relationship="TDMUEcoSystemModel.FK_StoryViews_StoryID" FromRole="Story" ToRole="StoryView" />
+        </EntityType>
+        <EntityType Name="StoryView">
+          <Key>
+            <PropertyRef Name="ViewID" />
+          </Key>
+          <Property Name="ViewID" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="StoryID" Type="Int32" Nullable="false" />
+          <Property Name="ViewerID" Type="Int32" Nullable="false" />
+          <Property Name="ViewedAt" Type="DateTime" Precision="3" />
+          <NavigationProperty Name="Story" Relationship="TDMUEcoSystemModel.FK_StoryViews_StoryID" FromRole="StoryView" ToRole="Story" />
+          <NavigationProperty Name="User" Relationship="TDMUEcoSystemModel.FK_StoryViews_ViewerID" FromRole="StoryView" ToRole="User" />
+        </EntityType>
+        <EntityType Name="UserProfile">
+          <Key>
+            <PropertyRef Name="ProfileID" />
+          </Key>
+          <Property Name="ProfileID" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="UserID" Type="Int32" Nullable="false" />
+          <Property Name="CoverPhoto" Type="String" MaxLength="255" FixedLength="false" Unicode="true" />
+          <Property Name="Bio" Type="String" MaxLength="500" FixedLength="false" Unicode="true" />
+          <Property Name="Faculty" Type="String" MaxLength="100" FixedLength="false" Unicode="true" />
+          <Property Name="Major" Type="String" MaxLength="100" FixedLength="false" Unicode="true" />
+          <Property Name="StudentYear" Type="Int32" />
+          <Property Name="Hometown" Type="String" MaxLength="100" FixedLength="false" Unicode="true" />
+          <NavigationProperty Name="User" Relationship="TDMUEcoSystemModel.FK_UserProfiles_UserID" FromRole="UserProfile" ToRole="User" />
+        </EntityType>
+        <Association Name="FK_Follows_Follower">
+          <End Type="TDMUEcoSystemModel.User" Role="User" Multiplicity="1" />
+          <End Type="TDMUEcoSystemModel.Follow" Role="Follow" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="User">
+              <PropertyRef Name="UserID" />
+            </Principal>
+            <Dependent Role="Follow">
+              <PropertyRef Name="FollowerID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_Follows_Following">
+          <End Type="TDMUEcoSystemModel.User" Role="User" Multiplicity="1" />
+          <End Type="TDMUEcoSystemModel.Follow" Role="Follow" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="User">
+              <PropertyRef Name="UserID" />
+            </Principal>
+            <Dependent Role="Follow">
+              <PropertyRef Name="FollowingID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_Friendships_Receiver">
+          <End Type="TDMUEcoSystemModel.User" Role="User" Multiplicity="1" />
+          <End Type="TDMUEcoSystemModel.Friendship" Role="Friendship" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="User">
+              <PropertyRef Name="UserID" />
+            </Principal>
+            <Dependent Role="Friendship">
+              <PropertyRef Name="ReceiverID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_Friendships_Requester">
+          <End Type="TDMUEcoSystemModel.User" Role="User" Multiplicity="1" />
+          <End Type="TDMUEcoSystemModel.Friendship" Role="Friendship" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="User">
+              <PropertyRef Name="UserID" />
+            </Principal>
+            <Dependent Role="Friendship">
+              <PropertyRef Name="RequesterID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_Notifications_Sender">
+          <End Type="TDMUEcoSystemModel.User" Role="User" Multiplicity="0..1" />
+          <End Type="TDMUEcoSystemModel.Notification" Role="Notification" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="User">
+              <PropertyRef Name="UserID" />
+            </Principal>
+            <Dependent Role="Notification">
+              <PropertyRef Name="SenderID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_PostComments_ParentID">
+          <End Type="TDMUEcoSystemModel.PostComment" Role="PostComment" Multiplicity="0..1" />
+          <End Type="TDMUEcoSystemModel.PostComment" Role="PostComment1" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="PostComment">
+              <PropertyRef Name="CommentID" />
+            </Principal>
+            <Dependent Role="PostComment1">
+              <PropertyRef Name="ParentID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_PostComments_PostID">
+          <End Type="TDMUEcoSystemModel.Post" Role="Post" Multiplicity="1">
+            <OnDelete Action="Cascade" />
+          </End>
+          <End Type="TDMUEcoSystemModel.PostComment" Role="PostComment" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Post">
+              <PropertyRef Name="PostID" />
+            </Principal>
+            <Dependent Role="PostComment">
+              <PropertyRef Name="PostID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_PostComments_UserID">
+          <End Type="TDMUEcoSystemModel.User" Role="User" Multiplicity="1" />
+          <End Type="TDMUEcoSystemModel.PostComment" Role="PostComment" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="User">
+              <PropertyRef Name="UserID" />
+            </Principal>
+            <Dependent Role="PostComment">
+              <PropertyRef Name="UserID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_PostLikes_PostID">
+          <End Type="TDMUEcoSystemModel.Post" Role="Post" Multiplicity="1">
+            <OnDelete Action="Cascade" />
+          </End>
+          <End Type="TDMUEcoSystemModel.PostLike" Role="PostLike" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Post">
+              <PropertyRef Name="PostID" />
+            </Principal>
+            <Dependent Role="PostLike">
+              <PropertyRef Name="PostID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_PostLikes_UserID">
+          <End Type="TDMUEcoSystemModel.User" Role="User" Multiplicity="1" />
+          <End Type="TDMUEcoSystemModel.PostLike" Role="PostLike" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="User">
+              <PropertyRef Name="UserID" />
+            </Principal>
+            <Dependent Role="PostLike">
+              <PropertyRef Name="UserID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_PostMedia_PostID">
+          <End Type="TDMUEcoSystemModel.Post" Role="Post" Multiplicity="1">
+            <OnDelete Action="Cascade" />
+          </End>
+          <End Type="TDMUEcoSystemModel.PostMedia" Role="PostMedia" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Post">
+              <PropertyRef Name="PostID" />
+            </Principal>
+            <Dependent Role="PostMedia">
+              <PropertyRef Name="PostID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_Posts_UserID">
+          <End Type="TDMUEcoSystemModel.User" Role="User" Multiplicity="1" />
+          <End Type="TDMUEcoSystemModel.Post" Role="Post" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="User">
+              <PropertyRef Name="UserID" />
+            </Principal>
+            <Dependent Role="Post">
+              <PropertyRef Name="UserID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_PostShares_PostID">
+          <End Type="TDMUEcoSystemModel.Post" Role="Post" Multiplicity="1">
+            <OnDelete Action="Cascade" />
+          </End>
+          <End Type="TDMUEcoSystemModel.PostShare" Role="PostShare" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Post">
+              <PropertyRef Name="PostID" />
+            </Principal>
+            <Dependent Role="PostShare">
+              <PropertyRef Name="PostID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_PostShares_UserID">
+          <End Type="TDMUEcoSystemModel.User" Role="User" Multiplicity="1" />
+          <End Type="TDMUEcoSystemModel.PostShare" Role="PostShare" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="User">
+              <PropertyRef Name="UserID" />
+            </Principal>
+            <Dependent Role="PostShare">
+              <PropertyRef Name="UserID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_Stories_UserID">
+          <End Type="TDMUEcoSystemModel.User" Role="User" Multiplicity="1" />
+          <End Type="TDMUEcoSystemModel.Story" Role="Story" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="User">
+              <PropertyRef Name="UserID" />
+            </Principal>
+            <Dependent Role="Story">
+              <PropertyRef Name="UserID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_StoryViews_StoryID">
+          <End Type="TDMUEcoSystemModel.Story" Role="Story" Multiplicity="1">
+            <OnDelete Action="Cascade" />
+          </End>
+          <End Type="TDMUEcoSystemModel.StoryView" Role="StoryView" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Story">
+              <PropertyRef Name="StoryID" />
+            </Principal>
+            <Dependent Role="StoryView">
+              <PropertyRef Name="StoryID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_StoryViews_ViewerID">
+          <End Type="TDMUEcoSystemModel.User" Role="User" Multiplicity="1" />
+          <End Type="TDMUEcoSystemModel.StoryView" Role="StoryView" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="User">
+              <PropertyRef Name="UserID" />
+            </Principal>
+            <Dependent Role="StoryView">
+              <PropertyRef Name="ViewerID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_UserProfiles_UserID">
+          <End Type="TDMUEcoSystemModel.User" Role="User" Multiplicity="1">
+            <OnDelete Action="Cascade" />
+          </End>
+          <End Type="TDMUEcoSystemModel.UserProfile" Role="UserProfile" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="User">
+              <PropertyRef Name="UserID" />
+            </Principal>
+            <Dependent Role="UserProfile">
+              <PropertyRef Name="UserID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <EntityType Name="AgentActionLog">
+          <Key>
+            <PropertyRef Name="LogID" />
+          </Key>
+          <Property Name="LogID" Type="Int64" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="UserID" Type="Int32" Nullable="false" />
+          <Property Name="RunID" Type="Int64" />
+          <Property Name="ActionName" Type="String" Nullable="false" MaxLength="100" FixedLength="false" Unicode="true" />
+          <Property Name="TargetType" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="TargetID" Type="Int64" />
+          <Property Name="Status" Type="String" Nullable="false" MaxLength="20" FixedLength="false" Unicode="true" />
+          <Property Name="InputSummary" Type="String" MaxLength="Max" FixedLength="false" Unicode="true" />
+          <Property Name="ResultSummary" Type="String" MaxLength="Max" FixedLength="false" Unicode="true" />
+          <Property Name="ErrorMessage" Type="String" MaxLength="Max" FixedLength="false" Unicode="true" />
+          <Property Name="CreatedAt" Type="DateTime" Nullable="false" Precision="7" />
+          <Property Name="ConversationID" Type="Int64" />
+          <NavigationProperty Name="AgentTaskRun" Relationship="TDMUEcoSystemModel.FK_AgentActionLogs_Runs" FromRole="AgentActionLog" ToRole="AgentTaskRun" />
+          <NavigationProperty Name="User" Relationship="TDMUEcoSystemModel.FK_AgentActionLogs_Users" FromRole="AgentActionLog" ToRole="User" />
+        </EntityType>
+        <EntityType Name="AgentPendingConfirmation">
+          <Key>
+            <PropertyRef Name="ConfirmationID" />
+          </Key>
+          <Property Name="ConfirmationID" Type="Int64" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="UserID" Type="Int32" Nullable="false" />
+          <Property Name="TaskID" Type="Int64" />
+          <Property Name="ActionName" Type="String" Nullable="false" MaxLength="100" FixedLength="false" Unicode="true" />
+          <Property Name="ActionPayload" Type="String" Nullable="false" MaxLength="Max" FixedLength="false" Unicode="true" />
+          <Property Name="Status" Type="String" Nullable="false" MaxLength="20" FixedLength="false" Unicode="true" />
+          <Property Name="CreatedAt" Type="DateTime" Nullable="false" Precision="7" />
+          <Property Name="ExpiresAt" Type="DateTime" Precision="7" />
+          <Property Name="ResolvedAt" Type="DateTime" Precision="7" />
+          <NavigationProperty Name="AgentTask" Relationship="TDMUEcoSystemModel.FK_AgentConfirmations_Tasks" FromRole="AgentPendingConfirmation" ToRole="AgentTask" />
+          <NavigationProperty Name="User" Relationship="TDMUEcoSystemModel.FK_AgentConfirmations_Users" FromRole="AgentPendingConfirmation" ToRole="User" />
+        </EntityType>
+        <EntityType Name="AgentPermission">
+          <Key>
+            <PropertyRef Name="PermissionID" />
+          </Key>
+          <Property Name="PermissionID" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="UserID" Type="Int32" Nullable="false" />
+          <Property Name="CanReadData" Type="Boolean" Nullable="false" />
+          <Property Name="CanManageContent" Type="Boolean" Nullable="false" />
+          <Property Name="CanInteract" Type="Boolean" Nullable="false" />
+          <Property Name="CanAutomation" Type="Boolean" Nullable="false" />
+          <Property Name="IsEnabled" Type="Boolean" Nullable="false" />
+          <Property Name="CreatedAt" Type="DateTime" Nullable="false" Precision="7" />
+          <Property Name="UpdatedAt" Type="DateTime" Nullable="false" Precision="7" />
+          <NavigationProperty Name="User" Relationship="TDMUEcoSystemModel.FK_AgentPermissions_Users" FromRole="AgentPermission" ToRole="User" />
+        </EntityType>
+        <EntityType Name="AgentTaskRun">
+          <Key>
+            <PropertyRef Name="RunID" />
+          </Key>
+          <Property Name="RunID" Type="Int64" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="TaskID" Type="Int64" Nullable="false" />
+          <Property Name="UserID" Type="Int32" Nullable="false" />
+          <Property Name="StartedAt" Type="DateTime" Nullable="false" Precision="7" />
+          <Property Name="FinishedAt" Type="DateTime" Precision="7" />
+          <Property Name="Status" Type="String" Nullable="false" MaxLength="20" FixedLength="false" Unicode="true" />
+          <Property Name="AttemptCount" Type="Int32" Nullable="false" />
+          <Property Name="ResultSummary" Type="String" MaxLength="Max" FixedLength="false" Unicode="true" />
+          <Property Name="ErrorMessage" Type="String" MaxLength="Max" FixedLength="false" Unicode="true" />
+          <Property Name="CreatedAt" Type="DateTime" Nullable="false" Precision="7" />
+          <NavigationProperty Name="AgentActionLogs" Relationship="TDMUEcoSystemModel.FK_AgentActionLogs_Runs" FromRole="AgentTaskRun" ToRole="AgentActionLog" />
+          <NavigationProperty Name="AgentTask" Relationship="TDMUEcoSystemModel.FK_AgentTaskRuns_Tasks" FromRole="AgentTaskRun" ToRole="AgentTask" />
+          <NavigationProperty Name="User" Relationship="TDMUEcoSystemModel.FK_AgentTaskRuns_Users" FromRole="AgentTaskRun" ToRole="User" />
+        </EntityType>
+        <EntityType Name="AgentTask">
+          <Key>
+            <PropertyRef Name="TaskID" />
+          </Key>
+          <Property Name="TaskID" Type="Int64" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="UserID" Type="Int32" Nullable="false" />
+          <Property Name="TaskName" Type="String" Nullable="false" MaxLength="200" FixedLength="false" Unicode="true" />
+          <Property Name="UserPrompt" Type="String" Nullable="false" MaxLength="Max" FixedLength="false" Unicode="true" />
+          <Property Name="TaskType" Type="String" Nullable="false" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="ScheduleType" Type="String" Nullable="false" MaxLength="30" FixedLength="false" Unicode="true" />
+          <Property Name="ScheduleConfig" Type="String" MaxLength="Max" FixedLength="false" Unicode="true" />
+          <Property Name="TimeZone" Type="String" Nullable="false" MaxLength="100" FixedLength="false" Unicode="true" />
+          <Property Name="Status" Type="String" Nullable="false" MaxLength="20" FixedLength="false" Unicode="true" />
+          <Property Name="NextRunAt" Type="DateTime" Precision="7" />
+          <Property Name="LastRunAt" Type="DateTime" Precision="7" />
+          <Property Name="CreatedAt" Type="DateTime" Nullable="false" Precision="7" />
+          <Property Name="UpdatedAt" Type="DateTime" Nullable="false" Precision="7" />
+          <NavigationProperty Name="AgentPendingConfirmations" Relationship="TDMUEcoSystemModel.FK_AgentConfirmations_Tasks" FromRole="AgentTask" ToRole="AgentPendingConfirmation" />
+          <NavigationProperty Name="AgentTaskRuns" Relationship="TDMUEcoSystemModel.FK_AgentTaskRuns_Tasks" FromRole="AgentTask" ToRole="AgentTaskRun" />
+          <NavigationProperty Name="User" Relationship="TDMUEcoSystemModel.FK_AgentTasks_Users" FromRole="AgentTask" ToRole="User" />
+        </EntityType>
+        <EntityType Name="AgentConversation">
+          <Key>
+            <PropertyRef Name="ConversationID" />
+          </Key>
+          <Property Name="ConversationID" Type="Int64" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="UserID" Type="Int32" Nullable="false" />
+          <Property Name="Title" Type="String" Nullable="false" MaxLength="200" FixedLength="false" Unicode="true" />
+          <Property Name="TaskID" Type="Int64" />
+          <Property Name="Status" Type="String" Nullable="false" MaxLength="30" FixedLength="false" Unicode="true" />
+          <Property Name="Summary" Type="String" MaxLength="Max" FixedLength="false" Unicode="true" />
+          <Property Name="MessageCount" Type="Int32" Nullable="false" />
+          <Property Name="CreatedAt" Type="DateTime" Nullable="false" Precision="7" />
+          <Property Name="UpdatedAt" Type="DateTime" Nullable="false" Precision="7" />
+          <Property Name="LastMessageAt" Type="DateTime" Nullable="false" Precision="7" />
+          <NavigationProperty Name="AgentMessages" Relationship="TDMUEcoSystemModel.FK_AgentMessages_Conversations" FromRole="AgentConversation" ToRole="AgentMessage" />
+        </EntityType>
+        <EntityType Name="AgentMessage">
+          <Key>
+            <PropertyRef Name="MessageID" />
+          </Key>
+          <Property Name="MessageID" Type="Int64" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="ConversationID" Type="Int64" Nullable="false" />
+          <Property Name="SenderType" Type="String" Nullable="false" MaxLength="20" FixedLength="false" Unicode="true" />
+          <Property Name="Content" Type="String" Nullable="false" MaxLength="Max" FixedLength="false" Unicode="true" />
+          <Property Name="ToolCallDetails" Type="String" MaxLength="Max" FixedLength="false" Unicode="true" />
+          <Property Name="ToolResultDetails" Type="String" MaxLength="Max" FixedLength="false" Unicode="true" />
+          <Property Name="ErrorMessage" Type="String" MaxLength="Max" FixedLength="false" Unicode="true" />
+          <Property Name="CreatedAt" Type="DateTime" Nullable="false" Precision="7" />
+          <NavigationProperty Name="AgentConversation" Relationship="TDMUEcoSystemModel.FK_AgentMessages_Conversations" FromRole="AgentMessage" ToRole="AgentConversation" />
+        </EntityType>
+        <EntityType Name="UserNameChanx">
+          <Key>
+            <PropertyRef Name="ChangeID" />
+          </Key>
+          <Property Name="ChangeID" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="UserID" Type="Int32" Nullable="false" />
+          <Property Name="OldUsername" Type="String" MaxLength="100" FixedLength="false" Unicode="true" />
+          <Property Name="NewUsername" Type="String" MaxLength="100" FixedLength="false" Unicode="true" />
+          <Property Name="ChangedAt" Type="DateTime" Nullable="false" Precision="3" />
+        </EntityType>
+        <Association Name="FK_AgentActionLogs_Runs">
+          <End Type="TDMUEcoSystemModel.AgentTaskRun" Role="AgentTaskRun" Multiplicity="0..1" />
+          <End Type="TDMUEcoSystemModel.AgentActionLog" Role="AgentActionLog" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="AgentTaskRun">
+              <PropertyRef Name="RunID" />
+            </Principal>
+            <Dependent Role="AgentActionLog">
+              <PropertyRef Name="RunID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_AgentActionLogs_Users">
+          <End Type="TDMUEcoSystemModel.User" Role="User" Multiplicity="1" />
+          <End Type="TDMUEcoSystemModel.AgentActionLog" Role="AgentActionLog" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="User">
+              <PropertyRef Name="UserID" />
+            </Principal>
+            <Dependent Role="AgentActionLog">
+              <PropertyRef Name="UserID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_AgentConfirmations_Tasks">
+          <End Type="TDMUEcoSystemModel.AgentTask" Role="AgentTask" Multiplicity="0..1" />
+          <End Type="TDMUEcoSystemModel.AgentPendingConfirmation" Role="AgentPendingConfirmation" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="AgentTask">
+              <PropertyRef Name="TaskID" />
+            </Principal>
+            <Dependent Role="AgentPendingConfirmation">
+              <PropertyRef Name="TaskID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_AgentConfirmations_Users">
+          <End Type="TDMUEcoSystemModel.User" Role="User" Multiplicity="1" />
+          <End Type="TDMUEcoSystemModel.AgentPendingConfirmation" Role="AgentPendingConfirmation" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="User">
+              <PropertyRef Name="UserID" />
+            </Principal>
+            <Dependent Role="AgentPendingConfirmation">
+              <PropertyRef Name="UserID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_AgentPermissions_Users">
+          <End Type="TDMUEcoSystemModel.User" Role="User" Multiplicity="1" />
+          <End Type="TDMUEcoSystemModel.AgentPermission" Role="AgentPermission" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="User">
+              <PropertyRef Name="UserID" />
+            </Principal>
+            <Dependent Role="AgentPermission">
+              <PropertyRef Name="UserID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_AgentTaskRuns_Tasks">
+          <End Type="TDMUEcoSystemModel.AgentTask" Role="AgentTask" Multiplicity="1" />
+          <End Type="TDMUEcoSystemModel.AgentTaskRun" Role="AgentTaskRun" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="AgentTask">
+              <PropertyRef Name="TaskID" />
+            </Principal>
+            <Dependent Role="AgentTaskRun">
+              <PropertyRef Name="TaskID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_AgentTaskRuns_Users">
+          <End Type="TDMUEcoSystemModel.User" Role="User" Multiplicity="1" />
+          <End Type="TDMUEcoSystemModel.AgentTaskRun" Role="AgentTaskRun" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="User">
+              <PropertyRef Name="UserID" />
+            </Principal>
+            <Dependent Role="AgentTaskRun">
+              <PropertyRef Name="UserID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_AgentTasks_Users">
+          <End Type="TDMUEcoSystemModel.User" Role="User" Multiplicity="1" />
+          <End Type="TDMUEcoSystemModel.AgentTask" Role="AgentTask" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="User">
+              <PropertyRef Name="UserID" />
+            </Principal>
+            <Dependent Role="AgentTask">
+              <PropertyRef Name="UserID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_AgentMessages_Conversations">
+          <End Type="TDMUEcoSystemModel.AgentConversation" Role="AgentConversation" Multiplicity="1">
+            <OnDelete Action="Cascade" />
+          </End>
+          <End Type="TDMUEcoSystemModel.AgentMessage" Role="AgentMessage" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="AgentConversation">
+              <PropertyRef Name="ConversationID" />
+            </Principal>
+            <Dependent Role="AgentMessage">
+              <PropertyRef Name="ConversationID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+                        <EntityType Name="ChatReport">
+          <Key>
+            <PropertyRef Name="ReportID" />
+          </Key>
+          <Property Name="ReportID" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="ReporterID" Type="Int32" Nullable="false" />
+          <Property Name="ReportedUserID" Type="Int32" />
+          <Property Name="RoomID" Type="Int32" />
+          <Property Name="MessageID" Type="Int32" />
+          <Property Name="Reason" Type="String" Nullable="false" MaxLength="255" FixedLength="false" Unicode="true" />
+          <Property Name="Details" Type="String" MaxLength="Max" FixedLength="false" Unicode="true" />
+          <Property Name="EvidenceSnippet" Type="String" MaxLength="Max" FixedLength="false" Unicode="true" />
+          <Property Name="Status" Type="String" Nullable="false" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="CreatedAt" Type="DateTime" Nullable="false" Precision="3" />
+          <Property Name="HandledBy" Type="Int32" />
+          <Property Name="HandledAt" Type="DateTime" Precision="3" />
+          <Property Name="HandlingNotes" Type="String" MaxLength="Max" FixedLength="false" Unicode="true" />
+          <Property Name="ActionTaken" Type="String" MaxLength="100" FixedLength="false" Unicode="true" />
+        </EntityType>
+        <EntityType Name="ChatRestriction">
+          <Key>
+            <PropertyRef Name="RestrictionID" />
+          </Key>
+          <Property Name="RestrictionID" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="UserID" Type="Int32" Nullable="false" />
+          <Property Name="RestrictionType" Type="String" Nullable="false" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="Reason" Type="String" Nullable="false" MaxLength="500" FixedLength="false" Unicode="true" />
+          <Property Name="CreatedAt" Type="DateTime" Nullable="false" Precision="3" />
+          <Property Name="ExpiresAt" Type="DateTime" Precision="3" />
+          <Property Name="CreatedByAdminID" Type="Int32" Nullable="false" />
+          <Property Name="IsActive" Type="Boolean" Nullable="false" />
+          <Property Name="RevokedAt" Type="DateTime" Precision="3" />
+          <Property Name="RevokedByAdminID" Type="Int32" />
+          <Property Name="RevokeReason" Type="String" MaxLength="500" FixedLength="false" Unicode="true" />
+        </EntityType>
+        <EntityType Name="SharedPost">
+          <Key>
+            <PropertyRef Name="ShareID" />
+          </Key>
+          <Property Name="ShareID" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="ItemType" Type="String" Nullable="false" MaxLength="20" FixedLength="false" Unicode="true" />
+          <Property Name="PostID" Type="Int32" Nullable="false" />
+          <Property Name="UserID" Type="Int32" Nullable="false" />
+          <Property Name="Content" Type="String" MaxLength="500" FixedLength="false" Unicode="true" />
+          <Property Name="CreatedAt" Type="DateTime" Nullable="false" Precision="3" />
+          <NavigationProperty Name="User" Relationship="Self.FK_SharedPosts_Users" FromRole="SharedPosts" ToRole="Users" />
+        </EntityType>
+        <Association Name="FK_SharedPosts_Users">
+          <End Role="Users" Type="Self.User" Multiplicity="1">
+            <OnDelete Action="Cascade" />
+          </End>
+          <End Role="SharedPosts" Type="Self.SharedPost" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Users">
+              <PropertyRef Name="UserID" />
+            </Principal>
+            <Dependent Role="SharedPosts">
+              <PropertyRef Name="UserID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+</Schema>
+    </edmx:ConceptualModels>
+    <!-- C-S mapping content -->
+    <edmx:Mappings>
+      <Mapping Space="C-S" xmlns="http://schemas.microsoft.com/ado/2009/11/mapping/cs">
+        <EntityContainerMapping StorageEntityContainer="TDMUEcoSystemModelStoreContainer" CdmEntityContainer="TDMUEcoSystemEntities">
+          <EntitySetMapping Name="ChatMessages">
+            <EntityTypeMapping TypeName="TDMUEcoSystemModel.ChatMessage">
+              <MappingFragment StoreEntitySet="ChatMessages">
+                <ScalarProperty Name="ReplyToID" ColumnName="ReplyToID" />
+                <ScalarProperty Name="SentAt" ColumnName="SentAt" />
+                <ScalarProperty Name="ImageUrl" ColumnName="ImageUrl" />
+                <ScalarProperty Name="Content" ColumnName="Content" />
+                <ScalarProperty Name="SenderID" ColumnName="SenderID" />
+                <ScalarProperty Name="RoomID" ColumnName="RoomID" />
+                <ScalarProperty Name="MessageID" ColumnName="MessageID" />
+                <ScalarProperty Name="IsHidden" ColumnName="IsHidden" />
+                <ScalarProperty Name="HiddenReason" ColumnName="HiddenReason" />
+                <ScalarProperty Name="HiddenBy" ColumnName="HiddenBy" />
+                <ScalarProperty Name="HiddenAt" ColumnName="HiddenAt" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="ChatParticipants">
+            <EntityTypeMapping TypeName="TDMUEcoSystemModel.ChatParticipant">
+              <MappingFragment StoreEntitySet="ChatParticipants">
+                <ScalarProperty Name="IsLeft" ColumnName="IsLeft" />
+                <ScalarProperty Name="JoinedAt" ColumnName="JoinedAt" />
+                <ScalarProperty Name="UserID" ColumnName="UserID" />
+                <ScalarProperty Name="RoomID" ColumnName="RoomID" />
+                <ScalarProperty Name="ParticipantID" ColumnName="ParticipantID" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="ChatRooms">
+            <EntityTypeMapping TypeName="TDMUEcoSystemModel.ChatRoom">
+              <MappingFragment StoreEntitySet="ChatRooms">
+                <ScalarProperty Name="CreatedAt" ColumnName="CreatedAt" />
+                <ScalarProperty Name="IsActive" ColumnName="IsActive" />
+                <ScalarProperty Name="MaxUsers" ColumnName="MaxUsers" />
+                <ScalarProperty Name="RoomType" ColumnName="RoomType" />
+                <ScalarProperty Name="RoomID" ColumnName="RoomID" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="ConnectCategories">
+            <EntityTypeMapping TypeName="TDMUEcoSystemModel.ConnectCategory">
+              <MappingFragment StoreEntitySet="ConnectCategories">
+                <ScalarProperty Name="CategoryName" ColumnName="CategoryName" />
+                <ScalarProperty Name="CategoryID" ColumnName="CategoryID" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="ConnectPosts">
+            <EntityTypeMapping TypeName="TDMUEcoSystemModel.ConnectPost">
+              <MappingFragment StoreEntitySet="ConnectPosts">
+                <ScalarProperty Name="CreatedAt" ColumnName="CreatedAt" />
+                <ScalarProperty Name="MainImage" ColumnName="MainImage" />
+                <ScalarProperty Name="Description" ColumnName="Description" />
+                <ScalarProperty Name="Title" ColumnName="Title" />
+                <ScalarProperty Name="CategoryID" ColumnName="CategoryID" />
+                <ScalarProperty Name="UserID" ColumnName="UserID" />
+                <ScalarProperty Name="PostID" ColumnName="PostID" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="MarketCategories">
+            <EntityTypeMapping TypeName="TDMUEcoSystemModel.MarketCategory">
+              <MappingFragment StoreEntitySet="MarketCategories">
+                <ScalarProperty Name="CategoryName" ColumnName="CategoryName" />
+                <ScalarProperty Name="CategoryID" ColumnName="CategoryID" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="MarketChatRooms">
+            <EntityTypeMapping TypeName="TDMUEcoSystemModel.MarketChatRoom">
+              <MappingFragment StoreEntitySet="MarketChatRooms">
+                <ScalarProperty Name="CreatedAt" ColumnName="CreatedAt" />
+                <ScalarProperty Name="SellerID" ColumnName="SellerID" />
+                <ScalarProperty Name="BuyerID" ColumnName="BuyerID" />
+                <ScalarProperty Name="PostID" ColumnName="PostID" />
+                <ScalarProperty Name="MarketRoomID" ColumnName="MarketRoomID" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="MarketImages">
+            <EntityTypeMapping TypeName="TDMUEcoSystemModel.MarketImage">
+              <MappingFragment StoreEntitySet="MarketImages">
+                <ScalarProperty Name="ImageUrl" ColumnName="ImageUrl" />
+                <ScalarProperty Name="PostID" ColumnName="PostID" />
+                <ScalarProperty Name="ImageID" ColumnName="ImageID" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="MarketPosts">
+            <EntityTypeMapping TypeName="TDMUEcoSystemModel.MarketPost">
+              <MappingFragment StoreEntitySet="MarketPosts">
+                <ScalarProperty Name="Status" ColumnName="Status" />
+                <ScalarProperty Name="CreatedAt" ColumnName="CreatedAt" />
+                <ScalarProperty Name="IsHide" ColumnName="IsHide" />
+                <ScalarProperty Name="Condition" ColumnName="Condition" />
+                <ScalarProperty Name="ViewCount" ColumnName="ViewCount" />
+                <ScalarProperty Name="ExchangeLocation" ColumnName="ExchangeLocation" />
+                <ScalarProperty Name="MainImage" ColumnName="MainImage" />
+                <ScalarProperty Name="Price" ColumnName="Price" />
+                <ScalarProperty Name="Description" ColumnName="Description" />
+                <ScalarProperty Name="Title" ColumnName="Title" />
+                <ScalarProperty Name="CategoryID" ColumnName="CategoryID" />
+                <ScalarProperty Name="UserID" ColumnName="UserID" />
+                <ScalarProperty Name="PostID" ColumnName="PostID" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="MarketWishlists">
+            <EntityTypeMapping TypeName="TDMUEcoSystemModel.MarketWishlist">
+              <MappingFragment StoreEntitySet="MarketWishlists">
+                <ScalarProperty Name="SavedAt" ColumnName="SavedAt" />
+                <ScalarProperty Name="PostID" ColumnName="PostID" />
+                <ScalarProperty Name="UserID" ColumnName="UserID" />
+                <ScalarProperty Name="WishlistID" ColumnName="WishlistID" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="Reviews">
+            <EntityTypeMapping TypeName="TDMUEcoSystemModel.Review">
+              <MappingFragment StoreEntitySet="Reviews">
+                <ScalarProperty Name="CreatedAt" ColumnName="CreatedAt" />
+                <ScalarProperty Name="Comment" ColumnName="Comment" />
+                <ScalarProperty Name="RatingStar" ColumnName="RatingStar" />
+                <ScalarProperty Name="UserID" ColumnName="UserID" />
+                <ScalarProperty Name="PostType" ColumnName="PostType" />
+                <ScalarProperty Name="PostID" ColumnName="PostID" />
+                <ScalarProperty Name="ReviewID" ColumnName="ReviewID" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="Users">
+            <EntityTypeMapping TypeName="TDMUEcoSystemModel.User">
+              <MappingFragment StoreEntitySet="Users">
+                <ScalarProperty Name="IsPrivate" ColumnName="IsPrivate" />
+                <ScalarProperty Name="IsEmailVerified" ColumnName="IsEmailVerified" />
+                <ScalarProperty Name="EmailVerifiedAt" ColumnName="EmailVerifiedAt" />
+                <ScalarProperty Name="OtpHash" ColumnName="OtpHash" />
+                <ScalarProperty Name="OtpExpiry" ColumnName="OtpExpiry" />
+                <ScalarProperty Name="OtpAttempts" ColumnName="OtpAttempts" />
+                <ScalarProperty Name="OtpLastSent" ColumnName="OtpLastSent" />
+                <ScalarProperty Name="CreatedAt" ColumnName="CreatedAt" />
+                <ScalarProperty Name="LastActivityAt" ColumnName="LastActivityAt" />
+                <ScalarProperty Name="Avatar" ColumnName="Avatar" />
+                <ScalarProperty Name="IsAdmin" ColumnName="IsAdmin" />
+                <ScalarProperty Name="AdminRole" ColumnName="AdminRole" />
+                <ScalarProperty Name="IsTDMUStudent" ColumnName="IsTDMUStudent" />
+                <ScalarProperty Name="PhoneNumber" ColumnName="PhoneNumber" />
+                <ScalarProperty Name="PasswordHash" ColumnName="PasswordHash" />
+                <ScalarProperty Name="Username" ColumnName="Username" />
+                <ScalarProperty Name="Email" ColumnName="Email" />
+                <ScalarProperty Name="UserID" ColumnName="UserID" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="Notifications">
+            <EntityTypeMapping TypeName="TDMUEcoSystemModel.Notification">
+              <MappingFragment StoreEntitySet="Notifications">
+                <ScalarProperty Name="RefType" ColumnName="RefType" />
+                <ScalarProperty Name="RefID" ColumnName="RefID" />
+                <ScalarProperty Name="SenderID" ColumnName="SenderID" />
+                <ScalarProperty Name="CreatedAt" ColumnName="CreatedAt" />
+                <ScalarProperty Name="IsRead" ColumnName="IsRead" />
+                <ScalarProperty Name="Url" ColumnName="Url" />
+                <ScalarProperty Name="Type" ColumnName="Type" />
+                <ScalarProperty Name="Message" ColumnName="Message" />
+                <ScalarProperty Name="UserID" ColumnName="UserID" />
+                <ScalarProperty Name="NotificationID" ColumnName="NotificationID" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="Follows">
+            <EntityTypeMapping TypeName="TDMUEcoSystemModel.Follow">
+              <MappingFragment StoreEntitySet="Follows">
+                <ScalarProperty Name="CreatedAt" ColumnName="CreatedAt" />
+                <ScalarProperty Name="FollowingID" ColumnName="FollowingID" />
+                <ScalarProperty Name="FollowerID" ColumnName="FollowerID" />
+                <ScalarProperty Name="FollowID" ColumnName="FollowID" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="Friendships">
+            <EntityTypeMapping TypeName="TDMUEcoSystemModel.Friendship">
+              <MappingFragment StoreEntitySet="Friendships">
+                <ScalarProperty Name="CreatedAt" ColumnName="CreatedAt" />
+                <ScalarProperty Name="Status" ColumnName="Status" />
+                <ScalarProperty Name="ReceiverID" ColumnName="ReceiverID" />
+                <ScalarProperty Name="RequesterID" ColumnName="RequesterID" />
+                <ScalarProperty Name="FriendshipID" ColumnName="FriendshipID" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="PostComments">
+            <EntityTypeMapping TypeName="TDMUEcoSystemModel.PostComment">
+              <MappingFragment StoreEntitySet="PostComments">
+                <ScalarProperty Name="CreatedAt" ColumnName="CreatedAt" />
+                <ScalarProperty Name="ParentID" ColumnName="ParentID" />
+                <ScalarProperty Name="ImageUrl" ColumnName="ImageUrl" />
+                <ScalarProperty Name="Content" ColumnName="Content" />
+                <ScalarProperty Name="UserID" ColumnName="UserID" />
+                <ScalarProperty Name="PostID" ColumnName="PostID" />
+                <ScalarProperty Name="CommentID" ColumnName="CommentID" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="PostLikes">
+            <EntityTypeMapping TypeName="TDMUEcoSystemModel.PostLike">
+              <MappingFragment StoreEntitySet="PostLikes">
+                <ScalarProperty Name="CreatedAt" ColumnName="CreatedAt" />
+                <ScalarProperty Name="LikeType" ColumnName="LikeType" />
+                <ScalarProperty Name="UserID" ColumnName="UserID" />
+                <ScalarProperty Name="PostID" ColumnName="PostID" />
+                <ScalarProperty Name="LikeID" ColumnName="LikeID" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="PostMedias">
+            <EntityTypeMapping TypeName="TDMUEcoSystemModel.PostMedia">
+              <MappingFragment StoreEntitySet="PostMedia">
+                <ScalarProperty Name="SortOrder" ColumnName="SortOrder" />
+                <ScalarProperty Name="MediaType" ColumnName="MediaType" />
+                <ScalarProperty Name="MediaUrl" ColumnName="MediaUrl" />
+                <ScalarProperty Name="PostID" ColumnName="PostID" />
+                <ScalarProperty Name="MediaID" ColumnName="MediaID" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="Posts">
+            <EntityTypeMapping TypeName="TDMUEcoSystemModel.Post">
+              <MappingFragment StoreEntitySet="Posts">
+                <ScalarProperty Name="UpdatedAt" ColumnName="UpdatedAt" />
+                <ScalarProperty Name="CreatedAt" ColumnName="CreatedAt" />
+                <ScalarProperty Name="Privacy" ColumnName="Privacy" />
+                <ScalarProperty Name="Content" ColumnName="Content" />
+                <ScalarProperty Name="UserID" ColumnName="UserID" />
+                <ScalarProperty Name="PostID" ColumnName="PostID" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="PostShares">
+            <EntityTypeMapping TypeName="TDMUEcoSystemModel.PostShare">
+              <MappingFragment StoreEntitySet="PostShares">
+                <ScalarProperty Name="CreatedAt" ColumnName="CreatedAt" />
+                <ScalarProperty Name="Content" ColumnName="Content" />
+                <ScalarProperty Name="UserID" ColumnName="UserID" />
+                <ScalarProperty Name="PostID" ColumnName="PostID" />
+                <ScalarProperty Name="ShareID" ColumnName="ShareID" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="Stories">
+            <EntityTypeMapping TypeName="TDMUEcoSystemModel.Story">
+              <MappingFragment StoreEntitySet="Stories">
+                <ScalarProperty Name="ExpiresAt" ColumnName="ExpiresAt" />
+                <ScalarProperty Name="CreatedAt" ColumnName="CreatedAt" />
+                <ScalarProperty Name="Caption" ColumnName="Caption" />
+                <ScalarProperty Name="MediaUrl" ColumnName="MediaUrl" />
+                <ScalarProperty Name="UserID" ColumnName="UserID" />
+                <ScalarProperty Name="StoryID" ColumnName="StoryID" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="StoryViews">
+            <EntityTypeMapping TypeName="TDMUEcoSystemModel.StoryView">
+              <MappingFragment StoreEntitySet="StoryViews">
+                <ScalarProperty Name="ViewedAt" ColumnName="ViewedAt" />
+                <ScalarProperty Name="ViewerID" ColumnName="ViewerID" />
+                <ScalarProperty Name="StoryID" ColumnName="StoryID" />
+                <ScalarProperty Name="ViewID" ColumnName="ViewID" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="UserProfiles">
+            <EntityTypeMapping TypeName="TDMUEcoSystemModel.UserProfile">
+              <MappingFragment StoreEntitySet="UserProfiles">
+                <ScalarProperty Name="Hometown" ColumnName="Hometown" />
+                <ScalarProperty Name="StudentYear" ColumnName="StudentYear" />
+                <ScalarProperty Name="Major" ColumnName="Major" />
+                <ScalarProperty Name="Faculty" ColumnName="Faculty" />
+                <ScalarProperty Name="Bio" ColumnName="Bio" />
+                <ScalarProperty Name="CoverPhoto" ColumnName="CoverPhoto" />
+                <ScalarProperty Name="UserID" ColumnName="UserID" />
+                <ScalarProperty Name="ProfileID" ColumnName="ProfileID" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="AgentActionLogs">
+            <EntityTypeMapping TypeName="TDMUEcoSystemModel.AgentActionLog">
+              <MappingFragment StoreEntitySet="AgentActionLogs">
+                <ScalarProperty Name="CreatedAt" ColumnName="CreatedAt" />
+                <ScalarProperty Name="ErrorMessage" ColumnName="ErrorMessage" />
+                <ScalarProperty Name="ResultSummary" ColumnName="ResultSummary" />
+                <ScalarProperty Name="InputSummary" ColumnName="InputSummary" />
+                <ScalarProperty Name="Status" ColumnName="Status" />
+                <ScalarProperty Name="TargetID" ColumnName="TargetID" />
+                <ScalarProperty Name="TargetType" ColumnName="TargetType" />
+                <ScalarProperty Name="ActionName" ColumnName="ActionName" />
+                <ScalarProperty Name="RunID" ColumnName="RunID" />
+                <ScalarProperty Name="UserID" ColumnName="UserID" />
+                <ScalarProperty Name="LogID" ColumnName="LogID" />
+                <ScalarProperty Name="ConversationID" ColumnName="ConversationID" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="AgentPendingConfirmations">
+            <EntityTypeMapping TypeName="TDMUEcoSystemModel.AgentPendingConfirmation">
+              <MappingFragment StoreEntitySet="AgentPendingConfirmations">
+                <ScalarProperty Name="ResolvedAt" ColumnName="ResolvedAt" />
+                <ScalarProperty Name="ExpiresAt" ColumnName="ExpiresAt" />
+                <ScalarProperty Name="CreatedAt" ColumnName="CreatedAt" />
+                <ScalarProperty Name="Status" ColumnName="Status" />
+                <ScalarProperty Name="ActionPayload" ColumnName="ActionPayload" />
+                <ScalarProperty Name="ActionName" ColumnName="ActionName" />
+                <ScalarProperty Name="TaskID" ColumnName="TaskID" />
+                <ScalarProperty Name="UserID" ColumnName="UserID" />
+                <ScalarProperty Name="ConfirmationID" ColumnName="ConfirmationID" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="AgentPermissions">
+            <EntityTypeMapping TypeName="TDMUEcoSystemModel.AgentPermission">
+              <MappingFragment StoreEntitySet="AgentPermissions">
+                <ScalarProperty Name="UpdatedAt" ColumnName="UpdatedAt" />
+                <ScalarProperty Name="CreatedAt" ColumnName="CreatedAt" />
+                <ScalarProperty Name="IsEnabled" ColumnName="IsEnabled" />
+                <ScalarProperty Name="CanAutomation" ColumnName="CanAutomation" />
+                <ScalarProperty Name="CanInteract" ColumnName="CanInteract" />
+                <ScalarProperty Name="CanManageContent" ColumnName="CanManageContent" />
+                <ScalarProperty Name="CanReadData" ColumnName="CanReadData" />
+                <ScalarProperty Name="UserID" ColumnName="UserID" />
+                <ScalarProperty Name="PermissionID" ColumnName="PermissionID" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="AgentTaskRuns">
+            <EntityTypeMapping TypeName="TDMUEcoSystemModel.AgentTaskRun">
+              <MappingFragment StoreEntitySet="AgentTaskRuns">
+                <ScalarProperty Name="CreatedAt" ColumnName="CreatedAt" />
+                <ScalarProperty Name="ErrorMessage" ColumnName="ErrorMessage" />
+                <ScalarProperty Name="ResultSummary" ColumnName="ResultSummary" />
+                <ScalarProperty Name="AttemptCount" ColumnName="AttemptCount" />
+                <ScalarProperty Name="Status" ColumnName="Status" />
+                <ScalarProperty Name="FinishedAt" ColumnName="FinishedAt" />
+                <ScalarProperty Name="StartedAt" ColumnName="StartedAt" />
+                <ScalarProperty Name="UserID" ColumnName="UserID" />
+                <ScalarProperty Name="TaskID" ColumnName="TaskID" />
+                <ScalarProperty Name="RunID" ColumnName="RunID" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="AgentTasks">
+            <EntityTypeMapping TypeName="TDMUEcoSystemModel.AgentTask">
+              <MappingFragment StoreEntitySet="AgentTasks">
+                <ScalarProperty Name="UpdatedAt" ColumnName="UpdatedAt" />
+                <ScalarProperty Name="CreatedAt" ColumnName="CreatedAt" />
+                <ScalarProperty Name="LastRunAt" ColumnName="LastRunAt" />
+                <ScalarProperty Name="NextRunAt" ColumnName="NextRunAt" />
+                <ScalarProperty Name="Status" ColumnName="Status" />
+                <ScalarProperty Name="TimeZone" ColumnName="TimeZone" />
+                <ScalarProperty Name="ScheduleConfig" ColumnName="ScheduleConfig" />
+                <ScalarProperty Name="ScheduleType" ColumnName="ScheduleType" />
+                <ScalarProperty Name="TaskType" ColumnName="TaskType" />
+                <ScalarProperty Name="UserPrompt" ColumnName="UserPrompt" />
+                <ScalarProperty Name="TaskName" ColumnName="TaskName" />
+                <ScalarProperty Name="UserID" ColumnName="UserID" />
+                <ScalarProperty Name="TaskID" ColumnName="TaskID" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="AgentConversations">
+            <EntityTypeMapping TypeName="TDMUEcoSystemModel.AgentConversation">
+              <MappingFragment StoreEntitySet="AgentConversations">
+                <ScalarProperty Name="ConversationID" ColumnName="ConversationID" />
+                <ScalarProperty Name="UserID" ColumnName="UserID" />
+                <ScalarProperty Name="Title" ColumnName="Title" />
+                <ScalarProperty Name="TaskID" ColumnName="TaskID" />
+                <ScalarProperty Name="Status" ColumnName="Status" />
+                <ScalarProperty Name="Summary" ColumnName="Summary" />
+                <ScalarProperty Name="MessageCount" ColumnName="MessageCount" />
+                <ScalarProperty Name="CreatedAt" ColumnName="CreatedAt" />
+                <ScalarProperty Name="UpdatedAt" ColumnName="UpdatedAt" />
+                <ScalarProperty Name="LastMessageAt" ColumnName="LastMessageAt" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="AgentMessages">
+            <EntityTypeMapping TypeName="TDMUEcoSystemModel.AgentMessage">
+              <MappingFragment StoreEntitySet="AgentMessages">
+                <ScalarProperty Name="MessageID" ColumnName="MessageID" />
+                <ScalarProperty Name="ConversationID" ColumnName="ConversationID" />
+                <ScalarProperty Name="SenderType" ColumnName="SenderType" />
+                <ScalarProperty Name="Content" ColumnName="Content" />
+                <ScalarProperty Name="ToolCallDetails" ColumnName="ToolCallDetails" />
+                <ScalarProperty Name="ToolResultDetails" ColumnName="ToolResultDetails" />
+                <ScalarProperty Name="ErrorMessage" ColumnName="ErrorMessage" />
+                <ScalarProperty Name="CreatedAt" ColumnName="CreatedAt" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="UserNameChanges">
+            <EntityTypeMapping TypeName="TDMUEcoSystemModel.UserNameChanx">
+              <MappingFragment StoreEntitySet="UserNameChanges">
+                <ScalarProperty Name="ChangedAt" ColumnName="ChangedAt" />
+                <ScalarProperty Name="NewUsername" ColumnName="NewUsername" />
+                <ScalarProperty Name="OldUsername" ColumnName="OldUsername" />
+                <ScalarProperty Name="UserID" ColumnName="UserID" />
+                <ScalarProperty Name="ChangeID" ColumnName="ChangeID" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+                          <EntitySetMapping Name="ChatReports">
+          <EntityTypeMapping TypeName="TDMUEcoSystemModel.ChatReport">
+            <MappingFragment StoreEntitySet="ChatReports">
+              <ScalarProperty Name="ReportID" ColumnName="ReportID" />
+              <ScalarProperty Name="ReporterID" ColumnName="ReporterID" />
+              <ScalarProperty Name="ReportedUserID" ColumnName="ReportedUserID" />
+              <ScalarProperty Name="RoomID" ColumnName="RoomID" />
+              <ScalarProperty Name="MessageID" ColumnName="MessageID" />
+              <ScalarProperty Name="Reason" ColumnName="Reason" />
+              <ScalarProperty Name="Details" ColumnName="Details" />
+              <ScalarProperty Name="EvidenceSnippet" ColumnName="EvidenceSnippet" />
+              <ScalarProperty Name="Status" ColumnName="Status" />
+              <ScalarProperty Name="CreatedAt" ColumnName="CreatedAt" />
+              <ScalarProperty Name="HandledBy" ColumnName="HandledBy" />
+              <ScalarProperty Name="HandledAt" ColumnName="HandledAt" />
+              <ScalarProperty Name="HandlingNotes" ColumnName="HandlingNotes" />
+              <ScalarProperty Name="ActionTaken" ColumnName="ActionTaken" />
+            </MappingFragment>
+          </EntityTypeMapping>
+        </EntitySetMapping>
+        <EntitySetMapping Name="ChatRestrictions">
+          <EntityTypeMapping TypeName="TDMUEcoSystemModel.ChatRestriction">
+            <MappingFragment StoreEntitySet="ChatRestrictions">
+              <ScalarProperty Name="RestrictionID" ColumnName="RestrictionID" />
+              <ScalarProperty Name="UserID" ColumnName="UserID" />
+              <ScalarProperty Name="RestrictionType" ColumnName="RestrictionType" />
+              <ScalarProperty Name="Reason" ColumnName="Reason" />
+              <ScalarProperty Name="CreatedAt" ColumnName="CreatedAt" />
+              <ScalarProperty Name="ExpiresAt" ColumnName="ExpiresAt" />
+              <ScalarProperty Name="CreatedByAdminID" ColumnName="CreatedByAdminID" />
+              <ScalarProperty Name="IsActive" ColumnName="IsActive" />
+              <ScalarProperty Name="RevokedAt" ColumnName="RevokedAt" />
+              <ScalarProperty Name="RevokedByAdminID" ColumnName="RevokedByAdminID" />
+              <ScalarProperty Name="RevokeReason" ColumnName="RevokeReason" />
+            </MappingFragment>
+          </EntityTypeMapping>
+        </EntitySetMapping>
+        <EntitySetMapping Name="SharedPosts">
+            <EntityTypeMapping TypeName="TDMUEcoSystemModel.SharedPost">
+              <MappingFragment StoreEntitySet="SharedPosts">
+                <ScalarProperty Name="ShareID" ColumnName="ShareID" />
+                <ScalarProperty Name="ItemType" ColumnName="ItemType" />
+                <ScalarProperty Name="PostID" ColumnName="PostID" />
+                <ScalarProperty Name="UserID" ColumnName="UserID" />
+                <ScalarProperty Name="Content" ColumnName="Content" />
+                <ScalarProperty Name="CreatedAt" ColumnName="CreatedAt" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+</EntityContainerMapping>
+      </Mapping>
+    </edmx:Mappings>
+  </edmx:Runtime>
+  <!-- EF Designer content (DO NOT EDIT MANUALLY BELOW HERE) -->
+  <Designer xmlns="http://schemas.microsoft.com/ado/2009/11/edmx">
+    <Connection>
+      <DesignerInfoPropertySet>
+        <DesignerProperty Name="MetadataArtifactProcessing" Value="EmbedInOutputAssembly" />
+      </DesignerInfoPropertySet>
+    </Connection>
+    <Options>
+      <DesignerInfoPropertySet>
+        <DesignerProperty Name="ValidateOnBuild" Value="true" />
+        <DesignerProperty Name="EnablePluralization" Value="true" />
+        <DesignerProperty Name="IncludeForeignKeysInModel" Value="true" />
+        <DesignerProperty Name="UseLegacyProvider" Value="false" />
+        <DesignerProperty Name="CodeGenerationStrategy" Value="None" />
+      </DesignerInfoPropertySet>
+    </Options>
+    <!-- Diagram content (shape and connector positions) -->
+    <Diagrams></Diagrams>
+  </Designer>
+</edmx:Edmx>

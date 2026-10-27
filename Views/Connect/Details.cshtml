@@ -1,0 +1,911 @@
+@model StudentConnect.Models.ConnectPost
+@using StudentConnect.Helpers
+
+@{
+    ViewBag.Title = Model.Title;
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var reviews = ViewBag.Reviews as List<StudentConnect.Models.Review>;
+    double avgRating = ViewBag.AverageRating != null ? (double)ViewBag.AverageRating : 0;
+    int reviewCount = ViewBag.ReviewCount != null ? (int)ViewBag.ReviewCount : 0;
+    int cDetailShareCount = ViewBag.ShareCount ?? 0;
+
+    var imagePaths = ConnectImageHelper.GetPaths(Model.MainImage);
+    if (!imagePaths.Any())
+    {
+        imagePaths.Add("/Content/Images/default-image.jpg");
+    }
+}
+
+<style>
+    /* ── BASE CONTAINER & CARDS ── */
+    .connect-detail-container {
+        max-width: 1140px;
+        margin: 0 auto;
+        padding-bottom: 3rem;
+    }
+
+    .connect-card {
+        background: #111424;
+        border: 1px solid #23273b !important;
+        border-radius: 16px !important;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+        color: #fff;
+        overflow: hidden;
+    }
+
+    /* ── ACTION BAR ── */
+    .connect-top-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-bottom: 20px;
+    }
+
+    .btn-back-custom {
+        border-radius: 50px;
+        padding: 8px 18px;
+        font-size: 0.9rem;
+        background: rgba(255,255,255,0.04);
+        border: 1px solid rgba(255,255,255,0.15);
+        color: #d1d5db;
+        transition: all 0.2s ease;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .btn-back-custom:hover {
+        background: rgba(255,255,255,0.1);
+        color: #fff;
+        border-color: rgba(255,255,255,0.3);
+    }
+
+    .connect-top-actions {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    /* ── IMAGE GALLERY ── */
+    .connect-gallery-wrapper {
+        background: #080d17;
+        position: relative;
+        overflow: hidden;
+        border-bottom: 1px solid #23273b;
+    }
+
+    .connect-image-gallery {
+        display: grid;
+        gap: 6px;
+        padding: 8px;
+        width: 100%;
+        background: #080d17;
+    }
+
+    /* 1 ảnh */
+    .connect-image-gallery.img-count-1 {
+        grid-template-columns: 1fr;
+        padding: 12px;
+    }
+    .connect-image-gallery.img-count-1 .connect-gallery-item {
+        height: 420px;
+        background: #050811;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+    }
+    .connect-image-gallery.img-count-1 img {
+        max-height: 420px;
+        width: 100%;
+        object-fit: contain;
+    }
+
+    /* 2 ảnh */
+    .connect-image-gallery.img-count-2 {
+        grid-template-columns: 1fr 1fr;
+    }
+    .connect-image-gallery.img-count-2 .connect-gallery-item {
+        height: 300px;
+        border-radius: 10px;
+        overflow: hidden;
+    }
+
+    /* 3 ảnh */
+    .connect-image-gallery.img-count-3 {
+        grid-template-columns: 1.2fr 1fr;
+        grid-template-rows: 155px 155px;
+    }
+    .connect-image-gallery.img-count-3 .connect-gallery-item:first-child {
+        grid-row: 1 / 3;
+    }
+    .connect-image-gallery.img-count-3 .connect-gallery-item {
+        border-radius: 10px;
+        overflow: hidden;
+    }
+
+    /* 4+ ảnh */
+    .connect-image-gallery.img-count-4,
+    .connect-image-gallery.img-count-multi {
+        grid-template-columns: repeat(2, 1fr);
+        grid-template-rows: 180px 180px;
+    }
+    .connect-image-gallery.img-count-multi .connect-gallery-item {
+        border-radius: 10px;
+        overflow: hidden;
+    }
+
+    .connect-gallery-item {
+        position: relative;
+        cursor: pointer;
+        background: #0d121f;
+    }
+    .connect-gallery-item img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+        transition: transform 0.3s ease, filter 0.3s ease;
+    }
+    .connect-gallery-item:hover img {
+        transform: scale(1.03);
+        filter: brightness(1.08);
+    }
+    .connect-gallery-more {
+        position: absolute;
+        inset: 0;
+        background: rgba(0,0,0,0.65);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        font-size: 1.5rem;
+        font-weight: 700;
+        backdrop-filter: blur(2px);
+    }
+
+    /* ── POST BODY CONTENT ── */
+    .connect-body {
+        padding: 24px 30px;
+    }
+
+    .connect-title {
+        font-size: 1.75rem;
+        font-weight: 700;
+        line-height: 1.35;
+        color: #fff;
+        word-break: break-word;
+        overflow-wrap: anywhere;
+    }
+
+    .connect-badge-cat {
+        background: linear-gradient(135deg, #0dcaf0 0%, #0d6efd 100%);
+        color: #000;
+        font-weight: 700;
+        font-size: 0.8rem;
+        padding: 5px 12px;
+        border-radius: 50px;
+    }
+
+    .connect-author-card {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 16px 0;
+        border-top: 1px solid #23273b;
+        border-bottom: 1px solid #23273b;
+        margin-bottom: 22px;
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+
+    .author-info-left {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .author-avatar-img {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 2px solid rgba(13,202,240,0.4);
+    }
+
+    .author-avatar-initial {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #0dcaf0, #0d6efd);
+        color: #000;
+        font-weight: 700;
+        font-size: 1.2rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .author-name-link {
+        color: #fff;
+        font-weight: 700;
+        font-size: 1rem;
+        text-decoration: none;
+        transition: color 0.2s ease;
+    }
+    .author-name-link:hover {
+        color: #0dcaf0;
+    }
+
+    .post-content {
+        font-size: 1.05rem;
+        line-height: 1.8;
+        color: #e5e7eb;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+    }
+    .post-content img {
+        max-width: 100% !important;
+        height: auto !important;
+        border-radius: 10px;
+        margin: 16px 0;
+        display: block;
+        box-shadow: 0 4px 14px rgba(0,0,0,0.4);
+    }
+
+    /* ── SIDEBAR / REVIEWS ── */
+    .connect-sidebar {
+        position: sticky;
+        top: 24px;
+    }
+
+    .rating-summary-box {
+        background: rgba(255,255,255,0.03);
+        border: 1px solid rgba(255,255,255,0.07);
+        border-radius: 12px;
+        padding: 16px;
+        display: flex;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+
+    .custom-dark-input {
+        background: #080d17 !important;
+        border: 1px solid #23273b !important;
+        color: #fff !important;
+        border-radius: 10px !important;
+        padding: 10px 14px;
+        font-size: 0.92rem;
+    }
+    .custom-dark-input:focus {
+        border-color: #0dcaf0 !important;
+        box-shadow: 0 0 0 3px rgba(13,202,240,0.2) !important;
+        background: #0b1120 !important;
+    }
+    .custom-dark-input option {
+        background: #111424;
+        color: #fff;
+    }
+
+    .reviews-list-scroll {
+        max-height: 440px;
+        overflow-y: auto;
+        padding-right: 4px;
+    }
+    .reviews-list-scroll::-webkit-scrollbar {
+        width: 5px;
+    }
+    .reviews-list-scroll::-webkit-scrollbar-thumb {
+        background: #23273b;
+        border-radius: 4px;
+    }
+
+    .review-item {
+        border-bottom: 1px solid #1e2336;
+        padding-bottom: 14px;
+        margin-bottom: 14px;
+    }
+    .review-item:last-child {
+        border-bottom: none;
+        margin-bottom: 0;
+        padding-bottom: 0;
+    }
+
+    .review-user-badge {
+        background: rgba(255,193,7,0.15);
+        color: #ffc107;
+        border: 1px solid rgba(255,193,7,0.3);
+        font-size: 0.8rem;
+        padding: 3px 10px;
+        border-radius: 20px;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+    }
+
+    /* ── RESPONSIVE RULES ── */
+    @@media (max-width: 991.98px) {
+        .connect-sidebar {
+            position: static !important;
+            margin-top: 10px;
+        }
+    }
+
+    @@media (max-width: 767.98px) {
+        .connect-body {
+            padding: 18px 16px;
+        }
+        .connect-title {
+            font-size: 1.35rem;
+        }
+        /* ELIMINATE SCROLL-TRAP ON MOBILE */
+        .reviews-list-scroll {
+            max-height: none !important;
+            overflow-y: visible !important;
+        }
+    }
+
+    @@media (max-width: 575.98px) {
+        .connect-detail-container {
+            padding-left: 10px;
+            padding-right: 10px;
+        }
+        .connect-top-bar {
+            gap: 8px;
+            margin-bottom: 14px;
+        }
+        .btn-back-custom {
+            padding: 6px 14px;
+            font-size: 0.82rem;
+        }
+        .connect-top-actions {
+            width: 100%;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 6px;
+        }
+        .connect-top-actions a,
+        .connect-top-actions button {
+            width: 100% !important;
+            justify-content: center;
+            padding: 8px 12px;
+            font-size: 0.88rem;
+        }
+        .connect-top-actions form {
+            width: 100%;
+        }
+
+        /* 1 ảnh trên mobile */
+        .connect-image-gallery.img-count-1 .connect-gallery-item {
+            height: 250px;
+        }
+        .connect-image-gallery.img-count-1 img {
+            max-height: 250px;
+        }
+
+        /* 2 ảnh trên mobile */
+        .connect-image-gallery.img-count-2 {
+            grid-template-columns: 1fr 1fr;
+        }
+        .connect-image-gallery.img-count-2 .connect-gallery-item {
+            height: 160px;
+        }
+
+        /* 3 ảnh trên mobile */
+        .connect-image-gallery.img-count-3 {
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 100px 100px;
+        }
+
+        /* 4+ ảnh trên mobile */
+        .connect-image-gallery.img-count-4,
+        .connect-image-gallery.img-count-multi {
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 120px 120px;
+        }
+
+        .connect-author-card {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 10px;
+        }
+        .connect-author-card .btn-chat-author {
+            width: 100%;
+            text-align: center;
+        }
+
+        .rating-summary-box {
+            padding: 12px;
+        }
+        .rating-summary-box h2 {
+            font-size: 1.6rem;
+        }
+    }
+</style>
+
+<div class="container connect-detail-container py-3 py-md-4">
+
+    <!-- Top Action Bar -->
+    <div class="connect-top-bar">
+        <a href="@Url.Action("Index")" class="btn-back-custom">
+            <i class="fas fa-arrow-left"></i> <span>Quay lại</span>
+        </a>
+
+        <div class="connect-top-actions">
+            @if (Model.UserID != null && (Session["UserID"] == null || Convert.ToInt32(Session["UserID"]) != Model.UserID))
+            {
+                <a href="@Url.Action("ChatWithAuthor", "Connect", new { postId = Model.PostID })"
+                   class="btn btn-info rounded-pill px-3 shadow-sm text-dark fw-bold d-inline-flex align-items-center">
+                    <i class="fas fa-comment-dots me-1"></i> Nhắn tin với người đăng
+                </a>
+            }
+
+            @if (Session["UserID"] != null && Convert.ToInt32(Session["UserID"]) == Model.UserID)
+            {
+                <a href="@Url.Action("Edit", "Connect", new { id = Model.PostID })"
+                   class="btn btn-warning rounded-pill px-3 shadow-sm d-inline-flex align-items-center">
+                    <i class="fas fa-edit me-1"></i> Sửa bài
+                </a>
+
+                <form action="@Url.Action("Delete", "Connect", new { id = Model.PostID })"
+                      method="post" style="display:inline;">
+                    @Html.AntiForgeryToken()
+                    <button type="button" class="btn btn-danger rounded-pill px-3 shadow-sm d-inline-flex align-items-center w-100"
+                            onclick="confirmDelete(this)">
+                        <i class="fas fa-trash me-1"></i> Xóa bài
+                    </button>
+                </form>
+            }
+
+            <button type="button" class="btn btn-outline-info rounded-pill px-3 shadow-sm d-inline-flex align-items-center"
+                    onclick="openShareModal('Connect', @Model.PostID, '@HttpUtility.JavaScriptStringEncode(Model.Title ?? "")', '@HttpUtility.JavaScriptStringEncode(Model.User?.Username ?? "Ẩn danh")', '@HttpUtility.JavaScriptStringEncode(StudentConnect.Helpers.ConnectImageHelper.GetFirstPath(Model.MainImage) ?? "")', '@HttpUtility.JavaScriptStringEncode(Model.ConnectCategory != null ? Model.ConnectCategory.CategoryName : "Kết nối")')">
+                <i class="fas fa-share-alt me-1"></i> Chia sẻ <span class="share-count-Connect-@Model.PostID">@(cDetailShareCount > 0 ? $"({cDetailShareCount})" : "")</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Content & Sidebar Grid -->
+    <div class="row g-3 g-md-4">
+        <!-- Main Column -->
+        <div class="col-lg-8 mb-3 mb-lg-0">
+            <div class="card connect-card">
+                <!-- Image Gallery -->
+                @{
+                    int imgCount = imagePaths.Count;
+                    string galleryClass = imgCount == 1 ? "img-count-1" :
+                                          imgCount == 2 ? "img-count-2" :
+                                          imgCount == 3 ? "img-count-3" :
+                                          imgCount == 4 ? "img-count-4" : "img-count-multi";
+                    int maxDisplay = imgCount >= 4 ? 4 : imgCount;
+                }
+                <div class="connect-gallery-wrapper">
+                    <div class="connect-image-gallery @galleryClass">
+                        @for (int i = 0; i < maxDisplay; i++)
+                        {
+                            var resolvedImagePath = imagePaths[i];
+                            if (!resolvedImagePath.StartsWith("/") && !resolvedImagePath.StartsWith("~"))
+                            {
+                                resolvedImagePath = "~/Content/Uploads/" + resolvedImagePath;
+                            }
+                            bool isLastWithMore = (i == maxDisplay - 1) && (imgCount > maxDisplay);
+
+                            <div class="connect-gallery-item" onclick="openConnectLightbox(@i)">
+                                <img src="@Url.Content(resolvedImagePath)" alt="@Model.Title" loading="lazy" onerror="this.onerror=null;this.src=window.DEFAULT_IMAGE_SVG||'/Content/Images/default-image.jpg';" />
+                                @if (isLastWithMore)
+                                {
+                                    <div class="connect-gallery-more">
+                                        +@(imgCount - maxDisplay)
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <!-- Post Body -->
+                <div class="connect-body">
+                    <!-- Category & Date -->
+                    <div class="d-flex align-items-center mb-3 flex-wrap gap-2">
+                        <span class="connect-badge-cat">
+                            <i class="fas fa-tag me-1"></i> @(Model.ConnectCategory != null ? Model.ConnectCategory.CategoryName : "Chưa phân loại")
+                        </span>
+                        <span class="text-secondary small">
+                            <i class="far fa-clock me-1"></i> @(Model.CreatedAt.HasValue ? Model.CreatedAt.Value.ToString("dd/MM/yyyy HH:mm") : "")
+                        </span>
+                    </div>
+
+                    <!-- Title -->
+                    <h1 class="connect-title mb-3">@Model.Title</h1>
+
+                    <!-- Author Info -->
+                    <div class="connect-author-card">
+                        <div class="author-info-left">
+                            @if (Model.User != null)
+                            {
+                                <a href="@Url.Action("Profile", "User", new { id = Model.UserID })" class="text-decoration-none" title="Xem trang cá nhân">
+                                    @if (!string.IsNullOrEmpty(Model.User.Avatar))
+                                    {
+                                        <img src="@Model.User.Avatar" class="author-avatar-img" alt="@Model.User.Username" onerror="this.onerror=null;this.src=window.DEFAULT_AVATAR_SVG||'/Content/Images/default-avatar.png';" />
+                                    }
+                                    else
+                                    {
+                                        <div class="author-avatar-initial">
+                                            @(Model.User.Username?.Substring(0, 1).ToUpper() ?? "U")
+                                        </div>
+                                    }
+                                </a>
+                                <div>
+                                    <div>
+                                        <a href="@Url.Action("Profile", "User", new { id = Model.UserID })" class="author-name-link" title="Xem trang cá nhân">
+                                            @Model.User.Username <i class="fa-solid fa-arrow-up-right-from-square text-info ms-1" style="font-size: 11px;"></i>
+                                        </a>
+                                    </div>
+                                    <small class="text-secondary">Tác giả bài viết · <a href="@Url.Action("Profile", "User", new { id = Model.UserID })" class="text-info text-decoration-none">Xem hồ sơ</a></small>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="author-avatar-initial" style="background:#4b5563;">
+                                    <i class="fas fa-user-circle"></i>
+                                </div>
+                                <div>
+                                    <div class="fw-bold text-white">Ẩn danh</div>
+                                    <small class="text-secondary">Tác giả bài viết</small>
+                                </div>
+                            }
+                        </div>
+
+                        @if (Model.UserID != null && (Session["UserID"] == null || Convert.ToInt32(Session["UserID"]) != Model.UserID))
+                        {
+                            <a href="@Url.Action("ChatWithAuthor", "Connect", new { postId = Model.PostID })"
+                               class="btn btn-outline-info rounded-pill px-3 shadow-sm btn-sm btn-chat-author">
+                                <i class="fas fa-comment-dots me-1"></i> Nhắn tin riêng
+                            </a>
+                        }
+                    </div>
+
+                    <!-- Post Description -->
+                    <div class="post-content">
+                        @Html.Raw(Model.Description != null ? Model.Description.Replace("\n", "<br/>") : "")
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar / Reviews Column -->
+        <div class="col-lg-4">
+            <div class="card connect-card connect-sidebar">
+                <div class="card-body p-3 p-md-4">
+                    <h5 class="fw-bold border-bottom pb-3 mb-3 text-white d-flex align-items-center gap-2" style="border-color: #23273b !important;">
+                        <i class="fas fa-comments text-info"></i> Đánh giá cộng đồng
+                    </h5>
+
+                    <!-- Rating Score Box -->
+                    <div class="rating-summary-box">
+                        <h2 class="fw-bold mb-0 me-3 text-warning" id="avgRatingText">@avgRating/5</h2>
+                        <div>
+                            <div class="text-warning mb-1" id="starRatingContainer">
+                                @for (int i = 1; i <= 5; i++)
+                                {
+                                    if (i <= Math.Round(avgRating))
+                                    { <i class="fas fa-star"></i> }
+                                    else
+                                    { <i class="far fa-star"></i> }
+                                }
+                            </div>
+                            <small class="text-secondary" id="reviewCountSummary">Dựa trên <span id="reviewCountNum" class="text-white fw-bold">@reviewCount</span> lượt đánh giá</small>
+                        </div>
+                    </div>
+
+                    <!-- Review Form / Alerts -->
+                    @if (ViewBag.HasReviewed == true)
+                    {
+                        <div class="alert alert-success d-flex align-items-center rounded-3 mb-3 py-2 px-3" style="background: rgba(25,135,84,0.15); border: 1px solid rgba(25,135,84,0.3); color: #75b798;">
+                            <i class="fas fa-check-circle me-2 fs-5"></i>
+                            <div class="small">
+                                <strong class="text-white">Bạn đã đánh giá bài viết này!</strong><br />
+                                Mỗi thành viên chỉ đánh giá 1 lần để đảm bảo tính khách quan.
+                            </div>
+                        </div>
+                    }
+                    else if (Session["UserID"] != null)
+                    {
+                        <div id="reviewFormContainer">
+                            <form id="addReviewForm" data-ajax="true" onsubmit="submitConnectReview(event)" class="mb-4">
+                                <input type="hidden" id="connectPostId" value="@Model.PostID" />
+
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold small text-secondary">Bạn chấm mấy điểm?</label>
+                                    <select id="connectRatingSelect" class="form-select form-select-sm custom-dark-input" required>
+                                        <option value="5">⭐⭐⭐⭐⭐ Tuyệt vời (5/5)</option>
+                                        <option value="4">⭐⭐⭐⭐ Khá tốt (4/5)</option>
+                                        <option value="3">⭐⭐⭐ Bình thường (3/5)</option>
+                                        <option value="2">⭐⭐ Tệ (2/5)</option>
+                                        <option value="1">⭐ Rất tệ (1/5)</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold small text-secondary">Chia sẻ trải nghiệm của bạn</label>
+                                    <textarea id="connectCommentInput" class="form-control custom-dark-input" rows="3" placeholder="Đồ ăn ngon không? View thế nào?..." required></textarea>
+                                </div>
+                                <button type="submit" id="btnSubmitReview" class="btn btn-info w-100 rounded-pill fw-bold text-dark py-2">
+                                    <i class="fas fa-paper-plane me-1"></i> Gửi đánh giá
+                                </button>
+                            </form>
+                        </div>
+                        <div id="alreadyReviewedAlert" class="alert alert-success align-items-center rounded-3 mb-4 py-2 px-3" style="display:none; background: rgba(25,135,84,0.15); border: 1px solid rgba(25,135,84,0.3); color: #75b798;">
+                            <i class="fas fa-check-circle me-2 fs-5"></i>
+                            <div class="small">
+                                <strong class="text-white">Bạn đã đánh giá bài viết này!</strong><br />
+                                Cảm ơn bạn đã đóng góp cho cộng đồng sinh viên TDMU.
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="alert alert-warning text-center small rounded-3 mb-4" style="background: rgba(255,193,7,0.12); border: 1px solid rgba(255,193,7,0.25); color: #ffda6a;">
+                            Vui lòng <a href="@Url.Action("Login", "User", new { returnUrl = Request.RawUrl })" class="fw-bold text-info text-decoration-none">Đăng nhập</a> để để lại đánh giá.
+                        </div>
+                    }
+
+                    <!-- Reviews List -->
+                    <div class="reviews-list-scroll" id="reviewsListContainer">
+                        @if (reviews != null && reviews.Any())
+                        {
+                            foreach (var review in reviews)
+                            {
+                                <div class="review-item">
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <span class="review-user-badge">
+                                            <i class="fas fa-user-circle me-1"></i> @(review.User?.Username ?? "Ẩn danh")
+                                        </span>
+                                        <span class="text-warning small">
+                                            @for (int i = 0; i < (review.RatingStar ?? 5); i++)
+                                            {
+                                                <i class="fas fa-star"></i>
+                                            }
+                                        </span>
+                                    </div>
+                                    <p class="mb-1 small text-light" style="word-break: break-word;">@review.Comment</p>
+                                    <small class="text-secondary" style="font-size: 0.75rem;"><i class="far fa-clock me-1"></i> @(review.CreatedAt.HasValue ? review.CreatedAt.Value.ToString("dd/MM/yyyy HH:mm") : "")</small>
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <p id="noReviewsPlaceholder" class="text-secondary text-center small my-4">Chưa có đánh giá nào. Hãy là người đầu tiên trải nghiệm!</p>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // All image URLs for Connect Lightbox
+        var allConnectImages = [
+            @for (int i = 0; i < imagePaths.Count; i++)
+            {
+                var p = imagePaths[i];
+                if (!p.StartsWith("/") && !p.StartsWith("~")) { p = "~/Content/Uploads/" + p; }
+                <text>'@Url.Content(p)'@(i < imagePaths.Count - 1 ? "," : "")</text>
+            }
+        ];
+
+        // Lightbox Controller
+        var _cCurIdx = 0;
+        var _cLbEl = null;
+        var _cLbImg = null;
+        var _cLbCounter = null;
+
+        function _ensureConnectLightbox() {
+            if (_cLbEl) return;
+
+            _cLbEl = document.createElement('div');
+            _cLbEl.id = 'connectLightboxModal';
+            _cLbEl.style.cssText = 'display:none;position:fixed;inset:0;background:rgba(0,0,0,0.92);backdrop-filter:blur(6px);z-index:99999;align-items:center;justify-content:center;touch-action:none;';
+
+            // Close button
+            var closeBtn = document.createElement('button');
+            closeBtn.innerHTML = '&times;';
+            closeBtn.style.cssText = 'position:absolute;top:12px;right:14px;background:rgba(255,255,255,0.18);border:none;color:#fff;font-size:26px;width:42px;height:42px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:10;';
+            closeBtn.onclick = closeConnectLightbox;
+            _cLbEl.appendChild(closeBtn);
+
+            // Prev button
+            var prevBtn = document.createElement('button');
+            prevBtn.innerHTML = '<i class="fas fa-chevron-left"></i>';
+            prevBtn.style.cssText = 'position:absolute;top:50%;left:10px;transform:translateY(-50%);background:rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.15);color:#fff;font-size:18px;width:42px;height:42px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:10;';
+            prevBtn.onclick = function(e) { e.stopPropagation(); navConnectLightbox(-1); };
+            _cLbEl.appendChild(prevBtn);
+
+            // Next button
+            var nextBtn = document.createElement('button');
+            nextBtn.innerHTML = '<i class="fas fa-chevron-right"></i>';
+            nextBtn.style.cssText = 'position:absolute;top:50%;right:10px;transform:translateY(-50%);background:rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.15);color:#fff;font-size:18px;width:42px;height:42px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:10;';
+            nextBtn.onclick = function(e) { e.stopPropagation(); navConnectLightbox(1); };
+            _cLbEl.appendChild(nextBtn);
+
+            // Image
+            _cLbImg = document.createElement('img');
+            _cLbImg.style.cssText = 'max-width:92vw;max-height:86vh;object-fit:contain;border-radius:8px;box-shadow:0 10px 40px rgba(0,0,0,0.8);transition:opacity 0.2s ease;';
+            _cLbEl.appendChild(_cLbImg);
+
+            // Counter
+            _cLbCounter = document.createElement('div');
+            _cLbCounter.style.cssText = 'position:absolute;bottom:16px;left:50%;transform:translateX(-50%);color:rgba(255,255,255,0.7);font-size:13px;font-weight:600;';
+            _cLbEl.appendChild(_cLbCounter);
+
+            // Touch swipe for mobile
+            var touchStartX = 0;
+            var touchEndX = 0;
+            _cLbEl.addEventListener('touchstart', function(e) {
+                touchStartX = e.changedTouches[0].screenX;
+            }, { passive: true });
+            _cLbEl.addEventListener('touchend', function(e) {
+                touchEndX = e.changedTouches[0].screenX;
+                var diff = touchEndX - touchStartX;
+                if (diff < -45) navConnectLightbox(1);
+                else if (diff > 45) navConnectLightbox(-1);
+            }, { passive: true });
+
+            _cLbEl.onclick = function(e) {
+                if (e.target === _cLbEl) closeConnectLightbox();
+            };
+
+            document.body.appendChild(_cLbEl);
+        }
+
+        function openConnectLightbox(idx) {
+            if (!allConnectImages.length) return;
+            _ensureConnectLightbox();
+            _cCurIdx = idx >= 0 && idx < allConnectImages.length ? idx : 0;
+            _updateConnectLightboxView();
+            _cLbEl.style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeConnectLightbox() {
+            if (!_cLbEl) return;
+            _cLbEl.style.display = 'none';
+            document.body.style.overflow = '';
+        }
+
+        function navConnectLightbox(dir) {
+            _cCurIdx = (_cCurIdx + dir + allConnectImages.length) % allConnectImages.length;
+            _updateConnectLightboxView();
+        }
+
+        function _updateConnectLightboxView() {
+            if (!_cLbImg) return;
+            _cLbImg.style.opacity = '0.3';
+            _cLbImg.src = allConnectImages[_cCurIdx];
+            _cLbImg.onload = function() { _cLbImg.style.opacity = '1'; };
+            if (_cLbCounter) {
+                _cLbCounter.textContent = (_cCurIdx + 1) + ' / ' + allConnectImages.length;
+            }
+        }
+
+        // Keyboard handler
+        document.addEventListener('keydown', function(e) {
+            if (!_cLbEl || _cLbEl.style.display === 'none') return;
+            if (e.key === 'Escape') closeConnectLightbox();
+            else if (e.key === 'ArrowLeft') navConnectLightbox(-1);
+            else if (e.key === 'ArrowRight') navConnectLightbox(1);
+        });
+
+        // Mobile keyboard focus helper
+        $(document).ready(function() {
+            $('#connectCommentInput').on('focus', function() {
+                setTimeout(function() {
+                    var el = document.getElementById('connectCommentInput');
+                    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }, 300);
+            });
+        });
+
+        // AJAX Review Submission
+        function submitConnectReview(e) {
+            e.preventDefault();
+            var postId = $('#connectPostId').val();
+            var rating = $('#connectRatingSelect').val();
+            var comment = $('#connectCommentInput').val().trim();
+
+            if (!comment) return;
+
+            $('#btnSubmitReview').prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Đang gửi...');
+
+            $.post('@Url.Action("AddReviewAjax", "Connect")', { postId: postId, rating: rating, comment: comment }, function(res) {
+                $('#btnSubmitReview').prop('disabled', false).html('<i class="fas fa-paper-plane me-1"></i> Gửi đánh giá');
+                if (res.success) {
+                    $('#noReviewsPlaceholder').remove();
+
+                    var starsHtml = '';
+                    for (var i = 0; i < res.review.rating; i++) {
+                        starsHtml += '<i class="fas fa-star"></i> ';
+                    }
+
+                    var newReviewHtml = `
+                        <div class="review-item" style="animation: fadeIn 0.4s ease;">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="review-user-badge">
+                                    <i class="fas fa-user-circle me-1"></i> ${escapeHtml(res.review.username)}
+                                </span>
+                                <span class="text-warning small">
+                                    ${starsHtml}
+                                </span>
+                            </div>
+                            <p class="mb-1 small text-light" style="word-break: break-word;">${escapeHtml(res.review.comment)}</p>
+                            <small class="text-secondary" style="font-size: 0.75rem;"><i class="far fa-clock me-1"></i> ${res.review.createdAt}</small>
+                        </div>
+                    `;
+
+                    $('#reviewsListContainer').prepend(newReviewHtml);
+
+                    // Update summary numbers
+                    $('#avgRatingText').text(res.avgRating + '/5');
+                    $('#reviewCountNum').text(res.reviewCount);
+
+                    var avgStarsHtml = '';
+                    for (var s = 1; s <= 5; s++) {
+                        if (s <= Math.round(res.avgRating)) {
+                            avgStarsHtml += '<i class="fas fa-star"></i> ';
+                        } else {
+                            avgStarsHtml += '<i class="far fa-star"></i> ';
+                        }
+                    }
+                    $('#starRatingContainer').html(avgStarsHtml);
+
+                    // Hide form and show alert
+                    $('#reviewFormContainer').slideUp(300);
+                    $('#alreadyReviewedAlert').slideDown(300).css('display', 'flex');
+                } else {
+                    Swal.fire({
+                        title: 'Thông báo',
+                        text: res.message || 'Không thể gửi đánh giá.',
+                        icon: 'warning',
+                        background: '#111424',
+                        color: '#fff'
+                    });
+                }
+            }).fail(function() {
+                $('#btnSubmitReview').prop('disabled', false).html('<i class="fas fa-paper-plane me-1"></i> Gửi đánh giá');
+                Swal.fire({
+                    title: 'Lỗi',
+                    text: 'Không thể kết nối máy chủ.',
+                    icon: 'error',
+                    background: '#111424',
+                    color: '#fff'
+                });
+            });
+        }
+
+        function escapeHtml(text) {
+            return $('<div>').text(text).html();
+        }
+
+        function confirmDelete(btn) {
+            Swal.fire({
+                title: 'Xóa bài viết?',
+                text: 'Bạn có thực sự muốn xóa bài review này không?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc3545',
+                confirmButtonText: 'Xóa',
+                cancelButtonText: 'Hủy',
+                background: '#111424',
+                color: '#fff'
+            }).then(result => {
+                if (result.isConfirmed) {
+                    $(btn).closest('form').submit();
+                }
+            });
+        }
+    </script>
+}

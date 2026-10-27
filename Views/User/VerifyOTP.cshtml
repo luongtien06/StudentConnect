@@ -1,0 +1,285 @@
+﻿@{
+    ViewBag.Title = "Xác nhận OTP";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<style>
+    .otp-wrap {
+        min-height: 80vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem 1rem;
+    }
+
+    .otp-card {
+        width: 100%;
+        max-width: 420px;
+        background: rgba(255,255,255,0.03);
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 20px;
+        padding: 2.5rem;
+        position: relative;
+        overflow: hidden;
+    }
+
+        .otp-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(123,97,255,0.6), rgba(0,200,255,0.4), transparent);
+        }
+
+    .otp-icon-wrap {
+        width: 56px;
+        height: 56px;
+        border-radius: 16px;
+        margin: 0 auto 1.5rem;
+        background: rgba(123,97,255,0.1);
+        border: 1px solid rgba(123,97,255,0.25);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 22px;
+    }
+
+    .otp-title {
+        font-family: 'Space Grotesk', sans-serif;
+        font-size: 1.4rem;
+        font-weight: 600;
+        color: #fff;
+        text-align: center;
+        margin-bottom: 10px;
+    }
+
+    .otp-sub {
+        font-size: 13px;
+        color: rgba(255,255,255,0.35);
+        text-align: center;
+        margin-bottom: 2rem;
+        line-height: 1.65;
+        font-weight: 300;
+    }
+
+        .otp-sub b {
+            color: rgba(0,200,255,0.8);
+            font-weight: 500;
+        }
+
+    /* 6 separate boxes */
+    .otp-boxes {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        margin-bottom: 1.75rem;
+    }
+
+    .otp-box {
+        width: 48px;
+        height: 56px;
+        border-radius: 12px;
+        text-align: center;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 22px;
+        font-weight: 600;
+        color: #fff;
+        background: rgba(255,255,255,0.04);
+        border: 1px solid rgba(255,255,255,0.1);
+        transition: all 0.2s;
+        outline: none;
+        caret-color: #7b61ff;
+    }
+
+        .otp-box:focus {
+            border-color: rgba(123,97,255,0.55);
+            background: rgba(123,97,255,0.06);
+            box-shadow: 0 0 0 3px rgba(123,97,255,0.1);
+        }
+
+        .otp-box.filled {
+            border-color: rgba(0,200,255,0.35);
+            background: rgba(0,200,255,0.05);
+            color: #00c8ff;
+        }
+
+    /* hidden real input for form submit */
+    .otp-hidden {
+        display: none;
+    }
+
+    .otp-btn {
+        width: 100%;
+        padding: 12px;
+        border-radius: 100px;
+        border: none;
+        background: linear-gradient(135deg, rgba(123,97,255,0.85), rgba(0,200,255,0.75));
+        color: #fff;
+        font-size: 13px;
+        font-weight: 600;
+        font-family: 'Space Grotesk', sans-serif;
+        cursor: pointer;
+        transition: opacity 0.2s, transform 0.15s;
+        letter-spacing: 0.02em;
+    }
+
+        .otp-btn:hover {
+            opacity: 0.88;
+            transform: translateY(-1px);
+        }
+
+        .otp-btn:active {
+            transform: scale(0.98);
+        }
+
+        .otp-btn:disabled {
+            opacity: 0.35;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+    .otp-alert-err {
+        border-radius: 10px;
+        padding: 11px 14px;
+        font-size: 13px;
+        margin-bottom: 1.25rem;
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        background: rgba(255,60,60,0.08);
+        border: 1px solid rgba(255,60,60,0.2);
+        color: rgba(255,120,120,0.9);
+    }
+
+    .otp-timer {
+        text-align: center;
+        margin-top: 1.25rem;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 11px;
+        color: rgba(255,255,255,0.2);
+        letter-spacing: 0.06em;
+    }
+
+        .otp-timer span {
+            color: rgba(123,97,255,0.7);
+        }
+
+    .otp-back {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        margin-top: 1.25rem;
+        font-size: 12px;
+        color: rgba(255,255,255,0.25);
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+
+        .otp-back:hover {
+            color: rgba(0,200,255,0.6);
+        }
+</style>
+
+<div class="otp-wrap">
+    <div class="otp-card">
+
+        <div class="otp-icon-wrap">🛡️</div>
+        <h2 class="otp-title">Xác nhận OTP</h2>
+        <p class="otp-sub">
+            Mã 6 chữ số đã được gửi đến<br>
+            <b>@Session["ResetEmail"]</b>
+        </p>
+
+        @if (ViewBag.ErrorMessage != null)
+        {
+            <div class="otp-alert-err">
+                <i class="bi bi-exclamation-circle"></i>
+                <span>@ViewBag.ErrorMessage</span>
+            </div>
+        }
+
+        @using (Html.BeginForm("VerifyOTP", "User", FormMethod.Post))
+        {
+            @Html.AntiForgeryToken()
+            <input type="text" name="otp" id="otpHidden" class="otp-hidden" maxlength="6" required />
+
+            <div class="otp-boxes">
+                <input class="otp-box" type="text" inputmode="numeric" maxlength="1" />
+                <input class="otp-box" type="text" inputmode="numeric" maxlength="1" />
+                <input class="otp-box" type="text" inputmode="numeric" maxlength="1" />
+                <input class="otp-box" type="text" inputmode="numeric" maxlength="1" />
+                <input class="otp-box" type="text" inputmode="numeric" maxlength="1" />
+                <input class="otp-box" type="text" inputmode="numeric" maxlength="1" />
+            </div>
+
+            <button type="submit" class="otp-btn" id="otpSubmit" disabled>
+                <i class="bi bi-shield-check me-2"></i>Xác nhận mã
+            </button>
+        }
+
+        <div class="otp-timer">
+            Mã hết hạn sau <span id="otpCountdown">05:00</span>
+        </div>
+
+        <a href="@Url.Action("ForgotPassword", "User")" class="otp-back">
+            <i class="bi bi-arrow-left"></i> Gửi lại mã
+        </a>
+    </div>
+</div>
+
+@section scripts {
+    <script>
+(function () {
+    var boxes = document.querySelectorAll('.otp-box');
+    var hidden = document.getElementById('otpHidden');
+    var btn    = document.getElementById('otpSubmit');
+
+    boxes.forEach(function (box, i) {
+        box.addEventListener('input', function () {
+            this.value = this.value.replace(/\D/g, '').slice(0, 1);
+            this.classList.toggle('filled', this.value !== '');
+            if (this.value && i < boxes.length - 1) boxes[i + 1].focus();
+            sync();
+        });
+        box.addEventListener('keydown', function (e) {
+            if (e.key === 'Backspace' && !this.value && i > 0) {
+                boxes[i - 1].value = '';
+                boxes[i - 1].classList.remove('filled');
+                boxes[i - 1].focus();
+                sync();
+            }
+        });
+        box.addEventListener('paste', function (e) {
+            var pasted = (e.clipboardData || window.clipboardData).getData('text').replace(/\D/g, '').slice(0, 6);
+            e.preventDefault();
+            pasted.split('').forEach(function (ch, j) {
+                if (boxes[j]) { boxes[j].value = ch; boxes[j].classList.add('filled'); }
+            });
+            var next = Math.min(pasted.length, boxes.length - 1);
+            boxes[next].focus();
+            sync();
+        });
+    });
+
+    function sync() {
+        var val = Array.from(boxes).map(function (b) { return b.value; }).join('');
+        hidden.value = val;
+        btn.disabled = val.length < 6;
+    }
+
+    // countdown 5 min
+    var secs = 300;
+    var el = document.getElementById('otpCountdown');
+    var t = setInterval(function () {
+        secs--;
+        if (secs <= 0) { clearInterval(t); el.textContent = '00:00'; el.style.color = 'rgba(255,80,80,0.7)'; return; }
+        var m = String(Math.floor(secs / 60)).padStart(2, '0');
+        var s = String(secs % 60).padStart(2, '0');
+        el.textContent = m + ':' + s;
+    }, 1000);
+})();
+    </script>
+}

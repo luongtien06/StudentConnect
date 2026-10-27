@@ -1,0 +1,3030 @@
+﻿@model List<StudentConnect.Models.HomeFeedItemViewModel>
+@using StudentConnect.Models
+@using System.Collections.Generic
+@using System.Linq
+@{
+    ViewBag.Title = "Trang chủ - TDMU";
+    var currentUser = ViewBag.CurrentUser as User;
+    var feedItems = Model ?? new List<HomeFeedItemViewModel>();
+    string currentAvatar = currentUser?.SafeAvatar ?? StudentConnect.Helpers.DefaultImagePlaceholders.Avatar;
+    string currentUsername = currentUser?.DisplayName ?? "Bạn";
+    var initialSuggestions = ViewBag.FriendSuggestions as List<StudentConnect.Models.FriendSuggestionItemViewModel> ?? new List<StudentConnect.Models.FriendSuggestionItemViewModel>();
+}
+@Html.AntiForgeryToken()
+<style>
+    /* ── BASE & HERO BANNER ── */
+    .home-page {
+        font-family: 'Space Grotesk', sans-serif;
+        background: transparent;
+        padding: 0 0 3rem;
+        position: relative;
+        overflow: visible;
+    }
+    .home-content {
+        position: relative;
+        z-index: 2;
+        max-width: 1140px;
+        margin: 0 auto;
+    }
+    .hero-banner {
+        position: relative;
+        text-align: left;
+        border-radius: 20px;
+        overflow: hidden;
+        min-height: 280px;
+        border: 1px solid rgba(255,255,255,0.1);
+        background: rgba(4, 10, 24, 0.45);
+        box-shadow: 0 14px 40px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.06);
+    }
+    .hero-slides { position: relative; min-height: 280px; }
+    .hero-slide {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        grid-template-columns: 1.15fr 0.85fr;
+        gap: 1.2rem;
+        padding: 1.4rem 1.8rem 2.8rem;
+        opacity: 0;
+        visibility: hidden;
+        transform: translateX(24px);
+        transition: opacity 0.28s ease, transform 0.28s ease, visibility 0.28s;
+        pointer-events: none;
+    }
+    .hero-slide.is-active {
+        opacity: 1;
+        visibility: visible;
+        transform: translateX(0);
+        pointer-events: auto;
+        position: relative;
+    }
+    .hero-slide::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        background:
+            radial-gradient(900px 280px at 18% 10%, var(--accent-soft), transparent 60%),
+            radial-gradient(520px 240px at 92% 80%, var(--accent-soft-2), transparent 70%);
+        z-index: 0;
+    }
+    .slide-chat { --accent: #00e070; --accent-2: #00c8ff; --accent-soft: rgba(0,224,112,0.18); --accent-soft-2: rgba(0,200,255,0.10); }
+    .slide-market { --accent: #ffb830; --accent-2: #ff6b3d; --accent-soft: rgba(255,184,48,0.18); --accent-soft-2: rgba(255,107,61,0.10); }
+    .slide-connect { --accent: #a87fff; --accent-2: #00c8ff; --accent-soft: rgba(168,127,255,0.20); --accent-soft-2: rgba(0,200,255,0.10); }
+    .slide-copy, .slide-visual { position: relative; z-index: 1; }
+    .slide-copy {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: flex-start;
+        max-width: 520px;
+    }
+    .mod-tag {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 10px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        padding: 4px 11px;
+        border-radius: 100px;
+        display: inline-block;
+        margin-bottom: 0.75rem;
+        border: 1px solid;
+    }
+    .tag-chat { background: rgba(0,200,80,0.10); color: #00e070; border-color: rgba(0,200,80,0.28); }
+    .tag-market { background: rgba(255,160,0,0.10); color: #ffb830; border-color: rgba(255,160,0,0.28); }
+    .tag-connect { background: rgba(120,80,255,0.12); color: #a87fff; border-color: rgba(120,80,255,0.28); }
+    .slide-kicker { font-size: 0.82rem; color: rgba(255,255,255,0.45); margin-bottom: 0.4rem; }
+    .slide-title {
+        font-size: clamp(1.25rem, 2.4vw, 1.8rem);
+        font-weight: 700; color: #fff; line-height: 1.18;
+        margin-bottom: 0.5rem; letter-spacing: -0.02em;
+    }
+    .slide-title em { font-style: normal; color: var(--accent); }
+    .slide-desc {
+        font-size: 0.86rem; color: rgba(255,255,255,0.55);
+        line-height: 1.5; margin-bottom: 0.9rem; font-weight: 300; max-width: 440px;
+    }
+    .slide-points { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 1rem; list-style: none; padding: 0; }
+    .slide-points li {
+        font-size: 11px; color: rgba(255,255,255,0.72);
+        background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 100px; padding: 4px 10px;
+    }
+    .slide-cta {
+        display: inline-flex; align-items: center; gap: 8px;
+        font-size: 0.82rem; font-weight: 600; padding: 8px 16px;
+        border-radius: 100px; text-decoration: none; color: #04140c;
+        background: linear-gradient(135deg, var(--accent), var(--accent-2));
+        box-shadow: 0 8px 20px rgba(0, 200, 255, 0.2);
+        transition: transform 0.2s ease, filter 0.2s ease;
+    }
+    .slide-cta:hover { color: #04140c; transform: translateY(-2px); filter: brightness(1.08); }
+    .slide-cta:hover .cta-arrow { transform: translateX(3px); }
+    .cta-arrow { display: inline-block; transition: transform 0.2s ease; }
+    .slide-visual { display: flex; align-items: center; justify-content: center; }
+    .visual-frame {
+        width: min(100%, 350px); border-radius: 16px;
+        border: 1px solid rgba(255,255,255,0.12);
+        background: rgba(8, 14, 28, 0.72);
+        backdrop-filter: blur(16px); padding: 12px;
+    }
+    .visual-top {
+        display: flex; align-items: center; gap: 8px;
+        margin-bottom: 10px; padding-bottom: 8px;
+        border-bottom: 1px solid rgba(255,255,255,0.07);
+        font-family: 'JetBrains Mono', monospace; font-size: 10px; color: rgba(255,255,255,0.4);
+    }
+    .dot { width: 7px; height: 7px; border-radius: 50%; }
+    .dot.r { background: #ff5f57; } .dot.y { background: #febc2e; } .dot.g { background: #28c840; }
+    .chat-row { display: flex; margin-bottom: 8px; }
+    .chat-row.me { justify-content: flex-end; }
+    .bubble { max-width: 80%; padding: 8px 11px; border-radius: 12px; font-size: 12px; line-height: 1.4; color: rgba(255,255,255,0.85); }
+    .bubble.them { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08); border-bottom-left-radius: 4px; }
+    .bubble.me { background: linear-gradient(135deg, rgba(0,224,112,0.28), rgba(0,200,255,0.18)); border: 1px solid rgba(0,224,112,0.28); border-bottom-right-radius: 4px; }
+    .chat-meta { font-size: 9.5px; color: rgba(255,255,255,0.28); margin-top: 3px; font-family: 'JetBrains Mono', monospace; }
+    .banner-market-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .item-card { border-radius: 12px; overflow: hidden; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.03); }
+    .item-thumb { height: 54px; display: flex; align-items: center; justify-content: center; font-size: 22px; background: linear-gradient(160deg, rgba(255,184,48,0.18), rgba(255,107,61,0.08)); }
+    .item-body { padding: 6px 8px 8px; }
+    .item-name { font-size: 11px; color: #fff; font-weight: 600; margin-bottom: 2px; }
+    .item-price { font-size: 11px; color: #ffb830; font-family: 'JetBrains Mono', monospace; }
+    .connect-list { display: flex; flex-direction: column; gap: 7px; }
+    .place-row { display: flex; gap: 8px; align-items: center; padding: 7px 9px; border-radius: 10px; background: rgba(255,255,255,0.035); border: 1px solid rgba(255,255,255,0.07); }
+    .place-ico { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; background: rgba(168,127,255,0.16); border: 1px solid rgba(168,127,255,0.25); font-size: 15px; flex-shrink: 0; }
+    .place-name { font-size: 12px; color: #fff; font-weight: 600; }
+    .place-sub { font-size: 10px; color: rgba(255,255,255,0.4); }
+    .place-stars { color: #ffb830; font-size: 10px; margin-left: auto; white-space: nowrap; }
+    .banner-footer {
+        position: absolute; left: 2.2rem; right: 2.2rem; bottom: 14px;
+        z-index: 4; display: flex; align-items: center; gap: 12px;
+    }
+    .banner-btn {
+        width: 34px; height: 34px; border-radius: 50%;
+        border: 1px solid rgba(255,255,255,0.14);
+        background: rgba(8,14,28,0.7); color: #fff;
+        display: flex; align-items: center; justify-content: center;
+        cursor: pointer; flex-shrink: 0; font-size: 18px; line-height: 1;
+    }
+    .banner-btn:hover { background: rgba(0,200,255,0.18); border-color: rgba(0,200,255,0.4); }
+    .hero-dots { display: flex; gap: 8px; align-items: center; }
+    .hero-dot {
+        width: 8px; height: 8px; border-radius: 100px; border: 0; padding: 0;
+        background: rgba(255,255,255,0.22); cursor: pointer;
+        transition: width 0.25s, background 0.25s;
+    }
+    .hero-dot.is-active { width: 26px; background: var(--dot-accent, #00c8ff); }
+    .progress-track { flex: 1; height: 3px; max-width: 180px; background: rgba(255,255,255,0.08); border-radius: 10px; overflow: hidden; }
+    .progress-bar { height: 100%; width: 0; background: linear-gradient(90deg, #00c8ff, #7b61ff); }
+    .hero-banner.is-playing .progress-bar { animation: bannerProgress 3.2s linear; }
+    @@keyframes bannerProgress { from { width: 0; } to { width: 100%; } }
+    .hero-banner.is-paused .progress-bar { animation-play-state: paused; }
+    /* =========================================================================
+       UNIFIED FACEBOOK-STYLE NEWSFEED STYLES
+       ========================================================================= */
+    .home-feed-wrap {
+        max-width: 680px;
+        margin: 2rem auto 0;
+        text-align: left;
+    }
+    /* Filter Pills Bar */
+    .feed-filter-bar {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 1.25rem;
+        overflow-x: auto;
+        padding-bottom: 4px;
+        scrollbar-width: none;
+    }
+    .feed-filter-bar::-webkit-scrollbar { display: none; }
+    .feed-filter-pill {
+        background: rgba(13, 22, 38, 0.7);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        color: rgba(255, 255, 255, 0.7);
+        padding: 7px 16px;
+        border-radius: 20px;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        white-space: nowrap;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .feed-filter-pill:hover {
+        background: rgba(0, 200, 255, 0.15);
+        color: #fff;
+        border-color: rgba(0, 200, 255, 0.3);
+    }
+    .feed-filter-pill.active {
+        background: linear-gradient(135deg, #00c8ff, #7b61ff);
+        color: #000;
+        border-color: transparent;
+        font-weight: 700;
+        box-shadow: 0 4px 15px rgba(0, 200, 255, 0.25);
+    }
+    /* Quick Create Card */
+    .feed-create-card {
+        background: rgba(13, 22, 38, 0.85);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 16px;
+        padding: 16px;
+        margin-bottom: 20px;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+    }
+    .create-input-row {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        margin-bottom: 12px;
+    }
+    .create-user-avatar {
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        object-fit: cover;
+        flex-shrink: 0;
+        border: 2px solid rgba(0, 200, 255, 0.4);
+    }
+    .create-fake-input {
+        flex: 1;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 24px;
+        padding: 10px 18px;
+        font-size: 13.5px;
+        color: rgba(255, 255, 255, 0.6);
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    .create-fake-input:hover {
+        background: rgba(255, 255, 255, 0.08);
+        border-color: #00c8ff;
+        color: #fff;
+    }
+    .create-options-row {
+        display: flex;
+        justify-content: space-between;
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+        padding-top: 10px;
+    }
+    .btn-create-opt {
+        background: none;
+        border: none;
+        color: rgba(255, 255, 255, 0.8);
+        font-size: 13px;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        padding: 6px 12px;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    .btn-create-opt:hover {
+        background: rgba(255, 255, 255, 0.07);
+        color: #fff;
+    }
+    /* Feed Post Cards */
+    /* Feed Post Cards */
+    .feed-post-card {
+        background: rgba(13, 22, 38, 0.85);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 16px;
+        overflow: visible;
+        margin-bottom: 16px;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+        transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+    .feed-post-card:focus-within { z-index: 60; }
+    .feed-post-card:hover {
+        border-color: rgba(0, 200, 255, 0.25);
+        box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+    }
+    /* Card Header */
+    .post-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 16px 8px;
+    }
+    .post-author-group {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .post-author-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 2px solid rgba(255, 255, 255, 0.1);
+        flex-shrink: 0;
+    }
+    .post-author-name {
+        font-size: 14.5px;
+        font-weight: 700;
+        color: #fff;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: wrap;
+        line-height: 1.25;
+    }
+    .post-meta-line {
+        font-size: 11.5px;
+        color: rgba(255, 255, 255, 0.5);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin-top: 2px;
+        line-height: 1.2;
+    }
+    .feed-type-badge {
+        font-size: 11px;
+        font-weight: 700;
+        padding: 2px 8px;
+        border-radius: 100px;
+        display: inline-flex;
+        align-items: center;
+    }
+    .badge-market {
+        background: rgba(255, 82, 82, 0.18);
+        color: #ff5252;
+        border: 1px solid rgba(255, 82, 82, 0.35);
+    }
+    .badge-connect {
+        background: rgba(0, 200, 255, 0.18);
+        color: #00e0ff;
+        border: 1px solid rgba(0, 200, 255, 0.35);
+    }
+    .badge-social {
+        background: rgba(123, 97, 255, 0.18);
+        color: #b39eff;
+        border: 1px solid rgba(123, 97, 255, 0.35);
+    }
+    /* Post Content Text */
+    .post-body-content {
+        padding: 0 16px 10px;
+        font-size: 14.5px;
+        line-height: 1.5;
+        color: rgba(255, 255, 255, 0.9);
+        white-space: pre-line;
+        word-break: break-word;
+        margin: 0;
+    }
+    .post-body-content:empty {
+        display: none !important;
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+    /* Shared Post Preview Box */
+    .shared-post-preview {
+        margin: 4px 16px 12px;
+        padding: 12px 14px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-left: 3px solid #00c8ff;
+        border-radius: 10px;
+        background: rgba(0, 0, 0, 0.25);
+        transition: border-color 0.2s ease;
+    }
+    .shared-post-preview:hover {
+        border-color: rgba(0, 200, 255, 0.35);
+    }
+    .shared-post-author { color: #fff; font-size: 13px; font-weight: 700; text-decoration: none; }
+    .shared-post-author:hover { color: #00c8ff; }
+    .shared-post-content {
+        margin-top: 6px;
+        color: rgba(255, 255, 255, 0.85);
+        font-size: 13.5px;
+        line-height: 1.45;
+        white-space: pre-line;
+        overflow-wrap: anywhere;
+    }
+    .shared-post-content:empty {
+        display: none !important;
+        margin: 0 !important;
+    }
+    .shared-post-media {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+        gap: 6px;
+        margin-top: 8px;
+    }
+    .shared-post-media img, .shared-post-media video {
+        width: 100%;
+        max-height: 220px;
+        object-fit: cover;
+        border-radius: 4px;
+    }
+    /* Market Product Info Box */
+    .market-product-body {
+        padding: 0 16px 10px;
+    }
+    .market-product-title {
+        font-size: 16px;
+        font-weight: 700;
+        color: #fff;
+        margin-bottom: 6px;
+        line-height: 1.3;
+    }
+    .market-tags-row {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: wrap;
+        margin-bottom: 8px;
+    }
+    .market-price-tag {
+        background: linear-gradient(135deg, rgba(255, 82, 82, 0.25), rgba(255, 184, 48, 0.2));
+        border: 1px solid rgba(255, 82, 82, 0.45);
+        color: #ff5252;
+        font-weight: 800;
+        font-size: 14px;
+        padding: 3px 10px;
+        border-radius: 6px;
+    }
+    .market-cat-tag {
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        color: #00c8ff;
+        font-size: 11.5px;
+        padding: 3px 8px;
+        border-radius: 6px;
+    }
+    .market-condition-tag {
+        background: rgba(0, 224, 112, 0.1);
+        border: 1px solid rgba(0, 224, 112, 0.25);
+        color: #00e070;
+        font-size: 11.5px;
+        padding: 3px 8px;
+        border-radius: 6px;
+    }
+    .market-location-text {
+        font-size: 12px;
+        color: rgba(255, 255, 255, 0.55);
+        margin-bottom: 6px;
+    }
+    /* Connect Topic Box */
+    .connect-topic-body {
+        padding: 0 16px 10px;
+    }
+    .connect-topic-title {
+        font-size: 16px;
+        font-weight: 700;
+        color: #fff;
+        margin-bottom: 6px;
+        line-height: 1.3;
+    }
+    .connect-cat-tag {
+        background: rgba(0, 200, 255, 0.12);
+        border: 1px solid rgba(0, 200, 255, 0.3);
+        color: #00c8ff;
+        font-size: 11.5px;
+        padding: 3px 8px;
+        border-radius: 6px;
+        margin-bottom: 6px;
+        display: inline-block;
+    }
+    /* Post Media Grid */
+    .post-media-grid {
+        display: grid;
+        gap: 4px;
+        background: #000;
+        margin-bottom: 8px;
+        border-radius: 4px;
+        overflow: hidden;
+    }
+    .post-media-grid.count-1 { grid-template-columns: 1fr; }
+    .post-media-grid.count-2 { grid-template-columns: 1fr 1fr; height: 260px; }
+    .post-media-grid.count-3 { grid-template-columns: 2fr 1fr; height: 300px; }
+    .post-media-grid.count-4 { grid-template-columns: 1fr 1fr; height: 300px; }
+    .post-media-item {
+        position: relative;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #050a14;
+    }
+    .post-media-grid.count-1 .post-media-item {
+        max-height: 520px;
+    }
+    .post-media-grid.count-1 .post-media-item img {
+        width: 100%;
+        height: auto;
+        max-height: 520px;
+        object-fit: contain;
+    }
+    .post-media-grid.count-1 .post-media-item video {
+        width: 100%;
+        height: auto;
+        max-height: 520px;
+    }
+    .post-media-grid:not(.count-1) .post-media-item img,
+    .post-media-grid:not(.count-1) .post-media-item video {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+        cursor: pointer;
+        transition: transform 0.3s ease;
+    }
+    .post-media-item:hover img {
+        transform: scale(1.02);
+    }
+    /* Single Large Featured Image (Market / Connect) */
+    .feed-featured-img-wrap {
+        width: 100%;
+        max-height: 400px;
+        overflow: hidden;
+        background: #000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 8px;
+    }
+    .feed-featured-img {
+        width: 100%;
+        height: auto;
+        max-height: 400px;
+        object-fit: cover;
+        cursor: pointer;
+        transition: transform 0.3s ease;
+    }
+    .feed-featured-img:hover {
+        transform: scale(1.02);
+    }
+    /* Shared Post Inner Box */
+    .shared-original-post-box {
+        background: rgba(0, 0, 0, 0.25);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 10px;
+        padding: 12px;
+        margin: 4px 16px 12px;
+        transition: border-color 0.2s ease;
+    }
+    .shared-original-post-box:hover {
+        border-color: rgba(0, 200, 255, 0.35);
+    }
+    /* Stats Bar */
+    .post-stats-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 8px 18px;
+        font-size: 12.5px;
+        color: rgba(255, 255, 255, 0.55);
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .top-reactions-icons {
+        display: flex;
+        align-items: center;
+        gap: 2px;
+    }
+    .reaction-emoji-badge { font-size: 15px; }
+    /* Action Buttons Row */
+    .post-actions-row {
+        display: flex;
+        justify-content: space-around;
+        padding: 6px 14px;
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        position: relative;
+        background: rgba(255, 255, 255, 0.015);
+    }
+    .btn-post-action {
+        flex: 1;
+        background: none;
+        border: none;
+        color: rgba(255, 255, 255, 0.65);
+        font-size: 13.5px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 8px 0;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        text-decoration: none;
+    }
+    .btn-post-action:hover {
+        background: rgba(255, 255, 255, 0.07);
+        color: #fff;
+    }
+    .btn-post-action.reacted { color: #00c8ff; }
+    /* Facebook-style Reaction Popover */
+    .reaction-popup-container {
+        position: relative;
+        display: flex;
+        flex: 1;
+        align-items: stretch;
+    }
+    .reaction-popover {
+        position: absolute;
+        bottom: 100%;
+        left: 0;
+        max-width: min(280px, calc(100vw - 28px));
+        box-sizing: border-box;
+        background: #111d30;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+        border-radius: 30px;
+        padding: 6px 12px;
+        display: none;
+        align-items: center;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 8px;
+        z-index: 50;
+    }
+    .reaction-popup-container:hover .reaction-popover,
+    .reaction-popup-container:focus-within .reaction-popover,
+    .reaction-popup-container.is-open .reaction-popover {
+        display: flex;
+        animation: popUpAnim 0.15s ease-out;
+    }
+    @@keyframes popUpAnim {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+    .reaction-picker-toggle {
+        width: 28px;
+        border: 0;
+        border-radius: 0 8px 8px 0;
+        color: var(--c-muted);
+        background: transparent;
+        cursor: pointer;
+    }
+    .reaction-btn-icon {
+        flex: 0 0 36px;
+        width: 36px;
+        height: 36px;
+        background: none;
+        border: none;
+        font-size: 24px;
+        cursor: pointer;
+        transition: transform 0.15s ease;
+        padding: 2px 4px;
+    }
+    .reaction-btn-icon:hover {
+        transform: scale(1.15);
+    }
+    /* Comments Box */
+    .post-comments-box {
+        padding: 14px 18px;
+        background: rgba(8, 14, 28, 0.5);
+    }
+    .comment-item {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 12px;
+    }
+    .comment-thread { flex: 1; min-width: 0; }
+    .comment-replies-list { margin: 8px 0 0 22px; }
+    .comment-reply-form { display: flex; gap: 8px; margin: 8px 0 0 22px; }
+    .comment-reply-link { color: rgba(255,255,255,.45); font-size: 11px; text-decoration: none; cursor: pointer; }
+    .comment-reply-link:hover { color: #00c8ff; }
+    .comment-avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        object-fit: cover;
+        flex-shrink: 0;
+    }
+    .comment-bubble {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 14px;
+        padding: 8px 14px;
+        max-width: 88%;
+    }
+    .comment-author-name {
+        font-size: 12.5px;
+        font-weight: 700;
+        color: #fff;
+        margin-bottom: 2px;
+    }
+    .comment-text {
+        font-size: 13px;
+        color: rgba(255, 255, 255, 0.85);
+        word-break: break-word;
+    }
+    .comment-image { display: block; max-width: min(220px, 100%); max-height: 220px; margin-top: 6px; border-radius: 8px; object-fit: cover; }
+    .comment-meta {
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.4);
+        margin-top: 4px;
+        display: flex;
+        gap: 12px;
+    }
+    .comment-action-link {
+        color: rgba(255, 255, 255, 0.4);
+        text-decoration: none;
+        cursor: pointer;
+    }
+    .comment-action-link:hover { color: #00c8ff; }
+    .comment-input-row {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        margin-top: 10px;
+    }
+    .comment-input-field {
+        flex: 1;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 20px;
+        padding: 8px 16px;
+        font-size: 13px;
+        color: #fff;
+        outline: none;
+        transition: border-color 0.2s ease;
+    }
+    .comment-input-field:focus {
+        border-color: #00c8ff;
+    }
+    .btn-send-comment {
+        background: #00c8ff;
+        border: none;
+        color: #000;
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: transform 0.2s ease;
+    }
+    .btn-send-comment:hover { transform: scale(1.08); background: #fff; }
+    /* Empty State */
+    .feed-empty-state {
+        text-align: center;
+        padding: 3rem 1.5rem;
+        background: rgba(13, 22, 38, 0.6);
+        border: 1px dashed rgba(255, 255, 255, 0.15);
+        border-radius: 16px;
+        color: rgba(255, 255, 255, 0.5);
+    }
+    /* ── RESPONSIVE ── */
+    @@media (max-width: 900px) {
+        .hero-slide { grid-template-columns: 1fr; padding: 1.5rem 1.3rem 3.2rem; }
+        .hero-slides, .hero-banner { min-height: auto; }
+        .slide-visual { display: none; }
+        .banner-footer { left: 1.3rem; right: 1.3rem; }
+    }
+    @@media (max-width: 576px) {
+        .feed-create-card { padding: 12px; border-radius: 12px; }
+        .create-options-row { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+        .btn-create-opt { padding: 6px 8px; font-size: 11.5px; justify-content: center; }
+        .feed-post-card { border-radius: 12px; margin-bottom: 16px; }
+        .post-header { padding: 12px 14px; }
+        .post-body-content, .market-product-body, .connect-topic-body { padding: 0 14px 12px; }
+        .post-actions-row { padding: 4px 8px; }
+        .btn-post-action { font-size: 12px; padding: 6px 2px; gap: 4px; }
+        .post-comments-box { padding: 12px 14px; }
+        .comment-bubble { max-width: 92%; }
+    }
+    /* ── 2-COLUMN LAYOUT FOR FEED & SOCIAL SIDEBAR ── */
+    .home-feed-container {
+        max-width: 1140px;
+        margin: 2rem auto 0;
+        text-align: left;
+    }
+    /* ── 3. KHU VỰC TÌM KIẾM BẠN BÈ & GỢI Ý BẠN BÈ (FACEBOOK-STYLE HORIZONTAL HUB) ── */
+    .home-friends-hub {
+        background: rgba(13, 22, 38, 0.75);
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 20px;
+        padding: 22px 24px;
+        margin: 1.5rem auto 1.5rem;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+        position: relative;
+        transition: border-color 0.25s ease, box-shadow 0.25s ease;
+    }
+    .home-friends-hub:hover {
+        border-color: rgba(0, 200, 255, 0.2);
+        box-shadow: 0 12px 35px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    }
+    /* Search Bar Wrap */
+    .home-friend-search-wrap {
+        position: relative;
+        margin-bottom: 20px;
+    }
+    .friend-search-input-box {
+        position: relative;
+        display: flex;
+        align-items: center;
+        background: rgba(4, 10, 24, 0.65);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 28px;
+        padding: 6px 16px;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+    .friend-search-input-box:focus-within {
+        border-color: #00c8ff;
+        box-shadow: 0 0 0 3px rgba(0, 200, 255, 0.18);
+    }
+    .friend-search-input-box .search-icon {
+        color: #64748b;
+        font-size: 14px;
+        margin-right: 10px;
+        flex-shrink: 0;
+    }
+    .friend-search-input {
+        background: transparent !important;
+        border: none !important;
+        color: #fff !important;
+        font-size: 13.5px;
+        padding: 6px 0 !important;
+        box-shadow: none !important;
+        flex: 1;
+        min-width: 0;
+    }
+    .friend-search-input::placeholder {
+        color: #64748b;
+        font-size: 13px;
+    }
+    .btn-clear-search {
+        background: transparent;
+        border: none;
+        color: #94a3b8;
+        font-size: 13.5px;
+        padding: 0 6px;
+        cursor: pointer;
+        transition: color 0.15s ease;
+    }
+    .btn-clear-search:hover { color: #fff; }
+    .search-spinner {
+        color: #00c8ff;
+        font-size: 13px;
+        margin-left: 6px;
+    }
+    /* Live Search Results Dropdown */
+    .friend-search-results-dropdown {
+        position: absolute;
+        top: calc(100% + 8px);
+        left: 0;
+        right: 0;
+        background: #0c1527;
+        border: 1px solid rgba(0, 200, 255, 0.25);
+        border-radius: 16px;
+        box-shadow: 0 16px 40px rgba(0, 0, 0, 0.65);
+        z-index: 1050;
+        padding: 14px;
+        max-height: 400px;
+        overflow-y: auto;
+    }
+    .btn-close-results {
+        background: transparent;
+        border: none;
+        color: #64748b;
+        font-size: 13px;
+        cursor: pointer;
+        padding: 2px 6px;
+        border-radius: 4px;
+        transition: color 0.15s ease;
+    }
+    .btn-close-results:hover { color: #fff; }
+    .search-results-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+    .search-user-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 8px 10px;
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid rgba(255, 255, 255, 0.04);
+        transition: background 0.2s ease, border-color 0.2s ease;
+    }
+    .search-user-item:hover {
+        background: rgba(255, 255, 255, 0.05);
+        border-color: rgba(0, 200, 255, 0.2);
+    }
+    .search-avatar-wrap {
+        position: relative;
+        flex-shrink: 0;
+    }
+    .search-avatar {
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 2px solid rgba(0, 200, 255, 0.35);
+    }
+    .search-user-info {
+        flex: 1;
+        min-width: 0;
+    }
+    .search-user-name {
+        font-size: 13.5px;
+        font-weight: 600;
+        color: #fff;
+        text-decoration: none;
+        line-height: 1.2;
+    }
+    .search-user-name:hover { color: #00c8ff; }
+    .search-user-meta {
+        font-size: 11.5px;
+        color: #94a3b8;
+        margin-top: 3px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: wrap;
+    }
+    .meta-tag {
+        background: rgba(255, 255, 255, 0.06);
+        padding: 1px 7px;
+        border-radius: 4px;
+        font-size: 10.5px;
+        color: #cbd5e1;
+    }
+    .meta-tag.mutual {
+        background: rgba(0, 200, 255, 0.12);
+        color: #00c8ff;
+    }
+    .search-actions, .sug-actions {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-shrink: 0;
+    }
+    /* Suggestions Header & Controls */
+    .home-suggestions-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 14px;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+    .suggestions-badge-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        background: rgba(0, 200, 255, 0.1);
+        border: 1px solid rgba(0, 200, 255, 0.25);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 15px;
+        flex-shrink: 0;
+    }
+    .suggestions-title {
+        font-size: 16px;
+        font-weight: 700;
+        color: #fff;
+        margin: 0;
+        line-height: 1.2;
+    }
+    .suggestions-subtitle {
+        font-size: 11.5px;
+        color: #94a3b8;
+        margin: 2px 0 0;
+        line-height: 1.2;
+    }
+    .suggestions-controls {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .btn-scroll-arrow {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        color: #00c8ff;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        padding: 0;
+        font-size: 12px;
+    }
+    .btn-scroll-arrow:hover:not(:disabled) {
+        background: rgba(0, 200, 255, 0.18);
+        border-color: #00c8ff;
+        color: #fff;
+        transform: scale(1.05);
+    }
+    .btn-scroll-arrow:disabled {
+        opacity: 0.35;
+        cursor: not-allowed;
+    }
+    .btn-refresh-suggestions {
+        background: rgba(0, 200, 255, 0.1);
+        border: 1px solid rgba(0, 200, 255, 0.25);
+        color: #00c8ff;
+        border-radius: 20px;
+        padding: 5px 12px;
+        font-size: 12px;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    .btn-refresh-suggestions:hover {
+        background: rgba(0, 200, 255, 0.2);
+        border-color: #00c8ff;
+        color: #fff;
+    }
+    /* Suggestions Horizontal Viewport & Track */
+    .suggestions-horizontal-viewport {
+        position: relative;
+        width: 100%;
+        overflow: hidden;
+    }
+    .suggestions-horizontal-track {
+        display: flex;
+        gap: 14px;
+        overflow-x: auto;
+        scroll-snap-type: x mandatory;
+        scroll-behavior: smooth;
+        -webkit-overflow-scrolling: touch;
+        padding: 4px 2px 14px;
+    }
+    .suggestions-horizontal-track::-webkit-scrollbar {
+        height: 6px;
+    }
+    .suggestions-horizontal-track::-webkit-scrollbar-track {
+        background: rgba(255, 255, 255, 0.04);
+        border-radius: 4px;
+    }
+    .suggestions-horizontal-track::-webkit-scrollbar-thumb {
+        background: rgba(0, 200, 255, 0.25);
+        border-radius: 4px;
+    }
+    .suggestions-horizontal-track::-webkit-scrollbar-thumb:hover {
+        background: rgba(0, 200, 255, 0.5);
+    }
+    /* Facebook-style Suggestion Card */
+    .sug-card {
+        position: relative;
+        flex: 0 0 calc(20% - 12px);
+        min-width: 175px;
+        max-width: 205px;
+        scroll-snap-align: start;
+        background: rgba(18, 29, 51, 0.75);
+        border: 1px solid rgba(255, 255, 255, 0.07);
+        border-radius: 16px;
+        padding: 16px 12px 12px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .sug-card:hover {
+        background: rgba(22, 36, 64, 0.9);
+        border-color: rgba(0, 200, 255, 0.35);
+        transform: translateY(-4px);
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.35);
+    }
+    .sug-card-dismiss {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.08);
+        border: none;
+        color: #94a3b8;
+        font-size: 11px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.15s ease;
+        z-index: 2;
+    }
+    .sug-card-dismiss:hover {
+        background: rgba(239, 68, 68, 0.25);
+        color: #fca5a5;
+        transform: scale(1.1);
+    }
+    .sug-avatar-link {
+        display: block;
+        position: relative;
+        margin-bottom: 10px;
+    }
+    .sug-avatar {
+        width: 68px;
+        height: 68px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 2.5px solid rgba(0, 200, 255, 0.35);
+        transition: transform 0.2s ease, border-color 0.2s ease;
+    }
+    .sug-card:hover .sug-avatar {
+        transform: scale(1.05);
+        border-color: #00c8ff;
+    }
+    .sug-name {
+        font-size: 13.5px;
+        font-weight: 600;
+        color: #fff;
+        text-decoration: none;
+        line-height: 1.25;
+        width: 100%;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        margin-bottom: 4px;
+    }
+    .sug-name:hover { color: #00c8ff; }
+    .sug-reason {
+        font-size: 11.5px;
+        color: #94a3b8;
+        line-height: 1.2;
+        width: 100%;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        margin-bottom: 12px;
+        height: 16px;
+    }
+    /* Action Buttons */
+    .btn-sug-action {
+        flex: 1;
+        font-size: 11.5px;
+        font-weight: 600;
+        padding: 5px 8px;
+        border-radius: 20px;
+        border: none;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+        white-space: nowrap;
+        transition: all 0.2s ease;
+    }
+    .btn-sug-action.btn-add {
+        background: linear-gradient(135deg, #00c8ff, #0077ff);
+        color: #fff;
+        box-shadow: 0 2px 8px rgba(0, 200, 255, 0.25);
+    }
+    .btn-sug-action.btn-add:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(0, 200, 255, 0.35);
+    }
+    .btn-sug-action.btn-pending {
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        color: #94a3b8;
+    }
+    .btn-sug-action.btn-pending:hover {
+        background: rgba(239, 68, 68, 0.15);
+        border-color: rgba(239, 68, 68, 0.3);
+        color: #fca5a5;
+    }
+    .btn-sug-action.btn-accept {
+        background: linear-gradient(135deg, #10b981, #059669);
+        color: #fff;
+    }
+    .btn-sug-action.btn-friends {
+        background: rgba(16, 185, 129, 0.12);
+        border: 1px solid rgba(16, 185, 129, 0.3);
+        color: #34d399;
+    }
+    .btn-sug-action.btn-friends:hover {
+        background: rgba(239, 68, 68, 0.15);
+        border-color: rgba(239, 68, 68, 0.3);
+        color: #fca5a5;
+    }
+    .btn-sug-follow {
+        width: 29px;
+        height: 29px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: #94a3b8;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        padding: 0;
+        font-size: 11.5px;
+        flex-shrink: 0;
+    }
+    .btn-sug-follow:hover {
+        background: rgba(0, 200, 255, 0.15);
+        border-color: #00c8ff;
+        color: #00c8ff;
+    }
+    .btn-sug-follow.following {
+        color: #f59e0b;
+        background: rgba(245, 158, 11, 0.1);
+        border-color: rgba(245, 158, 11, 0.25);
+    }
+    /* ── RESPONSIVE QUERIES ── */
+    @@media (max-width: 991.98px) {
+        .sug-card {
+            flex: 0 0 calc(33.333% - 10px);
+            min-width: 165px;
+            max-width: 195px;
+        }
+    }
+    @@media (max-width: 767.98px) {
+        .home-friends-hub {
+            padding: 16px 14px;
+            border-radius: 16px;
+            margin: 1.25rem 0;
+        }
+        /* Mobile peek effect: 45% width lets 3rd card peek out noticeably! */
+        .sug-card {
+            flex: 0 0 calc(45% - 8px);
+            min-width: 145px;
+            max-width: 165px;
+            padding: 14px 10px 10px;
+        }
+        .sug-avatar {
+            width: 60px;
+            height: 60px;
+        }
+        .btn-scroll-arrow {
+            display: none !important;
+        }
+    }
+</style>
+<div class="home-page">
+    <div class="home-content">
+        <!-- ========1. HERO BANNER====== -->
+        <div class="hero-banner is-playing" id="homeBanner" aria-roledescription="carousel" aria-label="Ba chức năng chính">
+            <div class="hero-slides">
+                <article class="hero-slide slide-chat is-active" data-accent="#00e070" aria-hidden="false">
+                    <div class="slide-copy">
+                        <span class="mod-tag tag-chat">TRÒ CHUYỆN</span>
+                        <p class="slide-kicker">Không khoảng cách. Không áp lực</p>
+                        <h2 class="slide-title">Trò chuyện <em>công khai / ẩn danh</em> an toàn</h2>
+                        <p class="slide-desc">Ghép ngẫu nhiên, lập nhóm, trò chuyện riêng.</p>
+                        <ul class="slide-points">
+                            <li>Phòng</li>
+                            <li>Tạo nhóm / ghép đôi</li>
+                            <li>Sảnh công cộng</li>
+                        </ul>
+                        <a href="@Url.Action("Index", "Chat")" class="slide-cta">Bắt đầu<span class="cta-arrow">→</span></a>
+                    </div>
+                    <div class="slide-visual" aria-hidden="true">
+                        <div class="visual-frame">
+                            <div class="visual-top"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span> room · anonymous</div>
+                            <div class="chat-row"><div><div class="bubble them">Có ai đi chơi đêm nay không?</div><div class="chat-meta">Ẩn danh · 21:04</div></div></div>
+                            <div class="chat-row me"><div><div class="bubble me">Tạo nhóm chat nào!</div></div></div>
+                            <div class="chat-row"><div><div class="bubble them">Ok, gửi mail add vào✨</div></div></div>
+                        </div>
+                    </div>
+                </article>
+                <article class="hero-slide slide-market" data-accent="#ffb830" aria-hidden="true">
+                    <div class="slide-copy">
+                        <span class="mod-tag tag-market">CHỢ SINH VIÊN</span>
+                        <p class="slide-kicker">Đồ cũ tốt. Giá sinh viên. Gặp mặt ngay trong trường.</p>
+                        <h2 class="slide-title">Chợ sinh viên — <em>mua bán</em> gần bạn nhất</h2>
+                        <p class="slide-desc">Đăng tin sách, đồ điện tử, vật dụng ký túc, trao đổi trực tiếp người bán và hẹn giao trong khuôn viên trường.</p>
+                        <ul class="slide-points">
+                            <li>Đăng tin nhanh</li>
+                            <li>Chọn đồ tốt</li>
+                            <li>Thương lượng giá cả</li>
+                        </ul>
+                        <a href="@Url.Action("Index", "Market")" class="slide-cta">Vào chợ<span class="cta-arrow">→</span></a>
+                    </div>
+                    <div class="slide-visual" aria-hidden="true">
+                        <div class="visual-frame">
+                            <div class="visual-top"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span> marketplace · live</div>
+                            <div class="banner-market-grid">
+                                <div class="item-card"><div class="item-thumb">📚</div><div class="item-body"><div class="item-name">Giáo trình CSDL</div><div class="item-price">45.000đ</div></div></div>
+                                <div class="item-card"><div class="item-thumb">🎧</div><div class="item-body"><div class="item-name">Tai nghe cũ</div><div class="item-price">120.000đ</div></div></div>
+                                <div class="item-card"><div class="item-thumb">🚲</div><div class="item-body"><div class="item-name">Xe đạp campus</div><div class="item-price">1.2tr</div></div></div>
+                                <div class="item-card"><div class="item-thumb">💻</div><div class="item-body"><div class="item-name">Laptop học tập</div><div class="item-price">4.5tr</div></div></div>
+                            </div>
+                        </div>
+                    </div>
+                </article>
+                <article class="hero-slide slide-connect" data-accent="#a87fff" aria-hidden="true">
+                    <div class="slide-copy">
+                        <span class="mod-tag tag-connect">KẾT NỐI</span>
+                        <p class="slide-kicker">Quán ăn, cafe, việc làm được review bởi chính sinh viên.</p>
+                        <h2 class="slide-title">Kết nối, <em>khám phá</em> đời sống quanh trường</h2>
+                        <p class="slide-desc">Đánh giá địa điểm, chia sẻ tin part-time và tìm cộng đồng cùng sở thích. Mọi gợi ý đều đến từ người đang học tại đây.</p>
+                        <ul class="slide-points">
+                            <li>Review địa điểm</li>
+                            <li>Chia sẻ kinh nghiệm</li>
+                            <li>Cộng đồng TDMU</li>
+                        </ul>
+                        <a href="@Url.Action("Index", "Connect")" class="slide-cta">Khám phá<span class="cta-arrow">→</span></a>
+                    </div>
+                    <div class="slide-visual" aria-hidden="true">
+                        <div class="visual-frame">
+                            <div class="visual-top"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span> connect · nearby</div>
+                            <div class="connect-list">
+                                <div class="place-row"><div class="place-ico">☕</div><div><div class="place-name">Cafe cuối tuần</div><div class="place-sub">Cách cổng A · 4 phút</div></div><div class="place-stars">★★★★★</div></div>
+                                <div class="place-row"><div class="place-ico">🍜</div><div><div class="place-name">Cơm tấm sinh viên</div><div class="place-sub">Giá từ 25k</div></div><div class="place-stars">★★★★☆</div></div>
+                                <div class="place-row"><div class="place-ico">💼</div><div><div class="place-name">Part-time barista</div><div class="place-sub">Tuyển gấp · ca tối</div></div><div class="place-stars">HOT</div></div>
+                            </div>
+                        </div>
+                    </div>
+                </article>
+            </div>
+            <div class="banner-footer">
+                <button type="button" class="banner-btn" id="bannerPrev" aria-label="Banner trước">‹</button>
+                <div class="hero-dots" role="tablist" aria-label="Chọn banner">
+                    <button type="button" class="hero-dot is-active" data-index="0" aria-label="Chat ẩn danh"></button>
+                    <button type="button" class="hero-dot" data-index="1" aria-label="Chợ sinh viên"></button>
+                    <button type="button" class="hero-dot" data-index="2" aria-label="Kết nối TDMU"></button>
+                </div>
+                <button type="button" class="banner-btn" id="bannerNext" aria-label="Banner sau">›</button>
+                <div class="progress-track" aria-hidden="true"><div class="progress-bar" id="bannerProgress"></div></div>
+            </div>
+        </div>
+        <!-- ====== 2. KHAY TIN 24H (TDMU STORIES TRAY)======== -->
+        <div class="mt-4">
+            @Html.Action("StoryTrayPartial", "Story")
+        </div>
+        <!-- ======= 3. KHU VỰC TÌM KIẾM & GỢI Ý BẠN BÈ (FACEBOOK-STYLE HORIZONTAL HUB)=========== -->
+        <section class="home-friends-hub" id="homeFriendsHub">
+            <!-- PHẦN 1: THANH TÌM KIẾM BẠN BÈ TRỰC TIẾP -->
+            <div class="home-friend-search-wrap">
+                <div class="friend-search-input-box">
+                    <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                    <input type="text" id="homeFriendSearchInput" class="friend-search-input" 
+                           placeholder="Tìm bạn bè theo họ tên, tên tài khoản, khoa, ngành..." autocomplete="off" />
+                    <button type="button" id="btnClearFriendSearch" class="btn-clear-search d-none" onclick="clearFriendSearch()" title="Xóa tìm kiếm">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                    <span id="friendSearchSpinner" class="search-spinner d-none">
+                        <i class="fa-solid fa-circle-notch fa-spin"></i>
+                    </span>
+                </div>
+                <!-- Live Search Results Dropdown -->
+                <div id="friendSearchResults" class="friend-search-results-dropdown d-none">
+                    <div class="d-flex align-items-center justify-content-between pb-2 mb-2 border-bottom border-secondary border-opacity-25 px-1">
+                        <span class="small text-white-50"><i class="fa-solid fa-users me-1 text-cyan"></i>Kết quả tìm kiếm</span>
+                        <button type="button" class="btn-close-results" onclick="$('#friendSearchResults').addClass('d-none');" title="Đóng">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                    </div>
+                    <div id="friendSearchResultsList" class="search-results-list"></div>
+                    <div id="friendSearchPagination" class="text-center pt-2 d-none">
+                        <button type="button" class="btn btn-sm btn-outline-info rounded-pill px-3" onclick="loadMoreFriendSearch()">
+                            <i class="fa-solid fa-chevron-down me-1"></i>Xem thêm kết quả
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <!-- PHẦN 2: GỢI Ý BẠN BÈ NẰM NGANG KIỂU FACEBOOK (CAROUSEL) -->
+            <div class="home-suggestions-header">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="suggestions-badge-icon">
+                        <i class="fa-solid fa-user-group text-cyan"></i>
+                    </div>
+                    <div>
+                        <h3 class="suggestions-title">Những người bạn có thể biết</h3>
+                        <p class="suggestions-subtitle">Gợi ý dựa trên bạn chung và khoa viện</p>
+                    </div>
+                </div>
+                <div class="suggestions-controls">
+                    <button type="button" class="btn-scroll-arrow" id="btnScrollSugLeft" onclick="scrollSuggestions('left')" title="Cuộn sang trái">
+                        <i class="fa-solid fa-chevron-left"></i>
+                    </button>
+                    <button type="button" class="btn-scroll-arrow" id="btnScrollSugRight" onclick="scrollSuggestions('right')" title="Cuộn sang phải">
+                        <i class="fa-solid fa-chevron-right"></i>
+                    </button>
+                    <button type="button" class="btn-refresh-suggestions" id="btnRefreshSuggestions" onclick="refreshFriendSuggestions()" title="Làm mới danh sách gợi ý">
+                        <i class="fa-solid fa-arrows-rotate"></i>
+                        <span>Làm mới</span>
+                    </button>
+                </div>
+            </div>
+            <!-- Viewport & Horizontal Track -->
+            <div class="suggestions-horizontal-viewport" id="suggestionsViewport">
+                <div class="suggestions-horizontal-track" id="suggestedFriendsTrack">
+                    @if (initialSuggestions != null && initialSuggestions.Any())
+                    {
+                        foreach (var s in initialSuggestions)
+                        {
+                            <div class="sug-card" id="suggestion-user-@s.UserID" data-user-id="@s.UserID">
+                                <button type="button" class="sug-card-dismiss" onclick="dismissSuggestion(@s.UserID)" title="Gỡ gợi ý">
+                                    <i class="fa-solid fa-xmark"></i>
+                                </button>
+                                <a href="@Url.Action("Profile", "User", new { id = s.UserID })" class="sug-avatar-link">
+                                    <img src="@s.Avatar" class="sug-avatar" alt="@s.DisplayName" onerror="this.onerror=null;this.src=window.DEFAULT_AVATAR_SVG||'/Content/Images/default-avatar.png';" />
+                                </a>
+                                <a href="@Url.Action("Profile", "User", new { id = s.UserID })" class="sug-name" title="@s.DisplayName">
+                                    @s.DisplayName
+                                </a>
+                                <div class="sug-reason" title="@(!string.IsNullOrEmpty(s.Faculty) ? s.Faculty : s.Reason)">
+                                    @if (s.MutualFriendsCount > 0)
+                                    {
+                                        <span class="text-cyan"><i class="fa-solid fa-user-group me-1"></i>@s.MutualFriendsCount bạn chung</span>
+                                    }
+                                    else if (!string.IsNullOrEmpty(s.Faculty))
+                                    {
+                                        <span><i class="fa-solid fa-graduation-cap me-1"></i>@s.Faculty</span>
+                                    }
+                                    else
+                                    {
+                                        <span><i class="fa-solid fa-sparkles me-1"></i>@s.Reason</span>
+                                    }
+                                </div>
+                                <div class="sug-actions">
+                                    @if (s.RelationshipStatus == "PendingSent")
+                                    {
+                                        <button type="button" class="btn-sug-action btn-pending" data-friend-btn="@s.UserID" onclick="handleFriendAction(@s.UserID, 'cancel', this)" title="Đã gửi lời mời (Bấm để hủy)">
+                                            <i class="fa-solid fa-clock me-1"></i>Đã gửi
+                                        </button>
+                                    }
+                                    else if (s.RelationshipStatus == "PendingReceived")
+                                    {
+                                        <button type="button" class="btn-sug-action btn-accept" data-friend-btn="@s.UserID" onclick="handleFriendAction(@s.UserID, 'accept', this)" title="Chấp nhận lời mời">
+                                            <i class="fa-solid fa-check me-1"></i>Chấp nhận
+                                        </button>
+                                    }
+                                    else if (s.RelationshipStatus == "Friends")
+                                    {
+                                        <button type="button" class="btn-sug-action btn-friends" data-friend-btn="@s.UserID" onclick="handleFriendAction(@s.UserID, 'remove', this)" title="Bạn bè (Bấm để hủy kết bạn)">
+                                            <i class="fa-solid fa-user-check me-1"></i>Bạn bè
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        <button type="button" class="btn-sug-action btn-add" data-friend-btn="@s.UserID" onclick="handleFriendAction(@s.UserID, 'add', this)" title="Thêm bạn bè">
+                                            <i class="fa-solid fa-user-plus me-1"></i>Kết bạn
+                                        </button>
+                                    }
+                                    <button type="button" class="btn-sug-follow @(s.IsFollowing ? "following" : "")" data-follow-btn="@s.UserID" onclick="handleFollowAction(@s.UserID, this)" title="@(s.IsFollowing ? "Bỏ theo dõi" : "Theo dõi")">
+                                        <i class="fa-solid @(s.IsFollowing ? "fa-bell-slash text-warning" : "fa-bell")"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="empty-suggestions-state text-center py-4 text-white-50 w-100">
+                            <i class="fa-solid fa-user-check fa-2x mb-2 text-cyan opacity-50"></i>
+                            <div>Hiện chưa có gợi ý mới. Hãy thử làm mới lại sau nhé!</div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </section>
+        <!-- ==========4. BẢNG TIN TỔNG HỢP (FACEBOOK-STYLE MIXED FEED)========= -->
+        <div class="home-feed-wrap">
+            <!-- Filter Pills Bar -->
+            <div class="feed-filter-bar">
+                <button type="button" class="feed-filter-pill active" onclick="filterFeed('all', this)">
+                    <i class="fa-solid fa-layer-group"></i> Tất cả
+                </button>
+                <button type="button" class="feed-filter-pill" onclick="filterFeed('social', this)">
+                    <i class="fa-solid fa-newspaper"></i> Bài viết
+                </button>
+                <button type="button" class="feed-filter-pill" onclick="filterFeed('market', this)">
+                    <i class="fa-solid fa-store"></i> Chợ sinh viên
+                </button>
+                <button type="button" class="feed-filter-pill" onclick="filterFeed('connect', this)">
+                    <i class="fa-solid fa-handshake"></i> Kết nối
+                </button>
+            </div>
+            <!-- Quick Create Post Box (if logged in) -->
+            @if (currentUser != null) {
+                <div class="feed-create-card">
+                    <div class="create-input-row">
+                        <a href="@Url.Action("Profile", "User", new { id = currentUser.UserID })">
+                            <img src="@currentAvatar" class="create-user-avatar" alt="@currentUsername" onerror="this.onerror=null;this.src=window.DEFAULT_AVATAR_SVG||'/Content/Images/default-avatar.png';" />
+                        </a>
+                        <div class="create-fake-input" data-bs-toggle="modal" data-bs-target="#createPostModal">
+                            @currentUsername ơi, bạn đang nghĩ gì thế?
+                        </div>
+                    </div>
+                    <div class="create-options-row">
+                        <button type="button" class="btn-create-opt text-success" data-bs-toggle="modal" data-bs-target="#createPostModal">
+                            <i class="fa-solid fa-images fa-lg"></i>
+                            <span>Ảnh / Video</span>
+                        </button>
+                        <button type="button" class="btn-create-opt text-warning" data-bs-toggle="modal" data-bs-target="#createStoryModal">
+                            <i class="fa-solid fa-circle-play fa-lg"></i>
+                            <span>Tạo tin 24h</span>
+                        </button>
+                        <a href="@Url.Action("Create", "Market")" class="btn-create-opt text-danger text-decoration-none" title="Đăng bán đồ trên Chợ">
+                            <i class="fa-solid fa-store fa-lg"></i>
+                            <span>Bán đồ Chợ</span>
+                        </a>
+                        <a href="@Url.Action("Create", "Connect")" class="btn-create-opt text-info text-decoration-none" title="Tạo bài kết nối sinh viên">
+                            <i class="fa-solid fa-handshake fa-lg"></i>
+                            <span>Tạo kết nối</span>
+                        </a>
+                    </div>
+                </div>
+            }
+            <!-- Unified Mixed Stream -->
+            <div id="homeFeedList">
+                @if (feedItems.Any()) {
+                    foreach (var item in feedItems) {
+                        if (item.ItemType == HomeFeedItemType.SocialPost && item.SocialPost != null) {
+                            var post = item.SocialPost;
+                            <article class="feed-post-card feed-item-card social-post-card" data-type="social" data-post-id="@post.PostID" id="@(post.SharedPost != null ? "share-" + post.SharedPost.ShareID : "post-" + post.PostID)">
+                                <!-- Header -->
+                                <div class="post-header">
+                                    <div class="post-author-group">
+                                        <a href="@Url.Action("Profile", "User", new { id = post.UserID })">
+                                            <img src="@post.AuthorAvatar" class="post-author-avatar" alt="@post.AuthorUsername" onerror="this.onerror=null;this.src=window.DEFAULT_AVATAR_SVG||'/Content/Images/default-avatar.png';" />
+                                        </a>
+                                        <div>
+                                            <h4 class="post-author-name">
+                                                <a href="@Url.Action("Profile", "User", new { id = post.UserID })" class="text-white text-decoration-none">
+                                                    @post.AuthorUsername
+                                                </a>
+                                                @if (post.IsTDMUStudent) {
+                                                    <i class="fa-solid fa-circle-check text-info" style="font-size: 11px;" title="Sinh viên TDMU"></i>
+                                                }
+                                            </h4>
+                                            <div class="post-meta-line">
+                                                <span class="feed-type-badge badge-social me-1">Bài viết</span>
+                                                <span>·</span>
+                                                <span>@post.TimeAgo</span>
+                                                <span>·</span>
+                                                <i class="@post.PrivacyIcon" title="@post.PrivacyLabel"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="dropdown">
+                                        <button class="btn btn-sm btn-link text-muted p-1" type="button" data-bs-toggle="dropdown">
+                                            <i class="fa-solid fa-ellipsis"></i>
+                                        </button>
+                                        <ul class="dropdown-menu dropdown-menu-dark dropdown-menu-end">
+                                            <li><a class="dropdown-item" href="@Url.Action("Profile", "User", new { id = post.UserID })#post-@post.PostID"><i class="fa-solid fa-arrow-up-right-from-square me-2"></i>Xem chi tiết</a></li>
+                                            <li><a class="dropdown-item" href="javascript:void(0)" onclick="copyShareLink('@Url.Action("Profile", "User", new { id = post.UserID })#post-@post.PostID')"><i class="fa-solid fa-link me-2"></i>Sao chép liên kết</a></li>
+                                            @if (currentUser != null && post.UserID != currentUser.UserID) { <li><a class="dropdown-item text-danger" href="javascript:void(0)" onclick="reportPost('feed', @post.PostID)"><i class="fa-solid fa-flag me-2"></i>Tố cáo bài viết</a></li> }
+                                            @if (post.CanDelete) {
+                                                <li><hr class="dropdown-divider"></li>
+                                                if (post.CanEdit) {
+                                                    <li><a class="dropdown-item" href="javascript:void(0)" data-content="@post.Content" data-privacy="@post.Privacy" onclick="editPostAjax(@post.PostID, this)"><i class="fa-solid fa-pen-to-square me-2"></i>Sửa bài viết</a></li>
+                                                }
+                                                <li><a class="dropdown-item text-danger" href="javascript:void(0)" onclick="@(post.SharedPost != null ? "deleteShareAjax(" + post.SharedPost.ShareID + ")" : "deletePostAjax(" + post.PostID + ")")"><i class="fa-solid fa-trash-can me-2"></i>@(post.SharedPost != null ? "Xóa bài chia sẻ" : "Xóa bài viết")</a></li>
+                                            }
+                                            else {
+                                                <li><hr class="dropdown-divider"></li>
+                                                <li><a class="dropdown-item" href="javascript:void(0)" onclick="sharePostAjax(@post.PostID)"><i class="fa-solid fa-share-nodes me-2"></i>Chia sẻ bài viết</a></li>
+                                            }
+                                        </ul>
+                                    </div>
+                                </div>
+                                <!-- Post Content -->
+                                @if (!string.IsNullOrEmpty(post.Content)) {
+                                    <div class="post-body-content">@post.Content.Trim()</div>
+                                }
+                                @if (post.SharedPost != null) {
+                                    @Html.Partial("~/Views/Shared/_SharedPostPreview.cshtml", post.SharedPost)
+                                }
+                                <!-- Post Media -->
+                                @if (post.MediaList != null && post.MediaList.Any()) {
+                                    int count = Math.Min(post.MediaList.Count, 4);
+                                    <div class="post-media-grid count-@count">
+                                        @foreach (var media in post.MediaList){
+                                            <div class="post-media-item">
+                                                @if (media.MediaType == "video") {
+                                                    <video src="@media.MediaUrl" controls></video>
+                                                }
+                                                else {
+                                                    <img src="@media.MediaUrl" alt="Media" onclick="window.open('@media.MediaUrl', '_blank');" />
+                                                }
+                                            </div>
+                                        }
+                                    </div>
+                                }
+                                <!-- Post Stats Bar -->
+                                <div class="post-stats-bar">
+                                    <div class="top-reactions-icons" id="topReactionsWrap-@post.PostID">
+                                        @if (post.TopReactions != null && post.TopReactions.Any()) {
+                                            foreach (var r in post.TopReactions){
+                                                <span class="reaction-emoji-badge">@r.Emoji</span>
+                                            }
+                                        }
+                                        <span class="ms-1" id="likeCount-@post.PostID">@(post.LikeCount > 0 ? post.LikeCount.ToString() : "")</span>
+                                    </div>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span id="commentCount-@post.PostID">@post.CommentCount bình luận</span>
+                                        <span>·</span>
+                                        <span id="shareCount-@post.PostID"><span class="share-count-Post-@post.PostID">@post.ShareCount</span> lượt chia sẻ</span>
+                                    </div>
+                                </div>
+                                <!-- Action Buttons with Facebook-style Reaction Popover -->
+                                <div class="post-actions-row">
+                                    <div class="reaction-popup-container">
+                                        <div class="reaction-popover">
+                                            <button type="button" class="reaction-btn-icon" onclick="toggleReactionAjax(@post.PostID, 'Like')" title="Thích">👍</button>
+                                            <button type="button" class="reaction-btn-icon" onclick="toggleReactionAjax(@post.PostID, 'Love')" title="Yêu thích">❤️</button>
+                                            <button type="button" class="reaction-btn-icon" onclick="toggleReactionAjax(@post.PostID, 'Haha')" title="Haha">😆</button>
+                                            <button type="button" class="reaction-btn-icon" onclick="toggleReactionAjax(@post.PostID, 'Wow')" title="Wow">😮</button>
+                                            <button type="button" class="reaction-btn-icon" onclick="toggleReactionAjax(@post.PostID, 'Sad')" title="Buồn">😢</button>
+                                            <button type="button" class="reaction-btn-icon" onclick="toggleReactionAjax(@post.PostID, 'Angry')" title="Phẫn nộ">😡</button>
+                                        </div>
+                                        <button type="button" class="btn-post-action @(!string.IsNullOrEmpty(post.CurrentUserReaction) ? "reacted" : "")" id="btnReaction-@post.PostID" onclick="toggleReactionAjax(@post.PostID, 'Like')">
+                                            <span id="reactionIcon-@post.PostID">
+                                                @if (post.CurrentUserReactionMeta != null) {
+                                                    <span>@post.CurrentUserReactionMeta.Emoji</span>
+                                                }
+                                                else {
+                                                    <i class="fa-regular fa-thumbs-up"></i>
+                                                }
+                                            </span>
+                                            <span id="reactionLabel-@post.PostID" style="color: @(post.CurrentUserReactionMeta?.Color ?? "inherit")">
+                                                @(post.CurrentUserReactionMeta?.Label ?? "Thích")
+                                            </span>
+                                        </button>
+                                        <button type="button" class="reaction-picker-toggle" onclick="toggleReactionPicker(event, this)" aria-label="Chọn cảm xúc" title="Chọn cảm xúc"><i class="fa-solid fa-chevron-up"></i></button>
+                                    </div>
+                                    <button type="button" class="btn-post-action" onclick="$('#commentInput-@post.PostID').focus();">
+                                        <i class="fa-regular fa-message"></i>
+                                        <span>Bình luận</span>
+                                    </button>
+                                    <button type="button" class="btn-post-action" onclick="sharePostAjax(@post.PostID)" title="Chia sẻ bài viết">
+                                        <i class="fa-solid fa-share-nodes"></i>
+                                        <span>Chia sẻ</span>
+                                        <span class="share-count-Post-@post.PostID" style="@(post.ShareCount > 0 ? "" : "display:none;") font-size:11px; font-weight:600; color:#00c8ff; margin-left:3px;">@(post.ShareCount > 0 ? "(" + post.ShareCount + ")" : "")</span>
+                                    </button>
+                                </div>
+                                <!-- Comments Section -->
+                                <div class="post-comments-box">
+                                    <div class="comments-list" id="commentsList-@post.PostID">
+                                        @if (post.Comments != null && post.Comments.Any())  {
+                                            foreach (var c in post.Comments) {
+                                                <div class="comment-item" id="comment-@c.CommentID">
+                                                    <img src="@c.AuthorAvatar" class="comment-avatar" alt="@c.AuthorUsername" onerror="this.onerror=null;this.src=window.DEFAULT_AVATAR_SVG||'/Content/Images/default-avatar.png';" />
+                                                    <div class="comment-thread">
+                                                        <div class="comment-bubble">
+                                                            <div class="comment-author-name">@c.AuthorUsername</div>
+                                                            <div class="comment-text">@c.Content</div>
+                                                            <div class="comment-meta">
+                                                                <span>@c.TimeAgo</span>
+                                                                @if (currentUser != null) {
+                                                                    <a href="javascript:void(0)" class="comment-reply-link" onclick="toggleCommentReplyForm(@c.CommentID, @post.PostID)">Phản hồi</a>
+                                                                }
+                                                                @if (c.CanDelete) {
+                                                                    <a href="javascript:void(0)" class="comment-action-link text-danger" onclick="deleteCommentAjax(@c.CommentID, @post.PostID)">Xóa</a>
+                                                                }
+                                                            </div>
+                                                        </div>
+                                                        <div class="comment-replies-list" id="commentReplies-@c.CommentID">
+                                                            @foreach (var reply in c.Replies) {
+                                                                <div class="comment-item" id="comment-@reply.CommentID">
+                                                                    <img src="@reply.AuthorAvatar" class="comment-avatar" alt="@reply.AuthorUsername" onerror="this.onerror=null;this.src=window.DEFAULT_AVATAR_SVG||'/Content/Images/default-avatar.png';" />
+                                                                    <div class="comment-bubble">
+                                                                        <div class="comment-author-name">@reply.AuthorUsername</div>
+                                                                        <div class="comment-text">@reply.Content</div>
+                                                                        <div class="comment-meta"><span>@reply.TimeAgo</span>@if (reply.CanDelete) { <a href="javascript:void(0)" class="comment-action-link text-danger" onclick="deleteCommentAjax(@reply.CommentID, @post.PostID)">Xóa</a> }</div>
+                                                                    </div>
+                                                                </div>
+                                                            }
+                                                        </div>
+                                                        @if (currentUser != null)  {
+                                                            <div class="comment-reply-form" id="replyForm-@c.CommentID" style="display:none;">
+                                                                <input type="text" class="comment-input-field" id="replyInput-@c.CommentID" placeholder="Phản hồi @c.AuthorUsername..." onkeydown="if(event.key==='Enter'){event.preventDefault();addCommentAjax(@post.PostID,@c.CommentID);}" />
+                                                                <button type="button" class="btn-send-comment" onclick="addCommentAjax(@post.PostID,@c.CommentID)" title="Gửi phản hồi"><i class="fa-solid fa-paper-plane fa-sm"></i></button>
+                                                            </div>
+                                                        }
+                                                    </div>
+                                                </div>
+                                            }
+                                        }
+                                    </div>
+                                    @if (currentUser != null)  {
+                                        <div class="comment-input-row">
+                                            <img src="@currentAvatar" class="comment-avatar" alt="@currentUsername" />
+                                            <input type="text" class="comment-input-field" id="commentInput-@post.PostID" placeholder="Viết bình luận..." onkeydown="if(event.key==='Enter') addCommentAjax(@post.PostID);" />
+                                            <button type="button" class="btn-send-comment" onclick="addCommentAjax(@post.PostID);" title="Gửi bình luận">
+                                                <i class="fa-solid fa-paper-plane fa-sm"></i>
+                                            </button>
+                                        </div>
+                                    }
+                                </div>
+                            </article>
+                        }
+                        else if (item.ItemType == HomeFeedItemType.MarketPost && item.MarketPost != null)  {
+                            var m = item.MarketPost;
+                            var seller = m.User;
+                            string sellerAvatar = seller?.SafeAvatar ?? StudentConnect.Helpers.DefaultImagePlaceholders.Avatar;
+                            string sellerName = seller?.DisplayName ?? "Sinh viên TDMU";
+                            string img = m.MarketImages != null && m.MarketImages.Any()
+                                ? m.MarketImages.First().ImageUrl
+                                : (m.MainImage ?? "");
+                            <article class="feed-post-card feed-item-card" data-type="market" id="market-@m.PostID">
+                                <!-- Header -->
+                                <div class="post-header">
+                                    <div class="post-author-group">
+                                        <a href="@Url.Action("Profile", "User", new { id = m.UserID })">
+                                            <img src="@sellerAvatar" class="post-author-avatar" alt="@sellerName" onerror="this.onerror=null;this.src=window.DEFAULT_AVATAR_SVG||'/Content/Images/default-avatar.png';" />
+                                        </a>
+                                        <div>
+                                            <h4 class="post-author-name">
+                                                <a href="@Url.Action("Profile", "User", new { id = m.UserID })" class="text-white text-decoration-none">
+                                                    @sellerName
+                                                </a>
+                                                <span class="text-muted fw-normal small">đã đăng bán món đồ</span>
+                                            </h4>
+                                            <div class="post-meta-line">
+                                                <span class="feed-type-badge badge-market me-1"><i class="fa-solid fa-store me-1"></i>Chợ sinh viên</span>
+                                                <span>·</span>
+                                                <span>@(m.CreatedAt.HasValue ? StudentConnect.Helpers.SocialHelper.FormatTimeAgo(m.CreatedAt) : "")</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="dropdown">
+                                        <button class="btn btn-sm btn-link text-muted p-1" type="button" data-bs-toggle="dropdown">
+                                            <i class="fa-solid fa-ellipsis"></i>
+                                        </button>
+                                        <ul class="dropdown-menu dropdown-menu-dark dropdown-menu-end">
+                                            <li><a class="dropdown-item" href="@Url.Action("Details", "Market", new { id = m.PostID })"><i class="fa-solid fa-arrow-up-right-from-square me-2"></i>Xem chi tiết</a></li>
+                                            <li><a class="dropdown-item" href="javascript:void(0)" onclick="copyShareLink('@Url.Action("Details", "Market", new { id = m.PostID })')"><i class="fa-solid fa-link me-2"></i>Sao chép liên kết</a></li>
+                                            @if (currentUser != null && m.UserID != currentUser.UserID) { <li><a class="dropdown-item text-danger" href="javascript:void(0)" onclick="reportPost('market', @m.PostID)"><i class="fa-solid fa-flag me-2"></i>Tố cáo bài đăng</a></li> }
+                                        </ul>
+                                    </div>
+                                </div>
+                                <!-- Product Info -->
+                                <div class="market-product-body">
+                                    <h3 class="market-product-title">
+                                        <a href="@Url.Action("Details", "Market", new { id = m.PostID })" class="text-white text-decoration-none">
+                                            @m.Title
+                                        </a>
+                                    </h3>
+                                    <div class="market-tags-row">
+                                        <span class="market-price-tag">@((m.Price ?? 0).ToString("N0")) VNĐ</span>
+                                        <span class="market-cat-tag">@(m.MarketCategory?.CategoryName ?? "Chợ sinh viên")</span>
+                                        @if (!string.IsNullOrEmpty(m.Condition))  {
+                                            <span class="market-condition-tag"><i class="fa-solid fa-circle-check me-1"></i>@m.Condition</span>
+                                        }
+                                    </div>
+                                    @if (!string.IsNullOrEmpty(m.ExchangeLocation))  {
+                                        <div class="market-location-text">
+                                            <i class="fa-solid fa-location-dot text-danger me-1"></i> @m.ExchangeLocation
+                                        </div>
+                                    }
+                                    @if (!string.IsNullOrEmpty(m.Description)) {
+                                        <div class="post-body-content p-0 mb-2 text-white-50">@(m.Description.Length > 200 ? m.Description.Substring(0, 200).Trim() + "..." : m.Description.Trim())</div>
+                                    }
+                                </div>
+                                <!-- Featured Image -->
+                                @if (!string.IsNullOrEmpty(img)) {
+                                    <a href="@Url.Action("Details", "Market", new { id = m.PostID })" class="feed-featured-img-wrap d-block">
+                                        <img src="@img" class="feed-featured-img" alt="@m.Title" onerror="this.onerror=null;this.src=window.DEFAULT_MARKET_SVG||'/Content/Images/default-market.jpg';" />
+                                    </a>
+                                }
+                                <!-- Actions Bar -->
+                                <div class="post-actions-row">
+                                    <a href="@Url.Action("Details", "Market", new { id = m.PostID })" class="btn-post-action text-info">
+                                        <i class="fa-solid fa-cart-shopping"></i>
+                                        <span>Xem món đồ</span>
+                                    </a>
+                                    <button type="button" class="btn-post-action text-warning" onclick="startDirectMessage(@m.UserID)">
+                                        <i class="fa-solid fa-comment-dots"></i>
+                                        <span>Nhắn người bán</span>
+                                    </button>
+                                    <button type="button" class="btn-post-action" onclick="openShareModal('Market', @m.PostID, '@HttpUtility.JavaScriptStringEncode(m.Title ?? "")', '@HttpUtility.JavaScriptStringEncode(m.User?.DisplayName ?? m.User?.Username ?? "Người bán")', '@HttpUtility.JavaScriptStringEncode(img ?? "")', '@HttpUtility.JavaScriptStringEncode((m.Price ?? 0).ToString("N0") + " VNĐ")', '@HttpUtility.JavaScriptStringEncode(m.User?.SafeAvatar ?? "/Content/Images/default-avatar.png")')" title="Chia sẻ sản phẩm">
+                                        <i class="fa-solid fa-share-nodes"></i>
+                                        <span>Chia sẻ</span>
+                                    </button>
+                                </div>
+                            </article>
+                        }
+                        else if (item.ItemType == HomeFeedItemType.ConnectPost && item.ConnectPost != null)  {
+                            var c = item.ConnectPost;
+                            var author = c.User;
+                            string authorAvatar = author?.SafeAvatar ?? StudentConnect.Helpers.DefaultImagePlaceholders.Avatar;
+                            string authorName = author?.DisplayName ?? "Sinh viên TDMU";
+                            <article class="feed-post-card feed-item-card" data-type="connect" id="connect-@c.PostID">
+                                <!-- Header -->
+                                <div class="post-header">
+                                    <div class="post-author-group">
+                                        <a href="@Url.Action("Profile", "User", new { id = c.UserID })">
+                                            <img src="@authorAvatar" class="post-author-avatar" alt="@authorName" onerror="this.onerror=null;this.src=window.DEFAULT_AVATAR_SVG||'/Content/Images/default-avatar.png';" />
+                                        </a>
+                                        <div>
+                                            <h4 class="post-author-name">
+                                                <a href="@Url.Action("Profile", "User", new { id = c.UserID })" class="text-white text-decoration-none">
+                                                    @authorName
+                                                </a>
+                                                <span class="text-muted fw-normal small">đã chia sẻ một kết nối</span>
+                                            </h4>
+                                            <div class="post-meta-line">
+                                                <span class="feed-type-badge badge-connect me-1"><i class="fa-solid fa-handshake me-1"></i>Kết nối</span>
+                                                <span>·</span>
+                                                <span>@(c.CreatedAt.HasValue ? StudentConnect.Helpers.SocialHelper.FormatTimeAgo(c.CreatedAt) : "")</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="dropdown">
+                                        <button class="btn btn-sm btn-link text-muted p-1" type="button" data-bs-toggle="dropdown">
+                                            <i class="fa-solid fa-ellipsis"></i>
+                                        </button>
+                                        <ul class="dropdown-menu dropdown-menu-dark dropdown-menu-end">
+                                            <li><a class="dropdown-item" href="@Url.Action("Details", "Connect", new { id = c.PostID })"><i class="fa-solid fa-arrow-up-right-from-square me-2"></i>Xem chi tiết</a></li>
+                                            <li><a class="dropdown-item" href="javascript:void(0)" onclick="copyShareLink('@Url.Action("Details", "Connect", new { id = c.PostID })')"><i class="fa-solid fa-link me-2"></i>Sao chép liên kết</a></li>
+                                            @if (currentUser != null && c.UserID != currentUser.UserID) { <li><a class="dropdown-item text-danger" href="javascript:void(0)" onclick="reportPost('connect', @c.PostID)"><i class="fa-solid fa-flag me-2"></i>Tố cáo bài đăng</a></li> }
+                                        </ul>
+                                    </div>
+                                </div>
+                                <!-- Connect Body -->
+                                <div class="connect-topic-body">
+                                    <h3 class="connect-topic-title">
+                                        <a href="@Url.Action("Details", "Connect", new { id = c.PostID })" class="text-white text-decoration-none">
+                                            @c.Title
+                                        </a>
+                                    </h3>
+                                    <span class="connect-cat-tag">
+                                        <i class="fa-solid fa-tag me-1"></i>@(c.ConnectCategory?.CategoryName ?? "Kết nối sinh viên")
+                                    </span>
+                                    @if (!string.IsNullOrEmpty(c.Description))
+                                    {
+                                        <div class="post-body-content p-0 mb-2 text-white-50">@(c.Description.Length > 220 ? c.Description.Substring(0, 220).Trim() + "..." : c.Description.Trim())</div>
+                                    }
+                                </div>
+                                <!-- Featured Image -->
+                                @if (!string.IsNullOrEmpty(c.MainImage))
+                                {
+                                    <a href="@Url.Action("Details", "Connect", new { id = c.PostID })" class="feed-featured-img-wrap d-block">
+                                        <img src="@c.MainImage" class="feed-featured-img" alt="@c.Title" onerror="this.onerror=null;this.src=window.DEFAULT_AVATAR_SVG||'/Content/Images/default-avatar.png';" />
+                                    </a>
+                                }
+                                <!-- Actions Bar -->
+                                <div class="post-actions-row">
+                                    <a href="@Url.Action("Details", "Connect", new { id = c.PostID })" class="btn-post-action text-info">
+                                        <i class="fa-solid fa-handshake"></i>
+                                        <span>Xem bài viết</span>
+                                    </a>
+                                    <button type="button" class="btn-post-action text-warning" onclick="startDirectMessage(@c.UserID)">
+                                        <i class="fa-solid fa-comment-dots"></i>
+                                        <span>Nhắn tác giả</span>
+                                    </button>
+                                    <button type="button" class="btn-post-action" onclick="openShareModal('Connect', @c.PostID, '@HttpUtility.JavaScriptStringEncode(c.Title ?? "")', '@HttpUtility.JavaScriptStringEncode(c.User?.DisplayName ?? c.User?.Username ?? "Tác giả")', '@HttpUtility.JavaScriptStringEncode(c.MainImage ?? "")', '@HttpUtility.JavaScriptStringEncode(c.ConnectCategory?.CategoryName ?? "Kết nối")', '@HttpUtility.JavaScriptStringEncode(c.User?.SafeAvatar ?? "/Content/Images/default-avatar.png")')" title="Chia sẻ bài viết">
+                                        <i class="fa-solid fa-share-nodes"></i>
+                                        <span>Chia sẻ</span>
+                                    </button>
+                                </div>
+                            </article>
+                        }
+                    }
+                }
+                else
+                {
+                    <div class="feed-empty-state">
+                        <i class="fa-solid fa-newspaper fa-3x mb-3 text-muted"></i>
+                        <h4 class="text-white h5">Chưa có bài viết nào trên bảng tin</h4>
+                        <p class="small mb-3">Hãy là người đầu tiên chia sẻ cảm nghĩ, bán món đồ hoặc tạo bài kết nối!</p>
+                        @if (currentUser != null)
+                        {
+                            <button type="button" class="btn btn-sm btn-info text-dark fw-bold rounded-pill px-4" data-bs-toggle="modal" data-bs-target="#createPostModal">
+                                <i class="fa-solid fa-plus me-1"></i> Tạo bài viết ngay
+                            </button>
+                        }
+                    </div>
+                }
+            </div>
+                </div>
+    </div>
+</div>
+@section scripts {
+<script>
+    // ── 1. BANNER CAROUSEL ──
+    (function () {
+        var root = document.getElementById('homeBanner');
+        if (!root) return;
+        var slides = Array.prototype.slice.call(root.querySelectorAll('.hero-slide'));
+        var dots = Array.prototype.slice.call(root.querySelectorAll('.hero-dot'));
+        var progress = document.getElementById('bannerProgress');
+        var idx = 0, timer = null, INTERVAL = 3200;
+        var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        function setAccent(i) {
+            var accent = slides[i].getAttribute('data-accent') || '#00c8ff';
+            dots.forEach(function (d) { d.style.setProperty('--dot-accent', accent); });
+        }
+        function restartProgress() {
+            if (!progress) return;
+            root.classList.remove('is-playing');
+            void progress.offsetWidth;
+            if (!reduceMotion) root.classList.add('is-playing');
+        }
+        function go(n) {
+            slides[idx].classList.remove('is-active');
+            slides[idx].setAttribute('aria-hidden', 'true');
+            dots[idx].classList.remove('is-active');
+            idx = (n + slides.length) % slides.length;
+            slides[idx].classList.add('is-active');
+            slides[idx].setAttribute('aria-hidden', 'false');
+            dots[idx].classList.add('is-active');
+            setAccent(idx);
+            restartProgress();
+        }
+        function next() { go(idx + 1); }
+        function prev() { go(idx - 1); }
+        function start() {
+            stop();
+            if (reduceMotion) return;
+            timer = setInterval(next, INTERVAL);
+            restartProgress();
+        }
+        function stop() { if (timer) { clearInterval(timer); timer = null; } }
+        document.getElementById('bannerNext').addEventListener('click', function () { next(); start(); });
+        document.getElementById('bannerPrev').addEventListener('click', function () { prev(); start(); });
+        dots.forEach(function (dot) {
+            dot.addEventListener('click', function () {
+                go(parseInt(this.getAttribute('data-index'), 10));
+                start();
+            });
+        });
+        root.addEventListener('mouseenter', function () { stop(); root.classList.add('is-paused'); });
+        root.addEventListener('mouseleave', function () { root.classList.remove('is-paused'); start(); });
+        setAccent(0);
+        start();
+    })();
+    // ── 2. FILTER PILLS CLIENT-SIDE ──
+    function filterFeed(type, btn) {
+        $('.feed-filter-pill').removeClass('active');
+        $(btn).addClass('active');
+        if (type === 'all') {
+            $('.feed-item-card').fadeIn(200);
+        } else {
+            $('.feed-item-card').each(function () {
+                var cardType = $(this).attr('data-type');
+                if (cardType === type) {
+                    $(this).fadeIn(200);
+                } else {
+                    $(this).hide();
+                }
+            });
+        }
+    }
+    // ── 3. DIRECT MESSAGE ──
+    function startDirectMessage(targetId) {
+        if (window.AppDialog && !AppDialog.ensureLoggedIn('Vui lòng đăng nhập để gửi tin nhắn.')) {
+            return;
+        }
+        $.post('/Chat/CreatePrivateRoom', { targetId: targetId }, function (res) {
+            if (res.success && res.roomId) {
+                window.location.href = '/Chat/Private/' + res.roomId;
+            } else if (res && res.requireLogin) {
+                if (window.AppDialog) {
+                    AppDialog.requireLogin({ message: res.message || 'Vui lòng đăng nhập để gửi tin nhắn.' });
+                }
+            } else {
+                if (window.AppDialog) {
+                    AppDialog.info(res.message || 'Không thể tạo phòng chat với người này!', 'Nhắn tin');
+                } else {
+                    Swal.fire({ icon: 'info', title: 'Nhắn tin', text: res.message || 'Không thể tạo phòng chat với người này!' });
+                }
+            }
+        }).fail(function (xhr) {
+            if (window.AppDialog) {
+                AppDialog.handleAjaxError(xhr, 'Vui lòng đăng nhập để gửi tin nhắn!');
+            } else {
+                Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Vui lòng đăng nhập để gửi tin nhắn!' });
+            }
+        });
+    }
+    // ── 4. SHARE LINK HELPER ──
+    function reportPost(postType, postId) {
+        if (window.AppDialog && !AppDialog.ensureLoggedIn('Vui lòng đăng nhập để gửi báo cáo vi phạm.')) {
+            return;
+        }
+        Swal.fire({ title: 'Báo cáo bài đăng', input: 'select', inputOptions: { spam: 'Spam hoặc quảng cáo', scam: 'Lừa đảo', offensive: 'Nội dung xúc phạm/không phù hợp', other: 'Lý do khác' }, inputPlaceholder: 'Chọn lý do', showCancelButton: true, confirmButtonText: 'Tiếp tục', cancelButtonText: 'Hủy' }).then(function (first) {
+            if (!first.isConfirmed) return;
+            Swal.fire({ title: 'Mô tả thêm', input: 'textarea', inputPlaceholder: 'Nêu chi tiết (không bắt buộc)', showCancelButton: true, confirmButtonText: 'Gửi báo cáo', cancelButtonText: 'Hủy' }).then(function (second) {
+                if (!second.isConfirmed) return;
+                $.post('/Notification/ReportPost', { postType: postType, postId: postId, reason: first.value, details: second.value || '', __RequestVerificationToken: $('input[name="__RequestVerificationToken"]').first().val() }, function (res) {
+                    if (res && res.requireLogin) {
+                        if (window.AppDialog) AppDialog.requireLogin({ message: res.message || 'Vui lòng đăng nhập để gửi báo cáo vi phạm.' });
+                    } else if (res && res.success) {
+                        if (window.AppDialog) AppDialog.toastSuccess(res.message || 'Đã gửi báo cáo thành công.');
+                        else Swal.fire({ icon: 'success', title: 'Đã gửi', text: res.message });
+                    } else {
+                        if (window.AppDialog) AppDialog.warning(res ? res.message : 'Không thể gửi báo cáo', 'Thông báo');
+                        else Swal.fire({ icon: 'error', title: 'Không thể gửi', text: res ? res.message : '' });
+                    }
+                }).fail(function (xhr) {
+                    if (window.AppDialog) AppDialog.handleAjaxError(xhr, 'Lỗi khi gửi báo cáo vi phạm.');
+                });
+            });
+        });
+    }
+    function copyShareLink(url) {
+        var fullUrl = window.location.origin + url;
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(fullUrl).then(function () {
+                if (window.AppDialog) {
+                    AppDialog.toastSuccess('Đã sao chép liên kết vào bộ nhớ tạm!');
+                } else {
+                    Swal.fire({
+                        toast: true,
+                        position: 'top',
+                        icon: 'success',
+                        title: 'Đã sao chép liên kết vào bộ nhớ tạm!',
+                        showConfirmButton: false,
+                        timer: 1600
+                    });
+                }
+            }).catch(function () {
+                if (window.AppDialog) AppDialog.info(fullUrl, 'Liên kết');
+                else prompt('Sao chép liên kết:', fullUrl);
+            });
+        } else {
+            if (window.AppDialog) AppDialog.info(fullUrl, 'Liên kết');
+            else prompt('Sao chép liên kết:', fullUrl);
+        }
+    }
+    // ── 5. SOCIAL POST INTERACTIONS (REACTION / COMMENT / DELETE) ──
+    function toggleReactionAjax(postId, likeType) {
+        if (window.AppDialog && !AppDialog.ensureLoggedIn('Vui lòng đăng nhập để bày tỏ cảm xúc!')) {
+            return;
+        }
+        var activeControl = document.activeElement;
+        if (activeControl && $(activeControl).closest('.reaction-popup-container').length) {
+            $(activeControl).closest('.reaction-popup-container').removeClass('is-open');
+            activeControl.blur();
+        }
+        $.post('/Post/ToggleReaction', { postId: postId, likeType: likeType }, function (res) {
+            if (res && res.success) {
+                $('.social-post-card[data-post-id="' + postId + '"]').each(function () {
+                    var card = $(this);
+                    var btn = card.find('[id="btnReaction-' + postId + '"]');
+                    if (res.currentReaction) {
+                        btn.addClass('reacted');
+                        card.find('[id="reactionIcon-' + postId + '"]').html('<span>' + res.reactionEmoji + '</span>');
+                        card.find('[id="reactionLabel-' + postId + '"]').text(res.reactionLabel).css('color', res.reactionColor || '#00c8ff');
+                    } else {
+                        btn.removeClass('reacted');
+                        card.find('[id="reactionIcon-' + postId + '"]').html('<i class="fa-regular fa-thumbs-up"></i>');
+                        card.find('[id="reactionLabel-' + postId + '"]').text('Thích').css('color', 'inherit');
+                    }
+                    var html = '';
+                    (res.topReactions || []).forEach(function (reaction) {
+                        html += '<span class="reaction-emoji-badge">' + reaction.Emoji + '</span>';
+                    });
+                    html += '<span class="ms-1" id="likeCount-' + postId + '">' + (res.totalLikes > 0 ? res.totalLikes : '') + '</span>';
+                    card.find('[id="topReactionsWrap-' + postId + '"]').html(html);
+                });
+            } else if (res && res.requireLogin) {
+                if (window.AppDialog) AppDialog.requireLogin({ message: res.message || 'Vui lòng đăng nhập để bày tỏ cảm xúc!' });
+            } else {
+                if (window.AppDialog) AppDialog.warning(res ? res.message : 'Vui lòng đăng nhập để bày tỏ cảm xúc!', 'Thông báo');
+                else Swal.fire({ icon: 'warning', title: 'Thông báo', text: res.message || 'Vui lòng đăng nhập để bày tỏ cảm xúc!' });
+            }
+        }).fail(function (xhr) {
+            if (window.AppDialog) AppDialog.handleAjaxError(xhr, 'Vui lòng đăng nhập để tương tác!');
+            else Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Vui lòng đăng nhập để tương tác!' });
+        });
+    }
+    function addCommentAjax(postId, parentId) {
+        if (window.AppDialog && !AppDialog.ensureLoggedIn('Vui lòng đăng nhập để bình luận!')) {
+            return;
+        }
+        var input = parentId ? $('#replyInput-' + parentId) : $('#commentInput-' + postId);
+        var content = input.val().trim();
+        if (!content) return;
+        var formData = new FormData();
+        formData.append('postId', postId);
+        formData.append('content', content);
+        formData.append('parentId', parentId || '');
+        formData.append('__RequestVerificationToken', $('input[name="__RequestVerificationToken"]').val());
+        input.val('');
+        $.ajax({
+            url: '/Post/AddComment',
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function (res) {
+                if (res && res.success) {
+                    input.val('');
+                    appendRealtimePostComment(postId, res, res.totalComments);
+                } else if (res && res.requireLogin) {
+                    if (window.AppDialog) AppDialog.requireLogin({ message: res.message || 'Vui lòng đăng nhập để bình luận!' });
+                } else {
+                    if (window.AppDialog) AppDialog.warning(res ? res.message : 'Không thể gửi bình luận!', 'Thông báo');
+                    else Swal.fire({ icon: 'warning', title: 'Thông báo', text: res.message || 'Không thể gửi bình luận!' });
+                }
+            },
+            error: function (xhr) {
+                if (window.AppDialog) AppDialog.handleAjaxError(xhr, 'Vui lòng đăng nhập để bình luận!');
+                else Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Vui lòng đăng nhập để bình luận!' });
+            }
+        });
+    }
+    function deletePostAjax(postId) {
+        Swal.fire({
+            title: 'Xóa bài viết?',
+            text: 'Bạn có chắc chắn muốn xóa bài viết này không?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#e25141',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Xóa ngay',
+            cancelButtonText: 'Hủy'
+        }).then(function (result) {
+            if (result.isConfirmed) {
+                var token = $('input[name="__RequestVerificationToken"]').val();
+                $.ajax({
+                    url: '/Post/Delete',
+                    type: 'POST',
+                    data: { id: postId, __RequestVerificationToken: token },
+                    headers: { '__RequestVerificationToken': token },
+                    success: function (res) {
+                        if (res.success) {
+                            $('.social-post-card[data-post-id="' + postId + '"]').fadeOut(300, function () { $(this).remove(); });
+                            Swal.fire({ toast: true, position: 'top', icon: 'success', title: 'Đã xóa bài viết!', showConfirmButton: false, timer: 1500 });
+                        } else {
+                            Swal.fire({ icon: 'error', title: 'Lỗi', text: res.message });
+                        }
+                    },
+                    error: function (xhr) {
+                        var msg = 'Yêu cầu thất bại';
+                        try { var j = JSON.parse(xhr.responseText); if (j && j.message) msg = j.message; } catch (e) {}
+                        Swal.fire({ icon: 'error', title: 'Lỗi', text: msg });
+                    }
+                });
+            }
+        });
+    }
+    function editPostAjax(postId, trigger) {
+        Swal.fire({
+            title: 'Sửa bài viết',
+            html: '<label for="editPostPrivacy" class="d-block text-start mb-2">Ai có thể xem bài viết này?</label><select id="editPostPrivacy" class="form-select"><option value="Public">Công khai</option><option value="Friends">Bạn bè</option><option value="OnlyMe">Riêng tư</option></select>',
+            input: 'textarea',
+            inputValue: trigger.getAttribute('data-content') || '',
+            inputAttributes: { maxlength: 5000, 'aria-label': 'Nội dung bài viết' },
+            didOpen: function() {
+                document.getElementById('editPostPrivacy').value = trigger.getAttribute('data-privacy') || 'Public';
+            },
+            preConfirm: function(content) {
+                return { content: content, privacy: document.getElementById('editPostPrivacy').value };
+            },
+            showCancelButton: true,
+            confirmButtonText: 'Lưu thay đổi',
+            cancelButtonText: 'Hủy'
+        }).then(function (result) {
+            if (!result.isConfirmed) return;
+            $.ajax({
+                url: '/Post/Edit',
+                type: 'POST',
+                data: { postId: postId, content: result.value.content, privacy: result.value.privacy, __RequestVerificationToken: $('input[name="__RequestVerificationToken"]').first().val() },
+                headers: { '__RequestVerificationToken': $('input[name="__RequestVerificationToken"]').first().val() },
+                success: function (res) {
+                    if (res.success) location.reload();
+                    else Swal.fire({ icon: 'error', title: 'Không thể sửa bài viết', text: res.message });
+                },
+                error: function () { Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Không thể cập nhật bài viết.' }); }
+            });
+        });
+    }
+    function sharePostAjax(postId) {
+        var card = $('.feed-post-card[data-post-id="' + postId + '"]').first();
+        var author = '';
+        var content = '';
+        var image = '';
+        var subtitle = 'Bài viết';
+        var avatar = '';
+        if (card.length > 0) {
+            author = card.find('.post-author-name a').first().text().trim();
+            content = card.find('.post-body-content').first().text().trim();
+            avatar = card.find('.post-author-avatar').first().attr('src') || '';
+            var firstImg = card.find('.post-media-item img').first();
+            if (firstImg.length > 0) {
+                image = firstImg.attr('src') || '';
+            }
+            var timeAgo = card.find('.post-meta-line span:nth-child(3)').text().trim();
+            if (timeAgo) {
+                subtitle = 'Bài viết · ' + timeAgo;
+            }
+        }
+        if (typeof openShareModal === 'function') {
+            openShareModal('Post', postId, content || 'Bài viết', author || 'Người dùng', image, subtitle, avatar);
+        } else {
+            Swal.fire({
+                title: 'Chia sẻ bài viết',
+                input: 'textarea',
+                inputPlaceholder: 'Viết điều gì đó về bài viết này (không bắt buộc)',
+                inputAttributes: { maxlength: 500, 'aria-label': 'Lời bình khi chia sẻ' },
+                showCancelButton: true,
+                confirmButtonText: 'Chia sẻ',
+                cancelButtonText: 'Hủy'
+            }).then(function (result) {
+                if (!result.isConfirmed) return;
+                $.ajax({
+                    url: '/Share/ShareItem',
+                    type: 'POST',
+                    data: {
+                        itemType: 'Post',
+                        postId: postId,
+                        caption: result.value || '',
+                        __RequestVerificationToken: $('input[name="__RequestVerificationToken"]').first().val()
+                    },
+                    success: function (res) {
+                        if (res.success) {
+                            Swal.fire({ icon: 'success', title: 'Đã chia sẻ', text: res.message }).then(function () { location.reload(); });
+                        } else {
+                            Swal.fire({ icon: 'error', title: 'Không thể chia sẻ', text: res.message });
+                        }
+                    },
+                    error: function () { Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Không thể chia sẻ bài viết.' }); }
+                });
+            });
+        }
+    }
+    function hidePostAjax(postId) {
+        $.ajax({
+            url: '/Post/Hide',
+            type: 'POST',
+            data: { postId: postId, __RequestVerificationToken: $('input[name="__RequestVerificationToken"]').first().val() },
+            headers: { '__RequestVerificationToken': $('input[name="__RequestVerificationToken"]').first().val() },
+            success: function (res) {
+                if (res.success) $('.social-post-card[data-post-id="' + postId + '"]').fadeOut(250, function () { $(this).remove(); });
+                else Swal.fire({ icon: 'error', title: 'Không thể ẩn bài viết', text: res.message });
+            },
+            error: function () { Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Không thể ẩn bài viết.' }); }
+        });
+    }
+    function unhidePostAjax(postId) {
+        $.ajax({
+            url: '/Post/Unhide',
+            type: 'POST',
+            data: { postId: postId, __RequestVerificationToken: $('input[name="__RequestVerificationToken"]').first().val() },
+            headers: { '__RequestVerificationToken': $('input[name="__RequestVerificationToken"]').first().val() },
+            success: function (res) {
+                if (res.success) location.reload();
+                else Swal.fire({ icon: 'error', title: 'Không thể hiện bài viết', text: res.message });
+            },
+            error: function () { Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Không thể hiện bài viết.' }); }
+        });
+    }
+    function deleteShareAjax(shareId) {
+        Swal.fire({ title: 'Xóa bài chia sẻ?', icon: 'warning', showCancelButton: true, confirmButtonText: 'Xóa', cancelButtonText: 'Hủy' }).then(function (result) {
+            if (!result.isConfirmed) return;
+            $.ajax({
+                url: '/Post/DeleteShare',
+                type: 'POST',
+                data: { shareId: shareId, __RequestVerificationToken: $('input[name="__RequestVerificationToken"]').first().val() },
+                headers: { '__RequestVerificationToken': $('input[name="__RequestVerificationToken"]').first().val() },
+                success: function (res) {
+                    if (res.success) $('#share-' + shareId).fadeOut(250, function () { $(this).remove(); });
+                    else Swal.fire({ icon: 'error', title: 'Lỗi', text: res.message });
+                },
+                error: function () { Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Không thể xóa bài chia sẻ.' }); }
+            });
+        });
+    }
+    function toggleReactionPicker(event, button) {
+        event.preventDefault();
+        event.stopPropagation();
+        var picker = $(button).closest('.reaction-popup-container');
+        var shouldOpen = !picker.hasClass('is-open');
+        picker.toggleClass('is-open', shouldOpen);
+        if (!shouldOpen) button.blur();
+    }
+    $(document).on('click.reactionPicker', function (event) {
+        if (!$(event.target).closest('.reaction-popup-container').length) $('.reaction-popup-container.is-open').removeClass('is-open');
+    });
+    function escapePostComment(value) {
+        return $('<div>').text(value || '').html();
+    }
+    function renderPostComment(comment, postId) {
+        var safeName = escapePostComment(comment.username || comment.authorUsername);
+        var safeAvatar = escapePostComment(comment.avatar || comment.authorAvatar || window.DEFAULT_AVATAR_SVG || '/Content/Images/default-avatar.png');
+        var safeContent = escapePostComment(comment.content);
+        var actions = '';
+        if (!comment.parentId && comment.canReply) actions += `<a href="javascript:void(0)" class="comment-reply-link" onclick="toggleCommentReplyForm(${comment.commentId})">Phản hồi</a>`;
+        if (comment.canDelete) actions += `<a href="javascript:void(0)" class="comment-action-link text-danger" onclick="deleteCommentAjax(${comment.commentId}, ${postId})">Xóa</a>`;
+        var image = comment.imageUrl ? `<img class="comment-image" src="${escapePostComment(comment.imageUrl)}" alt="Ảnh bình luận" />` : '';
+        var threadContent = '';
+        if (!comment.parentId) {
+            var replyInput = comment.canReply
+                ? `<div class="comment-reply-form" id="replyForm-${comment.commentId}" style="display:none;"><input type="text" class="comment-input-field" id="replyInput-${comment.commentId}" placeholder="Viết phản hồi..." onkeydown="if(event.key==='Enter'){event.preventDefault();addCommentAjax(${postId},${comment.commentId});}" /><button type="button" class="btn-send-comment" onclick="addCommentAjax(${postId},${comment.commentId})" title="Gửi phản hồi"><i class="fa-solid fa-paper-plane fa-sm"></i></button></div>`
+                : '';
+            threadContent = `<div class="comment-replies-list" id="commentReplies-${comment.commentId}"></div>${replyInput}`;
+        }
+        return `<div class="comment-item" id="comment-${comment.commentId}">
+            <img src="${safeAvatar}" class="comment-avatar" alt="${safeName}" onerror="this.onerror=null;this.src=window.DEFAULT_AVATAR_SVG||'/Content/Images/default-avatar.png';" />
+            <div class="comment-thread"><div class="comment-bubble"><div class="comment-author-name">${safeName}</div><div class="comment-text">${safeContent}</div>${image}<div class="comment-meta"><span>${escapePostComment(comment.timeAgo || 'Vừa xong')}</span>${actions}</div></div>${threadContent}</div>
+        </div>`;
+    }
+    function toggleCommentReplyForm(commentId) {
+        var form = $('#replyForm-' + commentId);
+        form.toggle();
+        if (form.is(':visible')) form.find('input').trigger('focus');
+    }
+    function appendRealtimePostComment(postId, comment, totalComments) {
+        var cards = $('.social-post-card[data-post-id="' + postId + '"]');
+        cards.each(function() {
+            var card = $(this);
+            var existing = card.find('[id="comment-' + comment.commentId + '"]');
+            if (existing.length) existing.replaceWith(renderPostComment(comment, postId));
+            else if (comment.parentId) card.find('[id="commentReplies-' + comment.parentId + '"]').append(renderPostComment(comment, postId));
+            else {
+                card.find('[id="commentsList-' + postId + '"]').append(renderPostComment(comment, postId));
+                var rootComments = card.find('[id="commentsList-' + postId + '"]').children('.comment-item');
+                while (rootComments.length > 3) {
+                    rootComments.first().remove();
+                    rootComments = card.find('[id="commentsList-' + postId + '"]').children('.comment-item');
+                }
+            }
+            if (totalComments !== undefined) card.find('[id="commentCount-' + postId + '"]').text(totalComments + ' bình luận');
+        });
+    }
+    function refreshRealtimePostComment(postId, commentId) {
+        if (!$('.social-post-card[data-post-id="' + postId + '"]').length) return;
+        $.get('/Post/GetComment', { postId: postId, commentId: commentId }, function(res) {
+            if (!res.success) {
+                $('.social-post-card[data-post-id="' + postId + '"]').each(function() {
+                    $(this).find('[id="comment-' + commentId + '"]').remove();
+                    if (res.totalComments !== undefined) $(this).find('[id="commentCount-' + postId + '"]').text(res.totalComments + ' bình luận');
+                });
+                return;
+            }
+            appendRealtimePostComment(postId, res.comment, res.totalComments);
+        });
+    }
+    var postCommentHub = $.connection && $.connection.chatHub;
+    if (postCommentHub) {
+        postCommentHub.client.onPostCommentAdded = function(postId, commentId) {
+            if ($('.social-post-card[data-post-id="' + postId + '"]').length) refreshRealtimePostComment(postId, commentId);
+        };
+        postCommentHub.client.onPostCommentDeleted = function(postId, commentId, totalComments) {
+            $('.social-post-card[data-post-id="' + postId + '"]').each(function() {
+                $(this).find('[id="comment-' + commentId + '"]').remove();
+                $(this).find('[id="commentCount-' + postId + '"]').text(totalComments + ' bình luận');
+            });
+        };
+    }
+    function deleteCommentAjax(commentId, postId) {
+        Swal.fire({
+            title: 'Xóa bình luận?',
+            text: 'Bạn có chắc muốn xóa bình luận này không?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#e25141',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Xóa ngay',
+            cancelButtonText: 'Hủy'
+        }).then(function (result) {
+            if (result.isConfirmed) {
+                $.post('/Post/DeleteComment', { id: commentId, __RequestVerificationToken: $('input[name="__RequestVerificationToken"]').first().val() }, function (res) {
+                    if (res.success) {
+                        $('.social-post-card[data-post-id="' + (postId || res.postId) + '"]').each(function() {
+                            $(this).find('[id="comment-' + commentId + '"]').fadeOut(200, function() { $(this).remove(); });
+                            $(this).find('[id="commentCount-' + (postId || res.postId) + '"]').text(res.totalComments + ' bình luận');
+                        });
+                    } else {
+                        Swal.fire({ icon: 'error', title: 'Lỗi', text: res.message });
+                    }
+                });
+            }
+        });
+    }
+    // ── 6. CREATE POST WITH FILES PREVIEW & UPLOAD ──
+    var selectedPostFiles = [];
+    function triggerPostMediaSelect() {
+        var modalEl = document.getElementById('createPostModal');
+        if (modalEl) {
+            var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+            modal.show();
+        }
+    }
+    $(document).on('change', '#postFileInput', function () {
+        var files = Array.from(this.files || []);
+        if (!files.length) return;
+        files.forEach(function (f) {
+            // Kiểm tra trùng lặp
+            var isDuplicate = selectedPostFiles.some(function (existing) {
+                return existing.name === f.name && existing.size === f.size && existing.lastModified === f.lastModified;
+            });
+            if (!isDuplicate) {
+                selectedPostFiles.push(f);
+            }
+        });
+        // Reset giá trị input để có thể chọn lại file cùng tên lần sau
+        this.value = '';
+        renderPostFilesPreview();
+    });
+    function renderPostFilesPreview() {
+        var wrap = $('#postFilePreviewWrap');
+        wrap.empty();
+        if (!selectedPostFiles.length) return;
+        selectedPostFiles.forEach(function (f, idx) {
+            var url = URL.createObjectURL(f);
+            var isVideo = f.type && f.type.startsWith('video');
+            var itemHtml = `
+                <div class="position-relative" style="width: 75px; height: 75px; border-radius: 8px; overflow: hidden; border: 1px solid rgba(255,255,255,0.2); background: #000;">
+                    ${isVideo ? '<video src="' + url + '" style="width:100%;height:100%;object-fit:cover;"></video>' : '<img src="' + url + '" style="width:100%;height:100%;object-fit:cover;" />'}
+                    <button type="button" class="btn btn-sm btn-danger position-absolute top-0 end-0 p-0 d-flex align-items-center justify-content-center" style="width: 20px; height: 20px; font-size: 11px; border-radius: 50%; margin: 2px;" onclick="removePostFile(${idx})" title="Xóa file">✕</button>
+                </div>
+            `;
+            wrap.append(itemHtml);
+        });
+    }
+    function removePostFile(idx) {
+        selectedPostFiles.splice(idx, 1);
+        renderPostFilesPreview();
+    }
+    function submitNewPost() {
+        var content = ($('#createPostContent').val() || '').trim();
+        var privacy = $('#createPostPrivacy').val() || 'Public';
+        if (!content && selectedPostFiles.length === 0) {
+            Swal.fire({ icon: 'warning', title: 'Nội dung trống', text: 'Vui lòng nhập nội dung bài viết hoặc đính kèm ảnh/video!' });
+            return;
+        }
+        var formData = new FormData();
+        formData.append('content', content);
+        formData.append('privacy', privacy);
+        var token = $('input[name="__RequestVerificationToken"]').first().val();
+        if (token) {
+            formData.append('__RequestVerificationToken', token);
+        }
+        selectedPostFiles.forEach(function (f) {
+            formData.append('mediaFiles', f);
+        });
+        $('#btnSubmitPost').prop('disabled', true).html('<i class="fa-solid fa-spinner fa-spin me-1"></i> Đang đăng bài...');
+        $.ajax({
+            url: '/Post/Create',
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            headers: token ? { '__RequestVerificationToken': token } : {},
+            success: function (res) {
+                if (res.success) {
+                    $('#createPostContent').val('');
+                    selectedPostFiles = [];
+                    $('#postFilePreviewWrap').empty();
+                    var modalEl = document.getElementById('createPostModal');
+                    if (modalEl) {
+                        var modal = bootstrap.Modal.getInstance(modalEl);
+                        if (modal) modal.hide();
+                    }
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Thành công!',
+                        text: 'Bài viết của bạn đã được đăng lên Bảng tin!',
+                        timer: 1500,
+                        showConfirmButton: false
+                    }).then(function () {
+                        location.reload();
+                    });
+                } else {
+                    Swal.fire({ icon: 'error', title: 'Lỗi', text: res.message || 'Không thể đăng bài viết' });
+                    $('#btnSubmitPost').prop('disabled', false).text('Đăng bài');
+                }
+            },
+            error: function (xhr) {
+                var msg = 'Lỗi kết nối khi đăng bài!';
+                try { var j = JSON.parse(xhr.responseText); if (j && j.message) msg = j.message; } catch (e) {}
+                Swal.fire({ icon: 'error', title: 'Lỗi', text: msg });
+                $('#btnSubmitPost').prop('disabled', false).text('Đăng bài');
+            }
+        });
+    }
+    // =========================================================================
+    // KHU VỰC TÌM KIẾM BẠN BÈ & GỢI Ý BẠN BÈ (LOGIC & SỰ KIỆN)
+    // =========================================================================
+    var friendSearchPage = 1;
+    var friendSearchPageSize = 8;
+    var friendSearchDebounceTimer = null;
+    var friendSearchLastQuery = '';
+    var friendSearchHasMore = false;
+    // 1. Thực thi tìm kiếm bạn bè
+    function executeFriendSearch(isLoadMore) {
+        var query = ($('#homeFriendSearchInput').val() || '').trim();
+        if (!query) {
+            clearFriendSearch();
+            return;
+        }
+        if (!isLoadMore) {
+            friendSearchPage = 1;
+            friendSearchLastQuery = query;
+            $('#friendSearchResultsList').empty();
+            $('#friendSearchPagination').addClass('d-none');
+        } else {
+            friendSearchPage++;
+        }
+        $('#friendSearchSpinner').removeClass('d-none');
+        $('#btnClearFriendSearch').removeClass('d-none');
+        $('#friendSearchResults').removeClass('d-none');
+        $.ajax({
+            url: '/Home/SearchFriends',
+            type: 'GET',
+            data: { q: query, page: friendSearchPage, pageSize: friendSearchPageSize },
+            success: function (res) {
+                $('#friendSearchSpinner').addClass('d-none');
+                if (!res || !res.success) {
+                    if (!isLoadMore) {
+                        $('#friendSearchResultsList').html('<div class="text-center py-3 text-white-50"><i class="fa-solid fa-triangle-exclamation text-warning me-1"></i> Không thể tải kết quả. Vui lòng thử lại!</div>');
+                    }
+                    return;
+                }
+                friendSearchHasMore = res.hasMore;
+                if (!isLoadMore && (!res.users || res.users.length === 0)) {
+                    $('#friendSearchResultsList').html('<div class="text-center py-3 text-white-50"><i class="fa-solid fa-user-xmark me-1 text-cyan"></i> Không tìm thấy người dùng phù hợp với từ khóa "<strong>' + $('<div>').text(query).html() + '</strong>"</div>');
+                    $('#friendSearchPagination').addClass('d-none');
+                    return;
+                }
+                var html = '';
+                $.each(res.users, function (i, u) {
+                    html += renderSearchUserItemHtml(u);
+                });
+                if (isLoadMore) {
+                    $('#friendSearchResultsList').append(html);
+                } else {
+                    $('#friendSearchResultsList').html(html);
+                }
+                if (res.hasMore) {
+                    $('#friendSearchPagination').removeClass('d-none');
+                } else {
+                    $('#friendSearchPagination').addClass('d-none');
+                }
+            },
+            error: function () {
+                $('#friendSearchSpinner').addClass('d-none');
+                if (!isLoadMore) {
+                    $('#friendSearchResultsList').html('<div class="text-center py-3 text-danger"><i class="fa-solid fa-triangle-exclamation me-1"></i> Lỗi kết nối máy chủ. Vui lòng thử lại!</div>');
+                }
+            }
+        });
+    }
+    function renderSearchUserItemHtml(u) {
+        var avatar = u.Avatar || window.DEFAULT_AVATAR_SVG || '/Content/Images/default-avatar.png';
+        var name = u.DisplayName || u.Username || 'Người dùng';
+        var faculty = u.Faculty || '';
+        var major = u.Major || '';
+        var metaText = faculty ? faculty : (major ? major : (u.Bio || 'Thành viên TDMU'));
+        var mutualText = u.MutualFriendsCount > 0 ? ('<span class="meta-tag mutual"><i class="fa-solid fa-user-group me-1"></i>' + u.MutualFriendsCount + ' bạn chung</span>') : '';
+        var friendBtnHtml = '';
+        if (u.RelationshipStatus === 'Self') {
+            friendBtnHtml = '<span class="badge bg-secondary opacity-75">Bạn</span>';
+        } else if (u.RelationshipStatus === 'PendingSent') {
+            friendBtnHtml = '<button type="button" class="btn-sug-action btn-pending" data-friend-btn="' + u.UserID + '" onclick="handleFriendAction(' + u.UserID + ', \'cancel\', this)" title="Đã gửi lời mời (Bấm để hủy)"><i class="fa-solid fa-clock me-1"></i>Đã gửi</button>';
+        } else if (u.RelationshipStatus === 'PendingReceived') {
+            friendBtnHtml = '<button type="button" class="btn-sug-action btn-accept" data-friend-btn="' + u.UserID + '" onclick="handleFriendAction(' + u.UserID + ', \'accept\', this)" title="Chấp nhận lời mời"><i class="fa-solid fa-check me-1"></i>Chấp nhận</button>';
+        } else if (u.RelationshipStatus === 'Friends') {
+            friendBtnHtml = '<button type="button" class="btn-sug-action btn-friends" data-friend-btn="' + u.UserID + '" onclick="handleFriendAction(' + u.UserID + ', \'remove\', this)" title="Bạn bè (Bấm để hủy kết bạn)"><i class="fa-solid fa-user-check me-1"></i>Bạn bè</button>';
+        } else {
+            friendBtnHtml = '<button type="button" class="btn-sug-action btn-add" data-friend-btn="' + u.UserID + '" onclick="handleFriendAction(' + u.UserID + ', \'add\', this)" title="Thêm bạn bè"><i class="fa-solid fa-user-plus me-1"></i>Kết bạn</button>';
+        }
+        var followBtnHtml = '';
+        if (u.RelationshipStatus !== 'Self') {
+            var isFollowing = u.IsFollowing || false;
+            followBtnHtml = '<button type="button" class="btn-sug-follow ' + (isFollowing ? 'following' : '') + '" data-follow-btn="' + u.UserID + '" onclick="handleFollowAction(' + u.UserID + ', this)" title="' + (isFollowing ? 'Bỏ theo dõi' : 'Theo dõi') + '">' +
+                '<i class="fa-solid ' + (isFollowing ? 'fa-bell-slash text-warning' : 'fa-bell') + '"></i>' +
+                '</button>';
+        }
+        return '<div class="search-user-item" data-search-user="' + u.UserID + '">' +
+            '<a href="/User/Profile/' + u.UserID + '" class="search-avatar-wrap">' +
+                '<img src="' + avatar + '" class="search-avatar" alt="' + $('<div>').text(name).html() + '" onerror="this.onerror=null;this.src=\'/Content/Images/default-avatar.png\';" />' +
+            '</a>' +
+            '<div class="search-user-info">' +
+                '<a href="/User/Profile/' + u.UserID + '" class="search-user-name text-truncate d-block" title="' + $('<div>').text(name).html() + '">' + $('<div>').text(name).html() + '</a>' +
+                '<div class="search-user-meta">' +
+                    (metaText ? ('<span class="meta-tag">' + $('<div>').text(metaText).html() + '</span>') : '') +
+                    mutualText +
+                '</div>' +
+            '</div>' +
+            '<div class="search-actions">' +
+                friendBtnHtml +
+                followBtnHtml +
+            '</div>' +
+        '</div>';
+    }
+    function clearFriendSearch() {
+        $('#homeFriendSearchInput').val('');
+        $('#btnClearFriendSearch').addClass('d-none');
+        $('#friendSearchSpinner').addClass('d-none');
+        $('#friendSearchResults').addClass('d-none');
+        $('#friendSearchResultsList').empty();
+        $('#friendSearchPagination').addClass('d-none');
+        friendSearchPage = 1;
+        friendSearchLastQuery = '';
+    }
+    function loadMoreFriendSearch() {
+        if (friendSearchHasMore) {
+            executeFriendSearch(true);
+        }
+    }
+    // 2. Cuộn thanh gợi ý bạn bè nằm ngang
+    function scrollSuggestions(direction) {
+        var track = document.getElementById('suggestedFriendsTrack');
+        if (!track) return;
+        var scrollStep = 380;
+        if (direction === 'left') {
+            track.scrollBy({ left: -scrollStep, behavior: 'smooth' });
+        } else {
+            track.scrollBy({ left: scrollStep, behavior: 'smooth' });
+        }
+    }
+    function updateSuggestionScrollButtons() {
+        var track = document.getElementById('suggestedFriendsTrack');
+        if (!track) return;
+        var btnLeft = document.getElementById('btnScrollSugLeft');
+        var btnRight = document.getElementById('btnScrollSugRight');
+        if (!btnLeft || !btnRight) return;
+        var scrollLeft = track.scrollLeft;
+        var maxScroll = track.scrollWidth - track.clientWidth;
+        if (scrollLeft <= 5) {
+            btnLeft.disabled = true;
+            btnLeft.style.opacity = '0.3';
+        } else {
+            btnLeft.disabled = false;
+            btnLeft.style.opacity = '1';
+        }
+        if (scrollLeft >= maxScroll - 5) {
+            btnRight.disabled = true;
+            btnRight.style.opacity = '0.3';
+        } else {
+            btnRight.disabled = false;
+            btnRight.style.opacity = '1';
+        }
+    }
+    // 3. Làm mới danh sách gợi ý bạn bè (có xoay vòng phân trang mượt mà)
+    var friendSuggestionSkip = 0;
+    function refreshFriendSuggestions() {
+        var btn = $('#btnRefreshSuggestions');
+        var icon = btn.find('i');
+        icon.addClass('fa-spin');
+        btn.prop('disabled', true);
+        friendSuggestionSkip += 10;
+        $.ajax({
+            url: '/Home/GetFriendSuggestions',
+            type: 'GET',
+            data: { take: 10, skip: friendSuggestionSkip },
+            success: function (res) {
+                icon.removeClass('fa-spin');
+                btn.prop('disabled', false);
+                if (!res || !res.success) {
+                    if (window.AppDialog) AppDialog.error('Không thể tải danh sách gợi ý. Vui lòng thử lại!', 'Thông báo');
+                    else Swal.fire({ icon: 'error', title: 'Thông báo', text: 'Không thể tải danh sách gợi ý. Vui lòng thử lại!' });
+                    return;
+                }
+                var track = $('#suggestedFriendsTrack');
+                if (!res.users || res.users.length === 0) {
+                    if (friendSuggestionSkip > 0) {
+                        // Đã xem hết danh sách, quay vòng về trang đầu
+                        friendSuggestionSkip = 0;
+                        $.ajax({
+                            url: '/Home/GetFriendSuggestions',
+                            type: 'GET',
+                            data: { take: 10, skip: 0 },
+                            success: function (wrapRes) {
+                                if (wrapRes && wrapRes.success && wrapRes.users && wrapRes.users.length > 0) {
+                                    track.empty();
+                                    var cardsHtml = '';
+                                    $.each(wrapRes.users, function (i, u) {
+                                        cardsHtml += renderSuggestionCardHtml(u);
+                                    });
+                                    track.html(cardsHtml);
+                                    track.scrollLeft(0);
+                                    updateSuggestionScrollButtons();
+                                }
+                            }
+                        });
+                        return;
+                    }
+                    track.html('<div class="empty-suggestions-state text-center py-4 text-white-50 w-100">' +
+                        '<i class="fa-solid fa-user-check fa-2x mb-2 text-cyan opacity-50"></i>' +
+                        '<div>Hiện chưa có gợi ý mới. Hãy thử làm mới lại sau nhé!</div>' +
+                        '</div>');
+                    return;
+                }
+                track.empty();
+                var cardsHtml = '';
+                $.each(res.users, function (i, u) {
+                    cardsHtml += renderSuggestionCardHtml(u);
+                });
+                track.html(cardsHtml);
+                track.scrollLeft(0);
+                updateSuggestionScrollButtons();
+            },
+            error: function (xhr) {
+                icon.removeClass('fa-spin');
+                btn.prop('disabled', false);
+                if (window.AppDialog) AppDialog.handleAjaxError(xhr, 'Lỗi kết nối khi làm mới gợi ý bạn bè!');
+                else Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Lỗi kết nối khi làm mới gợi ý bạn bè!' });
+            }
+        });
+    }
+    function renderSuggestionCardHtml(s) {
+        var avatar = s.Avatar || window.DEFAULT_AVATAR_SVG || '/Content/Images/default-avatar.png';
+        var name = s.DisplayName || s.Username || 'Người dùng';
+        var reasonHtml = '';
+        if (s.MutualFriendsCount > 0) {
+            reasonHtml = '<span class="text-cyan"><i class="fa-solid fa-user-group me-1"></i>' + s.MutualFriendsCount + ' bạn chung</span>';
+        } else if (s.Faculty) {
+            reasonHtml = '<span><i class="fa-solid fa-graduation-cap me-1"></i>' + $('<div>').text(s.Faculty).html() + '</span>';
+        } else {
+            reasonHtml = '<span><i class="fa-solid fa-sparkles me-1"></i>' + $('<div>').text(s.Reason || 'Gợi ý kết nối').html() + '</span>';
+        }
+        var friendBtnHtml = '';
+        if (s.RelationshipStatus === 'PendingSent') {
+            friendBtnHtml = '<button type="button" class="btn-sug-action btn-pending" data-friend-btn="' + s.UserID + '" onclick="handleFriendAction(' + s.UserID + ', \'cancel\', this)" title="Đã gửi lời mời (Bấm để hủy)"><i class="fa-solid fa-clock me-1"></i>Đã gửi</button>';
+        } else if (s.RelationshipStatus === 'PendingReceived') {
+            friendBtnHtml = '<button type="button" class="btn-sug-action btn-accept" data-friend-btn="' + s.UserID + '" onclick="handleFriendAction(' + s.UserID + ', \'accept\', this)" title="Chấp nhận lời mời"><i class="fa-solid fa-check me-1"></i>Chấp nhận</button>';
+        } else if (s.RelationshipStatus === 'Friends') {
+            friendBtnHtml = '<button type="button" class="btn-sug-action btn-friends" data-friend-btn="' + s.UserID + '" onclick="handleFriendAction(' + s.UserID + ', \'remove\', this)" title="Bạn bè (Bấm để hủy kết bạn)"><i class="fa-solid fa-user-check me-1"></i>Bạn bè</button>';
+        } else {
+            friendBtnHtml = '<button type="button" class="btn-sug-action btn-add" data-friend-btn="' + s.UserID + '" onclick="handleFriendAction(' + s.UserID + ', \'add\', this)" title="Thêm bạn bè"><i class="fa-solid fa-user-plus me-1"></i>Kết bạn</button>';
+        }
+        var isFollowing = s.IsFollowing || false;
+        var followBtnHtml = '<button type="button" class="btn-sug-follow ' + (isFollowing ? 'following' : '') + '" data-follow-btn="' + s.UserID + '" onclick="handleFollowAction(' + s.UserID + ', this)" title="' + (isFollowing ? 'Bỏ theo dõi' : 'Theo dõi') + '">' +
+            '<i class="fa-solid ' + (isFollowing ? 'fa-bell-slash text-warning' : 'fa-bell') + '"></i>' +
+            '</button>';
+        return '<div class="sug-card" id="suggestion-user-' + s.UserID + '" data-user-id="' + s.UserID + '">' +
+            '<button type="button" class="sug-card-dismiss" onclick="dismissSuggestion(' + s.UserID + ')" title="Gỡ gợi ý">' +
+                '<i class="fa-solid fa-xmark"></i>' +
+            '</button>' +
+            '<a href="/User/Profile/' + s.UserID + '" class="sug-avatar-link">' +
+                '<img src="' + avatar + '" class="sug-avatar" alt="' + $('<div>').text(name).html() + '" onerror="this.onerror=null;this.src=\'/Content/Images/default-avatar.png\';" />' +
+            '</a>' +
+            '<a href="/User/Profile/' + s.UserID + '" class="sug-name" title="' + $('<div>').text(name).html() + '">' +
+                $('<div>').text(name).html() +
+            '</a>' +
+            '<div class="sug-reason">' +
+                reasonHtml +
+            '</div>' +
+            '<div class="sug-actions">' +
+                friendBtnHtml +
+                followBtnHtml +
+            '</div>' +
+        '</div>';
+    }
+    // 4. Gỡ gợi ý bạn bè
+    function dismissSuggestion(userId) {
+        var card = $('#suggestion-user-' + userId);
+        if (card.length) {
+            card.fadeOut(250, function () {
+                card.remove();
+                var track = $('#suggestedFriendsTrack');
+                if (track.children('.sug-card').length === 0) {
+                    track.html('<div class="empty-suggestions-state text-center py-4 text-white-50 w-100">' +
+                        '<i class="fa-solid fa-user-check fa-2x mb-2 text-cyan opacity-50"></i>' +
+                        '<div>Hiện chưa có gợi ý mới. Hãy thử làm mới lại sau nhé!</div>' +
+                        '</div>');
+                }
+                updateSuggestionScrollButtons();
+            });
+        }
+    }
+    // 5. Xử lý Kết bạn / Hủy lời mời / Chấp nhận / Hủy kết bạn
+    function handleFriendAction(targetUserId, action, btnElement) {
+        if (window.AppDialog && !AppDialog.ensureLoggedIn('Vui lòng đăng nhập để thực hiện thao tác này.')) {
+            return;
+        }
+        var token = $('input[name="__RequestVerificationToken"]').first().val();
+        if (action === 'remove') {
+            if (window.AppDialog) {
+                AppDialog.confirm({
+                    title: 'Hủy kết bạn?',
+                    message: 'Bạn có chắc chắn muốn hủy kết bạn với người dùng này?',
+                    confirmText: 'Đồng ý hủy',
+                    cancelText: 'Không',
+                    confirmColor: '#ef4444'
+                }).then(function (result) {
+                    if (result && result.isConfirmed) {
+                        executeFriendRequestCall('/User/Unfriend', { targetId: targetUserId, __RequestVerificationToken: token }, targetUserId, 'None', btnElement);
+                    }
+                });
+            } else {
+                Swal.fire({
+                    title: 'Hủy kết bạn?',
+                    text: 'Bạn có chắc chắn muốn hủy kết bạn với người dùng này?',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonColor: '#ef4444',
+                    cancelButtonColor: '#6b7280',
+                    confirmButtonText: 'Đồng ý hủy',
+                    cancelButtonText: 'Không'
+                }).then(function (result) {
+                    if (result.isConfirmed) {
+                        executeFriendRequestCall('/User/Unfriend', { targetId: targetUserId, __RequestVerificationToken: token }, targetUserId, 'None', btnElement);
+                    }
+                });
+            }
+            return;
+        }
+        if (action === 'add') {
+            executeFriendRequestCall('/User/SendFriendRequest', { targetId: targetUserId, __RequestVerificationToken: token }, targetUserId, 'PendingSent', btnElement);
+        } else if (action === 'cancel') {
+            executeFriendRequestCall('/User/CancelFriendRequest', { targetId: targetUserId, __RequestVerificationToken: token }, targetUserId, 'None', btnElement);
+        } else if (action === 'accept') {
+            executeFriendRequestCall('/User/AcceptFriendRequest', { targetId: targetUserId, __RequestVerificationToken: token }, targetUserId, 'Friends', btnElement);
+        }
+    }
+    function executeFriendRequestCall(url, postData, targetUserId, newStatus, btnElement) {
+        var $btn = btnElement ? $(btnElement) : null;
+        if ($btn && $btn.prop('disabled')) return;
+        if ($btn) $btn.prop('disabled', true);
+
+        $.ajax({
+            url: url,
+            type: 'POST',
+            data: postData,
+            success: function (res) {
+                if (res && res.success) {
+                    syncFriendButtonState(targetUserId, newStatus);
+                    var msg = res.message || 'Thao tác thành công!';
+                    if (window.AppDialog) AppDialog.toastSuccess(msg);
+                    else {
+                        const Toast = Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 2000 });
+                        Toast.fire({ icon: 'success', title: msg });
+                    }
+                } else if (res && res.requireLogin) {
+                    if (window.AppDialog) AppDialog.requireLogin({ message: res.message || 'Vui lòng đăng nhập để thực hiện thao tác này.' });
+                } else {
+                    var errMsg = (res && res.message) ? res.message : 'Thao tác không thành công!';
+                    if (window.AppDialog) AppDialog.warning(errMsg, 'Thông báo');
+                    else Swal.fire({ icon: 'warning', title: 'Thông báo', text: errMsg });
+                }
+            },
+            error: function (xhr) {
+                if (window.AppDialog) AppDialog.handleAjaxError(xhr, 'Lỗi kết nối khi gửi yêu cầu.');
+                else Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Lỗi kết nối khi gửi yêu cầu. Vui lòng kiểm tra đăng nhập!' });
+            },
+            complete: function () {
+                if ($btn) $btn.prop('disabled', false);
+            }
+        });
+    }
+    function syncFriendButtonState(targetUserId, status) {
+        var btns = $('[data-friend-btn="' + targetUserId + '"]');
+        btns.each(function () {
+            var b = $(this);
+            b.removeClass('btn-add btn-pending btn-accept btn-friends');
+            if (status === 'PendingSent') {
+                b.addClass('btn-pending');
+                b.html('<i class="fa-solid fa-clock me-1"></i>Đã gửi');
+                b.attr('title', 'Đã gửi lời mời (Bấm để hủy)');
+                b.attr('onclick', 'handleFriendAction(' + targetUserId + ', \'cancel\', this)');
+            } else if (status === 'PendingReceived') {
+                b.addClass('btn-accept');
+                b.html('<i class="fa-solid fa-check me-1"></i>Chấp nhận');
+                b.attr('title', 'Chấp nhận lời mời');
+                b.attr('onclick', 'handleFriendAction(' + targetUserId + ', \'accept\', this)');
+            } else if (status === 'Friends') {
+                b.addClass('btn-friends');
+                b.html('<i class="fa-solid fa-user-check me-1"></i>Bạn bè');
+                b.attr('title', 'Bạn bè (Bấm để hủy kết bạn)');
+                b.attr('onclick', 'handleFriendAction(' + targetUserId + ', \'remove\', this)');
+            } else {
+                b.addClass('btn-add');
+                b.html('<i class="fa-solid fa-user-plus me-1"></i>Kết bạn');
+                b.attr('title', 'Thêm bạn bè');
+                b.attr('onclick', 'handleFriendAction(' + targetUserId + ', \'add\', this)');
+            }
+        });
+    }
+    // 6. Xử lý Theo dõi / Bỏ theo dõi
+    function handleFollowAction(targetUserId, btnElement) {
+        if (window.AppDialog && !AppDialog.ensureLoggedIn('Vui lòng đăng nhập để theo dõi người dùng này.')) {
+            return;
+        }
+        var $btn = btnElement ? $(btnElement) : $('[data-follow-btn="' + targetUserId + '"]');
+        if ($btn && $btn.prop('disabled')) return;
+        if ($btn) $btn.prop('disabled', true);
+
+        var token = $('input[name="__RequestVerificationToken"]').first().val();
+        $.ajax({
+            url: '/User/ToggleFollow',
+            type: 'POST',
+            data: { targetId: targetUserId, __RequestVerificationToken: token },
+            success: function (res) {
+                if (res && res.success) {
+                    var isFollowing = res.isFollowing;
+                    syncFollowButtonState(targetUserId, isFollowing);
+                    var msg = isFollowing ? 'Đã theo dõi người dùng' : 'Đã bỏ theo dõi người dùng';
+                    if (window.AppDialog) AppDialog.toastSuccess(msg);
+                    else {
+                        const Toast = Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 1800 });
+                        Toast.fire({ icon: 'success', title: msg });
+                    }
+                } else if (res && res.requireLogin) {
+                    if (window.AppDialog) AppDialog.requireLogin({ message: res.message || 'Vui lòng đăng nhập để theo dõi người dùng này.' });
+                } else {
+                    var errMsg = (res && res.message) ? res.message : 'Không thể thực hiện thao tác!';
+                    if (window.AppDialog) AppDialog.warning(errMsg, 'Thông báo');
+                    else Swal.fire({ icon: 'warning', title: 'Thông báo', text: errMsg });
+                }
+            },
+            error: function (xhr) {
+                if (window.AppDialog) AppDialog.handleAjaxError(xhr, 'Lỗi kết nối khi cập nhật theo dõi!');
+                else Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Lỗi kết nối khi cập nhật theo dõi!' });
+            },
+            complete: function () {
+                if ($btn) $btn.prop('disabled', false);
+            }
+        });
+    }
+    function syncFollowButtonState(targetUserId, isFollowing) {
+        var btns = $('[data-follow-btn="' + targetUserId + '"]');
+        btns.each(function () {
+            var b = $(this);
+            if (isFollowing) {
+                b.addClass('following');
+                b.attr('title', 'Bỏ theo dõi');
+                b.html('<i class="fa-solid fa-bell-slash text-warning"></i>');
+            } else {
+                b.removeClass('following');
+                b.attr('title', 'Theo dõi');
+                b.html('<i class="fa-solid fa-bell"></i>');
+            }
+        });
+    }
+    // Gắn sự kiện khi DOM sẵn sàng
+    $(document).ready(function () {
+        // Friend search debounce
+        $('#homeFriendSearchInput').on('input', function () {
+            var val = $(this).val();
+            if (val.length > 0) {
+                $('#btnClearFriendSearch').removeClass('d-none');
+            } else {
+                $('#btnClearFriendSearch').addClass('d-none');
+            }
+            clearTimeout(friendSearchDebounceTimer);
+            friendSearchDebounceTimer = setTimeout(function () {
+                executeFriendSearch(false);
+            }, 300);
+        });
+        // Friend search Enter key
+        $('#homeFriendSearchInput').on('keydown', function (e) {
+            if (e.key === 'Enter' || e.keyCode === 13) {
+                e.preventDefault();
+                clearTimeout(friendSearchDebounceTimer);
+                executeFriendSearch(false);
+            }
+        });
+        // Close search dropdown when clicking outside
+        $(document).on('click', function (e) {
+            if (!$(e.target).closest('.home-friend-search-wrap').length) {
+                $('#friendSearchResults').addClass('d-none');
+            }
+        });
+        // Track scroll listener to update left/right navigation buttons
+        var sugTrack = document.getElementById('suggestedFriendsTrack');
+        if (sugTrack) {
+            sugTrack.addEventListener('scroll', updateSuggestionScrollButtons, { passive: true });
+            updateSuggestionScrollButtons();
+        }
+    });
+</script>
+}
+@section Modals {
+    @Html.Partial("~/Views/Story/_StoryModalsPartial.cshtml")
+    @if (currentUser != null)
+    {
+        <!-- MODAL: TẠO BÀI VIẾT MỚI -->
+        <div class="modal fade" id="createPostModal" tabindex="-1" aria-hidden="true" style="z-index: 1060;">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content bg-dark text-white border-secondary">
+                    <div class="modal-header border-secondary">
+                        <h5 class="modal-title"><i class="fa-solid fa-pen-to-square text-info me-2"></i>Tạo bài viết</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="d-flex align-items-center gap-2 mb-3">
+                            <img src="@currentAvatar" class="rounded-circle" style="width: 40px; height: 40px; object-fit: cover;" alt="@currentUsername" />
+                            <div>
+                                <div class="fw-bold small">@currentUsername</div>
+                                <select class="form-select form-select-sm bg-black text-white border-secondary py-0 px-2" id="createPostPrivacy" style="width: auto; font-size: 11px;">
+                                    <option value="Public">🌐 Công khai</option>
+                                    <option value="Friends">👥 Bạn bè</option>
+                                    <option value="OnlyMe">🔒 Chỉ mình tôi</option>
+                                </select>
+                            </div>
+                        </div>
+                        <textarea class="form-control bg-black text-white border-secondary mb-3" id="createPostContent" rows="4" placeholder="@currentUsername ơi, bạn đang nghĩ gì thế?"></textarea>
+                        <div class="p-3 border border-secondary rounded mb-2 d-flex align-items-center justify-content-between">
+                            <span class="small text-muted">Thêm vào bài viết:</span>
+                            <label for="postFileInput" class="btn btn-sm btn-outline-success mb-0" style="cursor:pointer;">
+                                <i class="fa-solid fa-image me-1"></i> Ảnh / Video
+                            </label>
+                            <input type="file" id="postFileInput" name="mediaFiles" multiple accept="image/*,video/*" style="display:none;" />
+                        </div>
+                        <div id="postFilePreviewWrap" class="d-flex gap-2 flex-wrap mb-2"></div>
+                    </div>
+                    <div class="modal-footer border-secondary">
+                        <button type="button" class="btn btn-info text-dark fw-bold w-100" id="btnSubmitPost" onclick="submitNewPost();">
+                            Đăng bài
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+}

@@ -1,0 +1,2057 @@
+﻿@model StudentConnect.Models.Assistant.AdminAiAgentViewModel
+@{
+    ViewBag.Title = "Quản trị AI Agent";
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+
+    bool isSuperAdmin = Model.IsSuperAdmin;
+    bool canAutomation = Model.CanAutomation;
+    bool canManageContent = Model.CanManageContent;
+    bool canInteract = Model.CanInteract;
+    bool canReadData = Model.CanReadData;
+    bool canDeleteLogs = Model.CanDeleteLogs;
+}
+
+<style>
+    :root {
+        --agent-cyan: #00c8ff;
+        --agent-purple: #7b61ff;
+        --agent-green: #00c850;
+        --agent-amber: #ffb830;
+        --agent-red: #ff4d4d;
+        --agent-card-bg: rgba(13, 22, 38, 0.75);
+        --agent-card-border: rgba(255, 255, 255, 0.08);
+        --agent-card-hover: rgba(0, 200, 255, 0.15);
+    }
+
+    .agent-wrapper {
+        padding: 8px 4px 30px;
+        font-family: 'Space Grotesk', sans-serif;
+    }
+
+    /* Page Header */
+    .agent-header-card {
+        background: linear-gradient(135deg, rgba(13, 22, 38, 0.95), rgba(7, 13, 26, 0.95));
+        border: 1px solid var(--agent-card-border);
+        border-radius: 16px;
+        padding: 20px 24px;
+        margin-bottom: 22px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        position: relative;
+        overflow: hidden;
+    }
+    .agent-header-card::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0; height: 2px;
+        background: linear-gradient(90deg, transparent, var(--agent-cyan), var(--agent-purple), transparent);
+    }
+    .agent-title {
+        font-size: 22px;
+        font-weight: 700;
+        color: #fff;
+        margin: 0 0 6px 0;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+    .agent-title .robot-icon-wrap {
+        width: 44px;
+        height: 44px;
+        border-radius: 12px;
+        background: linear-gradient(135deg, rgba(0, 200, 255, 0.2), rgba(123, 97, 255, 0.2));
+        border: 1px solid rgba(0, 200, 255, 0.4);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 22px;
+        color: var(--agent-cyan);
+    }
+    .agent-subtitle {
+        color: rgba(255, 255, 255, 0.6);
+        font-size: 13.5px;
+        margin: 0;
+    }
+
+    /* Navigation Tabs */
+    .agent-nav-tabs {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 22px;
+        border-bottom: 1px solid var(--agent-card-border);
+        padding-bottom: 12px;
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+    .agent-tab-btn {
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid var(--agent-card-border);
+        color: rgba(255, 255, 255, 0.7);
+        padding: 9px 18px;
+        border-radius: 10px;
+        font-size: 13.5px;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+        transition: all 0.22s ease;
+        text-decoration: none;
+    }
+    .agent-tab-btn:hover {
+        background: rgba(0, 200, 255, 0.08);
+        border-color: rgba(0, 200, 255, 0.35);
+        color: #fff;
+        transform: translateY(-1px);
+    }
+    .agent-tab-btn.active {
+        background: linear-gradient(135deg, rgba(0, 200, 255, 0.2), rgba(123, 97, 255, 0.2));
+        border-color: var(--agent-cyan);
+        color: #fff;
+        box-shadow: 0 0 16px rgba(0, 200, 255, 0.25);
+    }
+    .agent-tab-badge {
+        font-size: 11px;
+        padding: 2px 7px;
+        border-radius: 100px;
+        background: rgba(255, 255, 255, 0.12);
+        color: #fff;
+    }
+
+    /* Cards */
+    .agent-card {
+        background: var(--agent-card-bg);
+        border: 1px solid var(--agent-card-border);
+        border-radius: 14px;
+        padding: 20px;
+        margin-bottom: 20px;
+        backdrop-filter: blur(16px);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+        position: relative;
+    }
+    .agent-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid var(--agent-card-border);
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+    .agent-card-title {
+        font-size: 16px;
+        font-weight: 700;
+        color: #fff;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    /* Metric Stat Box */
+    .metric-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 16px;
+        margin-bottom: 22px;
+    }
+    .metric-box {
+        background: linear-gradient(135deg, rgba(13, 22, 38, 0.9), rgba(10, 16, 30, 0.9));
+        border: 1px solid var(--agent-card-border);
+        border-radius: 14px;
+        padding: 18px;
+        position: relative;
+        overflow: hidden;
+        transition: transform 0.2s, border-color 0.2s;
+    }
+    .metric-box:hover {
+        transform: translateY(-2px);
+        border-color: rgba(0, 200, 255, 0.4);
+    }
+    .metric-box-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 8px;
+    }
+    .metric-box-title {
+        font-size: 12.5px;
+        font-weight: 600;
+        color: rgba(255, 255, 255, 0.6);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    .metric-box-icon {
+        font-size: 20px;
+        opacity: 0.85;
+    }
+    .metric-box-val {
+        font-size: 28px;
+        font-weight: 700;
+        color: #fff;
+        line-height: 1.1;
+        margin-bottom: 8px;
+        font-family: 'JetBrains Mono', monospace;
+    }
+    .metric-box-sub {
+        font-size: 11.5px;
+        color: rgba(255, 255, 255, 0.5);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    /* Tables */
+    .agent-table-wrap {
+        overflow-x: auto;
+        border-radius: 10px;
+        border: 1px solid var(--agent-card-border);
+    }
+    .agent-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        font-size: 13px;
+        color: rgba(255, 255, 255, 0.85);
+        margin: 0;
+    }
+    .agent-table th {
+        background: rgba(5, 10, 20, 0.85);
+        color: rgba(255, 255, 255, 0.65);
+        font-weight: 600;
+        font-size: 11.5px;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        padding: 12px 14px;
+        border-bottom: 1px solid var(--agent-card-border);
+        white-space: nowrap;
+    }
+    .agent-table td {
+        padding: 12px 14px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+        vertical-align: middle;
+        background: transparent;
+    }
+    .agent-table tr:hover td {
+        background: rgba(0, 200, 255, 0.04);
+    }
+
+    /* Badges */
+    .badge-status {
+        font-size: 11px;
+        padding: 3px 8px;
+        border-radius: 6px;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+    }
+    .badge-status.active, .badge-status.success, .badge-status.online {
+        background: rgba(0, 200, 80, 0.18);
+        color: #00e664;
+        border: 1px solid rgba(0, 200, 80, 0.35);
+    }
+    .badge-status.paused, .badge-status.warning {
+        background: rgba(255, 184, 48, 0.18);
+        color: #ffc44d;
+        border: 1px solid rgba(255, 184, 48, 0.35);
+    }
+    .badge-status.cancelled, .badge-status.failed, .badge-status.offline {
+        background: rgba(255, 77, 77, 0.18);
+        color: #ff6b6b;
+        border: 1px solid rgba(255, 77, 77, 0.35);
+    }
+    .badge-status.completed, .badge-status.info {
+        background: rgba(0, 200, 255, 0.18);
+        color: #38d6ff;
+        border: 1px solid rgba(0, 200, 255, 0.35);
+    }
+
+    /* Action Buttons in tables */
+    .btn-action-icon {
+        width: 30px;
+        height: 30px;
+        border-radius: 8px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid var(--agent-card-border);
+        color: rgba(255, 255, 255, 0.8);
+        cursor: pointer;
+        transition: all 0.18s;
+        text-decoration: none;
+    }
+    .btn-action-icon:hover {
+        background: rgba(0, 200, 255, 0.15);
+        border-color: rgba(0, 200, 255, 0.4);
+        color: #fff;
+        transform: scale(1.08);
+    }
+
+    /* Forms */
+    .form-dark-control {
+        background: rgba(5, 10, 20, 0.7);
+        border: 1px solid var(--agent-card-border);
+        border-radius: 8px;
+        color: #fff;
+        padding: 8px 12px;
+        font-size: 13px;
+        width: 100%;
+        transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .form-dark-control:focus {
+        border-color: var(--agent-cyan);
+        box-shadow: 0 0 0 3px rgba(0, 200, 255, 0.15);
+        outline: none;
+        background: rgba(5, 10, 20, 0.9);
+        color: #fff;
+    }
+
+    /* Modals */
+    .modal-dark-content {
+        background: #0d1626;
+        border: 1px solid rgba(0, 200, 255, 0.3);
+        border-radius: 16px;
+        color: #fff;
+        box-shadow: 0 16px 48px rgba(0, 0, 0, 0.7);
+    }
+    .modal-dark-header {
+        border-bottom: 1px solid var(--agent-card-border);
+        padding: 16px 20px;
+    }
+    .modal-dark-footer {
+        border-top: 1px solid var(--agent-card-border);
+        padding: 14px 20px;
+    }
+
+    /* Sub-admin permission matrix */
+    .subadmin-card {
+        background: rgba(5, 10, 20, 0.6);
+        border: 1px solid var(--agent-card-border);
+        border-radius: 12px;
+        padding: 16px;
+        margin-bottom: 14px;
+        transition: border-color 0.2s;
+    }
+    .subadmin-card:hover {
+        border-color: rgba(0, 200, 255, 0.3);
+    }
+    .subadmin-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+    }
+    .perm-switches-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+        gap: 10px;
+        background: rgba(255, 255, 255, 0.02);
+        padding: 10px;
+        border-radius: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    /* Custom Switch styling */
+    .form-check-input:checked {
+        background-color: var(--agent-cyan);
+        border-color: var(--agent-cyan);
+    }
+
+    /* Code & JSON Preview box */
+    .json-box {
+        background: #050a14;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+        padding: 12px;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 12px;
+        color: #38d6ff;
+        max-height: 240px;
+        overflow-y: auto;
+        white-space: pre-wrap;
+        word-break: break-all;
+    }
+
+    /* ── COMPREHENSIVE RESPONSIVE MOBILE STYLES (320px - 768px) ── */
+    @@media (max-width: 768px) {
+        .agent-wrapper {
+            padding: 4px 0 20px;
+        }
+
+        /* Header Card */
+        .agent-header-card {
+            padding: 14px 16px;
+            border-radius: 12px;
+            margin-bottom: 14px;
+        }
+        .agent-header-card .d-flex {
+            flex-direction: column;
+            align-items: flex-start !important;
+            gap: 12px;
+        }
+        .agent-title {
+            font-size: 1.15rem;
+            gap: 8px;
+            word-break: break-word;
+        }
+        .agent-title .robot-icon-wrap {
+            width: 36px;
+            height: 36px;
+            font-size: 18px;
+            border-radius: 10px;
+            flex-shrink: 0;
+        }
+        .agent-subtitle {
+            font-size: 11.5px;
+            line-height: 1.5;
+        }
+        .agent-header-card .d-flex.align-items-center {
+            width: 100%;
+            justify-content: space-between;
+        }
+        .agent-header-card .btn {
+            width: 100%;
+            min-height: 38px;
+            justify-content: center;
+        }
+
+        /* Nav Tabs: smooth horizontal scroll on touch */
+        .agent-nav-tabs {
+            gap: 6px;
+            padding-bottom: 8px;
+            margin-bottom: 14px;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+        }
+        .agent-nav-tabs::-webkit-scrollbar {
+            display: none;
+        }
+        .agent-tab-btn {
+            padding: 8px 12px;
+            font-size: 12px;
+            border-radius: 8px;
+            min-height: 38px;
+            flex-shrink: 0;
+        }
+
+        /* KPI Metric Grid */
+        .metric-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+        .metric-box {
+            padding: 12px 14px;
+            border-radius: 12px;
+        }
+        .metric-box-title {
+            font-size: 10.5px;
+        }
+        .metric-box-val {
+            font-size: 1.5rem;
+            margin-bottom: 4px;
+        }
+        .metric-box-sub {
+            font-size: 10.5px;
+        }
+
+        /* Agent Cards */
+        .agent-card {
+            padding: 14px;
+            border-radius: 12px;
+            margin-bottom: 14px;
+        }
+        .agent-card-header {
+            flex-direction: column;
+            align-items: stretch !important;
+            gap: 10px;
+            margin-bottom: 12px;
+            padding-bottom: 10px;
+        }
+        .agent-card-title {
+            font-size: 13.5px;
+            word-break: break-word;
+        }
+        .agent-card-header .btn {
+            width: 100%;
+            min-height: 38px;
+            justify-content: center;
+        }
+
+        /* Tables */
+        .agent-table-wrap {
+            border-radius: 8px;
+            margin: 0 -1px;
+        }
+        .agent-table {
+            min-width: 620px;
+            font-size: 12.5px;
+        }
+        .agent-table th, .agent-table td {
+            padding: 9px 10px;
+        }
+
+        /* Action buttons in tables */
+        .btn-action-icon {
+            width: 34px !important;
+            height: 34px !important;
+            font-size: 14px !important;
+            margin: 2px 1px;
+        }
+
+        /* Form Controls */
+        .form-dark-control {
+            min-height: 38px;
+            font-size: 13px !important;
+        }
+        .agent-card form .btn-primary,
+        .agent-card form .btn-success,
+        .agent-card form .btn-info {
+            width: 100%;
+            min-height: 42px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        /* Modals */
+        .modal-dialog {
+            margin: 10px auto !important;
+            max-width: calc(100vw - 20px) !important;
+            width: 100% !important;
+        }
+        .modal-dark-content {
+            border-radius: 14px !important;
+        }
+        .modal-dark-header, .modal-dark-footer {
+            padding: 12px 14px !important;
+        }
+        .modal-dark-footer {
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: 8px;
+        }
+        .modal-dark-footer .btn {
+            width: 100% !important;
+            min-height: 38px;
+            justify-content: center;
+        }
+    }
+
+    @@media (max-width: 480px) {
+        .metric-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 8px;
+        }
+        .metric-box {
+            padding: 10px 12px;
+        }
+        .metric-box-val {
+            font-size: 1.35rem;
+        }
+        .agent-title {
+            font-size: 1.05rem;
+        }
+    }
+
+    @@media (max-width: 360px) {
+        .metric-grid {
+            grid-template-columns: 1fr !important;
+            gap: 6px;
+        }
+        .metric-box {
+            padding: 8px 10px;
+        }
+        .agent-tab-btn {
+            padding: 7px 10px;
+            font-size: 11.5px;
+        }
+    }
+</style>
+
+<div class="agent-wrapper">
+    <!-- ═══════════ HEADER CARD ═══════════ -->
+    <div class="agent-header-card">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+            <div>
+                <h1 class="agent-title">
+                    <div class="robot-icon-wrap">
+                        <i class="bi bi-robot"></i>
+                    </div>
+                    <span>Quản trị AI Agent</span>
+                </h1>
+                <p class="agent-subtitle">
+                    Hệ thống giám sát, điều phối tác vụ tự động, cấu hình mô hình Gemini và kiểm soát phân quyền vận hành
+                </p>
+            </div>
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                @if (isSuperAdmin)
+                {
+                    <span class="badge-status online" title="Tài khoản có toàn quyền cao nhất">
+                        <i class="bi bi-shield-fill-check"></i> SuperAdmin (Toàn quyền)
+                    </span>
+                }
+                else
+                {
+                    <span class="badge-status info" title="Tài khoản Admin con được phân quyền">
+                        <i class="bi bi-person-badge"></i> Admin con (Phân quyền hạn chế)
+                    </span>
+                }
+
+                @if (canAutomation)
+                {
+                    <button type="button" class="btn btn-sm btn-outline-info" style="border-radius:8px; padding:6px 12px; font-weight:600;" onclick="triggerSchedulerTick()" id="btnTriggerScheduler">
+                        <i class="bi bi-arrow-repeat"></i> Quét lịch ngay
+                    </button>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════ 5 TAB NAVIGATION ═══════════ -->
+    <div class="agent-nav-tabs">
+        <button type="button" class="agent-tab-btn active" data-tab="tab-overview" onclick="switchAgentTab('tab-overview', this)">
+            <i class="bi bi-speedometer2"></i> 0. Tổng quan
+        </button>
+        <button type="button" class="agent-tab-btn" data-tab="tab-tasks" onclick="switchAgentTab('tab-tasks', this)">
+            <i class="bi bi-calendar-check"></i> 1. Tác vụ & Lịch chạy
+            <span class="agent-tab-badge">@Model.Tasks.Count</span>
+        </button>
+        <button type="button" class="agent-tab-btn" data-tab="tab-logs" onclick="switchAgentTab('tab-logs', this)">
+            <i class="bi bi-journal-text"></i> 2. Nhật ký hoạt động
+            <span class="agent-tab-badge">@Model.Stats.TotalLogs</span>
+        </button>
+        <button type="button" class="agent-tab-btn" data-tab="tab-config" onclick="switchAgentTab('tab-config', this)">
+            <i class="bi bi-sliders"></i> 3. Cấu hình Agent
+            <span class="badge-status @(Model.Config.AgentStatus == "Active" ? "active" : "warning")" style="font-size:9.5px; padding:1px 5px;">@Model.Config.AgentStatus</span>
+        </button>
+        <button type="button" class="agent-tab-btn" data-tab="tab-api" onclick="switchAgentTab('tab-api', this)">
+            <i class="bi bi-shield-lock"></i> 4. API & Phân quyền
+            <span class="badge-status @(Model.HasApiKey ? "active" : "failed")" style="font-size:9.5px; padding:1px 5px;">@(Model.HasApiKey ? "API Đã cấu hình" : "Chưa có Key")</span>
+        </button>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════
+         TAB 0: TỔNG QUAN (OVERVIEW)
+         ══════════════════════════════════════════════════════ -->
+    <div id="tab-overview" class="agent-tab-pane">
+        <!-- Metric Grid -->
+        <div class="metric-grid">
+            <div class="metric-box">
+                <div class="metric-box-header">
+                    <span class="metric-box-title">Tổng Tác vụ tự động</span>
+                    <i class="bi bi-calendar-range metric-box-icon text-info"></i>
+                </div>
+                <div class="metric-box-val text-info">@Model.Stats.TotalTasks</div>
+                <div class="metric-box-sub">
+                    <span class="badge-status active" style="font-size:10px; padding:1px 5px;">@Model.Stats.ActiveTasks Đang bật</span>
+                    <span class="badge-status paused" style="font-size:10px; padding:1px 5px;">@Model.Stats.PausedTasks Tạm dừng</span>
+                </div>
+            </div>
+
+            <div class="metric-box">
+                <div class="metric-box-header">
+                    <span class="metric-box-title">Lượt thực thi</span>
+                    <i class="bi bi-lightning-charge metric-box-icon text-warning"></i>
+                </div>
+                <div class="metric-box-val text-warning">@Model.Stats.TotalRuns</div>
+                <div class="metric-box-sub">
+                    <span class="text-success"><i class="bi bi-check-circle me-1"></i>@Model.Stats.SucceededRuns thành công</span>
+                    <span>•</span>
+                    <span class="text-danger"><i class="bi bi-x-circle me-1"></i>@Model.Stats.FailedRuns lỗi</span>
+                </div>
+            </div>
+
+            <div class="metric-box">
+                <div class="metric-box-header">
+                    <span class="metric-box-title">Tỷ lệ thành công</span>
+                    <i class="bi bi-pie-chart metric-box-icon text-success"></i>
+                </div>
+                <div class="metric-box-val text-success">@Model.Stats.SuccessRate%</div>
+                <div class="progress" style="height: 6px; background: rgba(255,255,255,0.08); border-radius: 4px; margin-top: 6px;">
+                    <div class="progress-bar bg-success" role="progressbar" style="width: @Model.Stats.SuccessRate%"></div>
+                </div>
+            </div>
+
+            <div class="metric-box">
+                <div class="metric-box-header">
+                    <span class="metric-box-title">Nhật ký kiểm toán</span>
+                    <i class="bi bi-journal-check metric-box-icon text-primary"></i>
+                </div>
+                <div class="metric-box-val text-primary">@Model.Stats.TotalLogs</div>
+                <div class="metric-box-sub">
+                    <span class="text-info"><i class="bi bi-clock-history me-1"></i>@Model.Stats.TodayLogs ghi nhận hôm nay</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Trạng thái Dịch vụ Lập lịch (Scheduler & Worker Status) -->
+        <div class="agent-card">
+            <div class="agent-card-header">
+                <h3 class="agent-card-title">
+                    <i class="bi bi-cpu text-info"></i> Trạng thái Bộ điều phối & Trợ lý ngầm
+                </h3>
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge-status @(Model.Stats.IsSchedulerRunning ? "online" : "warning")">
+                        <i class="bi @(Model.Stats.IsSchedulerRunning ? "bi-check-circle" : "bi-exclamation-triangle")"></i>
+                        Web Background Timer: @(Model.Stats.IsSchedulerRunning ? "Đang chạy" : "Chờ kích hoạt")
+                    </span>
+                    @if (Model.Stats.WorkerHeartbeat != null && Model.Stats.WorkerHeartbeat.IsAlive)
+                    {
+                        <span class="badge-status online" title="Tiến trình Worker độc lập đang chạy">
+                            <i class="bi bi-hdd-network"></i> Worker Service: Online (PID @Model.Stats.WorkerHeartbeat.ProcessId)
+                        </span>
+                    }
+                    else
+                    {
+                        <span class="badge-status paused" title="Chưa kích hoạt Worker độc lập (Web Timer sẽ đảm nhiệm)">
+                            <i class="bi bi-hdd-network"></i> Worker Service: Standby
+                        </span>
+                    }
+                </div>
+            </div>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <div style="background: rgba(5,10,20,0.5); padding: 14px; border-radius: 10px; border: 1px solid var(--agent-card-border); font-size: 13px;">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-white-50">Lần quét lịch gần nhất:</span>
+                            <span class="text-white fw-bold">@(Model.Stats.LastSchedulerTick.HasValue ? Model.Stats.LastSchedulerTick.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm:ss") : "Chưa có")</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-white-50">Chu kỳ quét tự động:</span>
+                            <span class="text-white">Mỗi @Model.Config.SchedulerIntervalSeconds giây (Đồng bộ Atomic Lease)</span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span class="text-white-50">Cơ chế chống chạy trùng:</span>
+                            <span class="text-success fw-bold"><i class="bi bi-shield-check"></i> Atomic Database Lease Khóa 5 phút</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div style="background: rgba(5,10,20,0.5); padding: 14px; border-radius: 10px; border: 1px solid var(--agent-card-border); font-size: 13px;">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-white-50">Mô hình AI vận hành:</span>
+                            <span class="text-info fw-bold font-monospace">@Model.Config.PrimaryModel</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-white-50">Trạng thái phản hồi AI:</span>
+                            <span class="badge-status @(Model.Config.AgentStatus == "Active" ? "active" : "warning")">@Model.Config.AgentStatus</span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span class="text-white-50">Công cụ nghiệp vụ:</span>
+                            <span class="text-white">@Model.Config.Tools.Count(t => t.Value.IsEnabled)/@Model.Config.Tools.Count công cụ đang mở</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Lỗi / Cảnh báo thực thi gần đây (Recent Errors) -->
+        <div class="agent-card">
+            <div class="agent-card-header">
+                <h3 class="agent-card-title text-danger">
+                    <i class="bi bi-exclamation-diamond text-danger"></i> Sự cố / Lỗi thực thi gần đây (Dữ liệu thật)
+                </h3>
+            </div>
+            @if (Model.Stats.RecentFailedRuns.Count == 0 && Model.Stats.RecentErrorLogs.Count == 0)
+            {
+                <div class="text-center py-4" style="color: rgba(255,255,255,0.45); font-size: 13.5px;">
+                    <i class="bi bi-check-circle-fill text-success" style="font-size: 28px; display:block; margin-bottom: 8px;"></i>
+                    Hệ thống hoạt động ổn định, không có lỗi thực thi nào được ghi nhận gần đây!
+                </div>
+            }
+            else
+            {
+                <div class="agent-table-wrap">
+                    <table class="agent-table">
+                        <thead>
+                            <tr>
+                                <th>Thời gian</th>
+                                <th>Loại</th>
+                                <th>Tên tác vụ / Hành động</th>
+                                <th>Người kích hoạt</th>
+                                <th>Nội dung lỗi chi tiết</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var run in Model.Stats.RecentFailedRuns)
+                            {
+                                <tr>
+                                    <td class="text-white-50 font-monospace">@run.StartedAt.ToLocalTime().ToString("dd/MM HH:mm:ss")</td>
+                                    <td><span class="badge-status failed"><i class="bi bi-gear-fill"></i> Task Run #@run.RunID</span></td>
+                                    <td class="fw-bold text-white">@(run.AgentTask?.TaskName ?? "Task #" + run.TaskID)</td>
+                                    <td>@(run.User?.Username ?? "System")</td>
+                                    <td class="text-danger font-monospace" style="font-size:12px;">@(string.IsNullOrEmpty(run.ErrorMessage) ? "Không có chi tiết lỗi" : run.ErrorMessage)</td>
+                                </tr>
+                            }
+                            @foreach (var log in Model.Stats.RecentErrorLogs)
+                            {
+                                <tr>
+                                    <td class="text-white-50 font-monospace">@log.CreatedAt.ToLocalTime().ToString("dd/MM HH:mm:ss")</td>
+                                    <td><span class="badge-status failed"><i class="bi bi-journal-x"></i> Action Log #@log.LogID</span></td>
+                                    <td class="fw-bold text-white">@log.ActionName</td>
+                                    <td>@(log.User?.Username ?? "User #" + log.UserID)</td>
+                                    <td class="text-danger font-monospace" style="font-size:12px;">@(string.IsNullOrEmpty(log.ErrorMessage) ? "Thất bại không rõ nguyên nhân" : log.ErrorMessage)</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════
+         TAB 1: QUẢN LÝ TÁC VỤ & LỊCH CHẠY
+         ══════════════════════════════════════════════════════ -->
+    <div id="tab-tasks" class="agent-tab-pane" style="display:none;">
+        <div class="agent-card">
+            <div class="agent-card-header">
+                <div>
+                    <h3 class="agent-card-title">
+                        <i class="bi bi-calendar-check text-info"></i> Danh sách Tác vụ Tự động & Lịch chạy
+                    </h3>
+                    <div style="font-size:12px; color:rgba(255,255,255,0.5); margin-top:2px;">
+                        Quản lý các kịch bản thực thi định kỳ, tác vụ nền và tiến trình tự động hóa
+                    </div>
+                </div>
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                    @if (canAutomation)
+                    {
+                        <button type="button" class="btn btn-sm btn-info" style="border-radius:8px; font-weight:600;" onclick="openCreateTaskModal()">
+                            <i class="bi bi-plus-lg me-1"></i> Tạo tác vụ mới
+                        </button>
+                    }
+                </div>
+            </div>
+
+            <!-- Task search & filter -->
+            <div class="row g-2 mb-3">
+                <div class="col-md-5">
+                    <input type="text" id="taskSearchInput" class="form-dark-control" placeholder="Tìm theo tên tác vụ, người tạo hoặc chỉ thị..." onkeyup="filterTasksTable()" />
+                </div>
+                <div class="col-md-4">
+                    <select id="taskStatusFilter" class="form-dark-control" onchange="filterTasksTable()">
+                        <option value="All">Tất cả trạng thái</option>
+                        <option value="Active">Đang hoạt động (Active)</option>
+                        <option value="Paused">Tạm dừng (Paused)</option>
+                        <option value="Completed">Hoàn tất (Completed)</option>
+                        <option value="Cancelled">Đã hủy (Cancelled)</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Tasks Table -->
+            <div class="agent-table-wrap">
+                <table class="agent-table" id="tasksTable">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Tên tác vụ</th>
+                            <th>Chỉ thị của tác vụ</th>
+                            <th>Chu kỳ lập lịch</th>
+                            <th>Lần chạy cuối</th>
+                            <th>Chạy kế tiếp</th>
+                            <th>Trạng thái</th>
+                            <th style="text-align:right;">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model.Tasks.Count == 0)
+                        {
+                            <tr>
+                                <td colspan="8" class="text-center py-4 text-white-50">
+                                    Chưa có tác vụ tự động nào trong hệ thống. Hãy bấm <strong>"Tạo tác vụ mới"</strong> để thêm!
+                                </td>
+                            </tr>
+                        }
+                        @foreach (var t in Model.Tasks)
+                        {
+                            <tr class="task-row" data-status="@t.Status" data-search="@(t.TaskName.ToLower() + " " + (t.UserPrompt ?? "").ToLower() + " " + (t.User?.Username ?? "").ToLower())">
+                                <td class="font-monospace text-white-50">#@t.TaskID</td>
+                                <td>
+                                    <div class="fw-bold text-white">@t.TaskName</div>
+                                    <div style="font-size:11px; color:rgba(255,255,255,0.45);">Tạo bởi: @(t.User?.DisplayName ?? t.User?.Username ?? "Admin")</div>
+                                </td>
+                                <td>
+                                    <span title="@t.UserPrompt" style="display:inline-block; max-width:240px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                                        @(t.UserPrompt ?? "—")
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge-status info" style="font-size:10.5px;">@t.ScheduleType</span>
+                                    @if (!string.IsNullOrEmpty(t.ScheduleConfig) && t.ScheduleConfig != "{}")
+                                    {
+                                        <div style="font-size:10px; color:rgba(255,255,255,0.5); font-family:monospace;">@t.ScheduleConfig</div>
+                                    }
+                                </td>
+                                <td class="font-monospace" style="font-size:11.5px;">
+                                    @(t.LastRunAt.HasValue ? t.LastRunAt.Value.ToLocalTime().ToString("dd/MM HH:mm") : "—")
+                                </td>
+                                <td class="font-monospace" style="font-size:11.5px;">
+                                    @(t.NextRunAt.HasValue ? t.NextRunAt.Value.ToLocalTime().ToString("dd/MM HH:mm") : "—")
+                                </td>
+                                <td>
+                                    @{
+                                        string statusClass = "active";
+                                        if (t.Status == "Paused") { statusClass = "paused"; }
+                                        else if (t.Status == "Cancelled") { statusClass = "cancelled"; }
+                                        else if (t.Status == "Completed") { statusClass = "completed"; }
+                                    }
+                                    <span class="badge-status @statusClass">@t.Status</span>
+                                </td>
+                                <td style="text-align:right;">
+                                    <div class="d-inline-flex gap-1">
+                                        @if (canAutomation)
+                                        {
+                                            <button type="button" class="btn-action-icon" title="Chạy ngay bây giờ" onclick="runTaskNow(@t.TaskID, false)">
+                                                <i class="bi bi-play-fill text-success"></i>
+                                            </button>
+                                            <button type="button" class="btn-action-icon" title="Chạy thử nghiệm (Dry-run)" onclick="runTaskNow(@t.TaskID, true)">
+                                                <i class="bi bi-bug-fill text-info"></i>
+                                            </button>
+                                            if (t.Status == "Active")
+                                            {
+                                                <button type="button" class="btn-action-icon" title="Tạm dừng tác vụ" onclick="pauseTask(@t.TaskID)">
+                                                    <i class="bi bi-pause-fill text-warning"></i>
+                                                </button>
+                                            }
+                                            else if (t.Status == "Paused")
+                                            {
+                                                <button type="button" class="btn-action-icon" title="Kích hoạt lại tác vụ" onclick="resumeTask(@t.TaskID)">
+                                                    <i class="bi bi-play-circle text-success"></i>
+                                                </button>
+                                            }
+                                        }
+                                        <button type="button" class="btn-action-icon" title="Xem lịch sử các lần chạy" onclick="viewTaskRuns(@t.TaskID, '@HttpUtility.JavaScriptStringEncode(t.TaskName)')">
+                                            <i class="bi bi-clock-history text-cyan"></i>
+                                        </button>
+                                        @if (canAutomation)
+                                        {
+                                            <button type="button" class="btn-action-icon" title="Chỉnh sửa tác vụ" onclick="openEditTaskModal(@t.TaskID, '@HttpUtility.JavaScriptStringEncode(t.TaskName)', '@HttpUtility.JavaScriptStringEncode(t.UserPrompt ?? "")', '@t.ScheduleType', '@HttpUtility.JavaScriptStringEncode(t.ScheduleConfig ?? "")', '@t.Status')">
+                                                <i class="bi bi-pencil-square text-warning"></i>
+                                            </button>
+                                            if (t.Status != "Cancelled")
+                                            {
+                                                <button type="button" class="btn-action-icon" title="Hủy bỏ tác vụ" onclick="cancelTask(@t.TaskID)">
+                                                    <i class="bi bi-x-circle text-danger"></i>
+                                                </button>
+                                            }
+                                        }
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════
+         TAB 2: QUẢN LÝ NHẬT KÝ (LOGS)
+         ══════════════════════════════════════════════════════ -->
+    <div id="tab-logs" class="agent-tab-pane" style="display:none;">
+        <div class="agent-card">
+            <div class="agent-card-header">
+                <div>
+                    <h3 class="agent-card-title">
+                        <i class="bi bi-journal-text text-info"></i> Nhật ký Kiểm toán & Lịch sử Thực thi Agent
+                    </h3>
+                    <div style="font-size:12px; color:rgba(255,255,255,0.5); margin-top:2px;">
+                        Ghi lại chi tiết từng thao tác gọi công cụ, tham số đầu vào, kết quả phản hồi và mã lỗi
+                    </div>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    @if (canDeleteLogs)
+                    {
+                        <button type="button" class="btn btn-sm btn-outline-danger" style="border-radius:8px; font-weight:600;" onclick="promptDeleteOldLogs()">
+                            <i class="bi bi-trash3 me-1"></i> Dọn nhật ký cũ
+                        </button>
+                    }
+                </div>
+            </div>
+
+            <!-- Log Filter Toolbar -->
+            <div class="row g-2 mb-3">
+                <div class="col-md-4">
+                    <input type="text" id="logKeyword" class="form-dark-control" placeholder="Tìm theo từ khóa, người dùng, ID, lỗi..." />
+                </div>
+                <div class="col-md-3">
+                    <select id="logStatus" class="form-dark-control">
+                        <option value="All">Tất cả trạng thái</option>
+                        <option value="Success">Thành công (Success / Succeeded)</option>
+                        <option value="Failed">Thất bại (Failed)</option>
+                        <option value="Pending">Chờ xác nhận (Pending)</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <select id="logDateRange" class="form-dark-control">
+                        <option value="all">Tất cả thời gian</option>
+                        <option value="today">Hôm nay</option>
+                        <option value="7days">7 ngày qua</option>
+                        <option value="30days">30 ngày qua</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button type="button" class="btn btn-info w-100 fw-bold" onclick="executeLogFilter()">
+                        <i class="bi bi-search me-1"></i> Lọc
+                    </button>
+                </div>
+            </div>
+
+            <!-- Logs Table -->
+            <div class="agent-table-wrap">
+                <table class="agent-table" id="logsTable">
+                    <thead>
+                        <tr>
+                            <th>Log ID</th>
+                            <th>Thời gian</th>
+                            <th>Người dùng</th>
+                            <th>Hành động (Action)</th>
+                            <th>Mục tiêu (Target)</th>
+                            <th>Trạng thái</th>
+                            <th>Tóm tắt kết quả</th>
+                            <th style="text-align:right;">Chi tiết</th>
+                        </tr>
+                    </thead>
+                    <tbody id="logsTableBody">
+                        @if (Model.Logs.Count == 0)
+                        {
+                            <tr>
+                                <td colspan="8" class="text-center py-4 text-white-50">
+                                    Chưa có bản ghi nhật ký hoạt động nào.
+                                </td>
+                            </tr>
+                        }
+                        @foreach (var log in Model.Logs)
+                        {
+                            <tr>
+                                <td class="font-monospace text-white-50">#@log.LogID</td>
+                                <td class="font-monospace" style="font-size:11.5px;">@log.CreatedAt.ToLocalTime().ToString("dd/MM HH:mm:ss")</td>
+                                <td>
+                                    <span class="text-white fw-bold">@(log.User?.DisplayName ?? log.User?.Username ?? "User #" + log.UserID)</span>
+                                </td>
+                                <td>
+                                    <span class="badge-status info" style="font-size:11px;">@log.ActionName</span>
+                                </td>
+                                <td>
+                                    <span style="font-size:11.5px; color:rgba(255,255,255,0.6);">
+                                        @(string.IsNullOrEmpty(log.TargetType) ? "—" : log.TargetType + (log.TargetID.HasValue ? " #" + log.TargetID : ""))
+                                    </span>
+                                </td>
+                                <td>
+                                    @{
+                                        string logStatusClass = "active";
+                                        if (log.Status == "Failed") { logStatusClass = "failed"; }
+                                        else if (log.Status == "Pending") { logStatusClass = "paused"; }
+                                    }
+                                    <span class="badge-status @logStatusClass">@log.Status</span>
+                                </td>
+                                <td>
+                                    <span title="@log.ResultSummary" style="display:inline-block; max-width:260px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:12px; color:rgba(255,255,255,0.7);">
+                                        @(string.IsNullOrEmpty(log.ResultSummary) ? (log.ErrorMessage ?? "—") : log.ResultSummary)
+                                    </span>
+                                </td>
+                                <td style="text-align:right;">
+                                    <button type="button" class="btn-action-icon" title="Xem chi tiết" onclick="viewLogDetail(@log.LogID)">
+                                        <i class="bi bi-eye text-info"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════
+         TAB 3: CẤU HÌNH AGENT (CONFIGURATION)
+         ══════════════════════════════════════════════════════ -->
+    <div id="tab-config" class="agent-tab-pane" style="display:none;">
+        <form id="agentConfigForm" onsubmit="saveAgentConfig(event)">
+            @Html.AntiForgeryToken()
+            <div class="row g-3">
+                <div class="col-lg-8">
+                    <div class="agent-card">
+                        <div class="agent-card-header">
+                            <h3 class="agent-card-title">
+                                <i class="bi bi-cpu text-info"></i> Cấu hình Mô hình & Tham số Vận hành
+                            </h3>
+                            <span class="text-white-50" style="font-size:12px;">Cập nhật lần cuối: @Model.Config.LastUpdatedUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm") bởi @Model.Config.LastUpdatedBy</span>
+                        </div>
+
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label text-white-50" style="font-size:12.5px;">TÊN HIỂN THỊ AGENT</label>
+                                <input type="text" name="AgentName" class="form-dark-control" value="@Model.Config.AgentName" required @(!canManageContent ? "disabled" : "") />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label text-white-50" style="font-size:12.5px;">MÔ HÌNH CHÍNH (PRIMARY MODEL)</label>
+                                <select name="PrimaryModel" class="form-dark-control font-monospace" @(!canManageContent ? "disabled" : "")>
+                                    <option value="gemini-3.5-flash-lite" @(Model.Config.PrimaryModel == "gemini-3.5-flash-lite" ? "selected" : "")>gemini-3.5-flash-lite (Khuyên dùng - Nhanh & Ổn định)</option>
+                                    <option value="gemini-flash-lite-latest" @(Model.Config.PrimaryModel == "gemini-flash-lite-latest" ? "selected" : "")>gemini-flash-lite-latest</option>
+                                    <option value="gemini-3.1-flash-lite" @(Model.Config.PrimaryModel == "gemini-3.1-flash-lite" ? "selected" : "")>gemini-3.1-flash-lite</option>
+                                    <option value="gemini-3.5-flash" @(Model.Config.PrimaryModel == "gemini-3.5-flash" ? "selected" : "")>gemini-3.5-flash (Thông minh, hỗ trợ đa tác vụ)</option>
+                                    <option value="gemini-3.8-flash" @(Model.Config.PrimaryModel == "gemini-3.8-flash" ? "selected" : "")>gemini-3.8-flash</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Hyperparameters -->
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label text-white-50 d-flex justify-content-between" style="font-size:12.5px;">
+                                    <span>ĐỘ SÁNG TẠO (TEMPERATURE)</span>
+                                    <span class="text-info fw-bold" id="tempValueLabel">@Model.Config.Temperature</span>
+                                </label>
+                                <input type="range" name="Temperature" class="form-range" min="0.0" max="1.0" step="0.05" value="@Model.Config.Temperature" oninput="$('#tempValueLabel').text(this.value)" @(!canManageContent ? "disabled" : "") />
+                                <div style="font-size:11px; color:rgba(255,255,255,0.45);">Giá trị thấp (0.1 - 0.3) phù hợp với tra cứu chính xác; giá trị cao (0.7 - 0.9) phản hồi phong phú hơn.</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label text-white-50" style="font-size:12.5px;">ĐỘ DÀI TỐI ĐA (MAX OUTPUT TOKENS)</label>
+                                <select name="MaxOutputTokens" class="form-dark-control font-monospace" @(!canManageContent ? "disabled" : "")>
+                                    <option value="1024" @(Model.Config.MaxOutputTokens == 1024 ? "selected" : "")>1,024 Tokens (~750 từ)</option>
+                                    <option value="2048" @(Model.Config.MaxOutputTokens == 2048 ? "selected" : "")>2,048 Tokens (~1,500 từ - Chuẩn)</option>
+                                    <option value="4096" @(Model.Config.MaxOutputTokens == 4096 ? "selected" : "")>4,096 Tokens (~3,000 từ)</option>
+                                    <option value="8192" @(Model.Config.MaxOutputTokens == 8192 ? "selected" : "")>8,192 Tokens (~6,000 từ)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- System Prompt Customization -->
+                        <div class="mb-3">
+                            <label class="form-label text-white-50" style="font-size:12.5px;">
+                                CHỈ THỊ BỔ SUNG CHO SYSTEM PROMPT (TÙY BIẾN QUY TẮC CỘNG ĐỒNG)
+                            </label>
+                            <textarea name="CustomSystemPrompt" class="form-dark-control" rows="5" placeholder="Nhập thêm các quy định nội bộ của nhà trường hoặc quy tắc ứng xử riêng cho Agent nếu cần..." @(!canManageContent ? "disabled" : "")>@Model.Config.CustomSystemPrompt</textarea>
+                            <div style="font-size:11px; color:rgba(255,255,255,0.45); margin-top:4px;">
+                                Đoạn chỉ thị này sẽ được nối thêm vào System Prompt gốc của Agent, giúp bạn bổ sung các thông báo mùa thi, sự kiện trường hoặc giới hạn câu trả lời mà không cần sửa code backend.
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- HẠN MỨC TÁC VỤ & BẢO VỆ TÀI NGUYÊN (QUOTAS & ANTI-SPAM) -->
+                    <div class="agent-card mt-3">
+                        <div class="agent-card-header">
+                            <h3 class="agent-card-title">
+                                <i class="bi bi-shield-check text-warning"></i> Hạn mức Tác vụ & Chống Spam Mạng xã hội
+                            </h3>
+                            <span class="badge" style="background:rgba(255,184,48,0.15); color:#ffb830; border:1px solid rgba(255,184,48,0.3); font-size:11px;">Quotas & Spam Protection</span>
+                        </div>
+
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-4">
+                                <label class="form-label text-white-50" style="font-size:12px;">MAX TÁC VỤ ACTIVE / USER</label>
+                                <input type="number" name="MaxActiveTasksPerUser" class="form-dark-control" value="@Model.Config.MaxActiveTasksPerUser" min="1" max="50" @(!canManageContent ? "disabled" : "") />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label text-white-50" style="font-size:12px;">MAX LƯỢT CHẠY / NGÀY / USER</label>
+                                <input type="number" name="MaxDailyTaskRunsPerUser" class="form-dark-control" value="@Model.Config.MaxDailyTaskRunsPerUser" min="1" max="200" @(!canManageContent ? "disabled" : "") />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label text-white-50" style="font-size:12px;">KHOẢNG CÁCH TỐI THIỂU (PHÚT)</label>
+                                <input type="number" name="MinIntervalBetweenRunsMinutes" class="form-dark-control" value="@Model.Config.MinIntervalBetweenRunsMinutes" min="1" max="1440" @(!canManageContent ? "disabled" : "") />
+                            </div>
+                        </div>
+
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-4">
+                                <label class="form-label text-white-50" style="font-size:12px;">MAX HÀNH ĐỘNG GHI / LƯỢT</label>
+                                <input type="number" name="MaxMutatingActionsPerRun" class="form-dark-control" value="@Model.Config.MaxMutatingActionsPerRun" min="1" max="20" @(!canManageContent ? "disabled" : "") />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label text-white-50" style="font-size:12px;">SỐ LẦN RETRY TỐI ĐA</label>
+                                <input type="number" name="MaxTaskRetryAttempts" class="form-dark-control" value="@Model.Config.MaxTaskRetryAttempts" min="0" max="10" @(!canManageContent ? "disabled" : "") />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label text-white-50" style="font-size:12px;">NGƯỠNG TRÙNG LẶP NỘI DUNG</label>
+                                <input type="number" name="DuplicateSimilarityThreshold" class="form-dark-control" value="@Model.Config.DuplicateSimilarityThreshold" step="0.05" min="0.5" max="1.0" @(!canManageContent ? "disabled" : "") />
+                            </div>
+                        </div>
+
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-3">
+                                <label class="form-label text-white-50" style="font-size:12px;">MAX POSTS / NGÀY</label>
+                                <input type="number" name="MaxDailyPostsPerUser" class="form-dark-control" value="@Model.Config.MaxDailyPostsPerUser" min="1" max="100" @(!canManageContent ? "disabled" : "") />
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label text-white-50" style="font-size:12px;">MAX COMMENTS / NGÀY</label>
+                                <input type="number" name="MaxDailyCommentsPerUser" class="form-dark-control" value="@Model.Config.MaxDailyCommentsPerUser" min="1" max="500" @(!canManageContent ? "disabled" : "") />
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label text-white-50" style="font-size:12px;">MAX LIKES / NGÀY</label>
+                                <input type="number" name="MaxDailyReactionsPerUser" class="form-dark-control" value="@Model.Config.MaxDailyReactionsPerUser" min="1" max="1000" @(!canManageContent ? "disabled" : "") />
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label text-white-50" style="font-size:12px;">MAX FOLLOWS / NGÀY</label>
+                                <input type="number" name="MaxDailyFollowsPerUser" class="form-dark-control" value="@Model.Config.MaxDailyFollowsPerUser" min="1" max="200" @(!canManageContent ? "disabled" : "") />
+                            </div>
+                        </div>
+
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label class="form-label text-white-50" style="font-size:12px;">GEMINI CALLS / NGÀY / USER</label>
+                                <input type="number" name="MaxDailyGeminiRequestsPerUser" class="form-dark-control" value="@Model.Config.MaxDailyGeminiRequestsPerUser" min="5" max="1000" @(!canManageContent ? "disabled" : "") />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label text-white-50" style="font-size:12px;">GEMINI TOÀN HỆ THỐNG / NGÀY</label>
+                                <input type="number" name="MaxDailyGeminiRequestsGlobal" class="form-dark-control" value="@Model.Config.MaxDailyGeminiRequestsGlobal" min="50" max="50000" @(!canManageContent ? "disabled" : "") />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label text-white-50" style="font-size:12px;">GEMINI ĐỒNG THỜI (SEMAPHORE)</label>
+                                <input type="number" name="MaxConcurrentGeminiRequestsGlobal" class="form-dark-control" value="@Model.Config.MaxConcurrentGeminiRequestsGlobal" min="1" max="50" @(!canManageContent ? "disabled" : "") />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-4">
+                    <!-- Trạng thái hoạt động của Agent -->
+                    <div class="agent-card">
+                        <div class="agent-card-header">
+                            <h3 class="agent-card-title">
+                                <i class="bi bi-power text-warning"></i> Trạng thái Hoạt động
+                            </h3>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label text-white-50" style="font-size:12.5px;">CHẾ ĐỘ HOẠT ĐỘNG</label>
+                            <select name="AgentStatus" class="form-dark-control" @(!canManageContent ? "disabled" : "")>
+                                <option value="Active" @(Model.Config.AgentStatus == "Active" ? "selected" : "")>Hoạt động bình thường (Active)</option>
+                                <option value="Maintenance" @(Model.Config.AgentStatus == "Maintenance" ? "selected" : "")>Tạm dừng bảo trì (Maintenance)</option>
+                                <option value="Disabled" @(Model.Config.AgentStatus == "Disabled" ? "selected" : "")>Vô hiệu hóa hoàn toàn (Disabled)</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label text-white-50" style="font-size:12.5px;">LÝ DO BẢO TRÌ / THÔNG BÁO CHO USER</label>
+                            <textarea name="StatusReason" class="form-dark-control" rows="3" placeholder="Nhập lý do khi chuyển sang chế độ bảo trì..." @(!canManageContent ? "disabled" : "")>@Model.Config.StatusReason</textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label text-white-50" style="font-size:12.5px;">BỘ LẬP LỊCH CHẠY NGẦM (SCHEDULER)</label>
+                            <div class="form-check form-switch mt-1">
+                                <input class="form-check-input" type="checkbox" name="SchedulerEnabled" value="true" @(Model.Config.SchedulerEnabled ? "checked" : "") @(!canManageContent ? "disabled" : "") />
+                                <label class="form-check-label text-white" style="font-size:13px;">Bật Scheduler tự động chạy tác vụ</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    @if (canManageContent)
+                    {
+                        <div class="text-end">
+                            <button type="submit" class="btn btn-info w-100 py-2 fw-bold" style="border-radius:10px;" id="btnSaveConfig">
+                                <i class="bi bi-save me-1"></i> Lưu và Áp dụng Cấu hình
+                            </button>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="p-3" style="background:rgba(255,184,48,0.1); border:1px solid rgba(255,184,48,0.3); border-radius:10px; font-size:12px; color:#ffb830;">
+                            <i class="bi bi-lock me-1"></i> Bạn chỉ có quyền Xem cấu hình (Read-only). Liên hệ Admin tối cao nếu cần chỉnh sửa.
+                        </div>
+                    }
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════
+         TAB 4: QUẢN LÝ API & PHÂN QUYỀN
+         ══════════════════════════════════════════════════════ -->
+    <div id="tab-api" class="agent-tab-pane" style="display:none;">
+        <div class="row g-3">
+            <!-- PANEL A: CẤU HÌNH & TEST GEMINI API -->
+            <div class="col-lg-6">
+                <div class="agent-card h-100">
+                    <div class="agent-card-header">
+                        <h3 class="agent-card-title">
+                            <i class="bi bi-key text-warning"></i> Cấu hình Google Gemini API Key
+                        </h3>
+                        <span class="badge-status @(Model.HasApiKey ? "online" : "failed")">
+                            <i class="bi @(Model.HasApiKey ? "bi-shield-check" : "bi-shield-x")"></i>
+                            @(Model.HasApiKey ? "Đã cấu hình" : "Chưa có Key")
+                        </span>
+                    </div>
+
+                    <div style="background: rgba(5,10,20,0.6); padding: 14px; border-radius: 10px; border: 1px solid var(--agent-card-border); margin-bottom: 16px;">
+                        <div class="text-white-50 mb-1" style="font-size:12px;">KHÓA API ĐANG KÍCH HOẠT (ĐÃ MÃ HÓA BẢO VỆ):</div>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="font-monospace text-info fw-bold" style="font-size:14px;" id="maskedApiKeyDisplay">@Model.MaskedApiKey</span>
+                            @if (isSuperAdmin)
+                            {
+                                <button type="button" class="btn btn-sm btn-outline-info" onclick="openApiKeyModal()">
+                                    <i class="bi bi-pencil-square me-1"></i> Đổi Key
+                                </button>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- Ping Test API -->
+                    <div style="background: rgba(0,200,255,0.04); border: 1px solid rgba(0,200,255,0.2); border-radius: 12px; padding: 16px;">
+                        <h4 style="font-size:14px; font-weight:700; color:#fff; margin-bottom:8px;">
+                            <i class="bi bi-speedometer text-info me-1"></i> Kiểm tra Kết nối API (Ping Test)
+                        </h4>
+                        <p style="font-size:12px; color:rgba(255,255,255,0.6); margin-bottom:12px;">
+                            Gửi yêu cầu thử nghiệm siêu nhẹ tới Google Gemini API để đo độ trễ mạng thực tế, kiểm tra hạn mức Quota và tính hợp lệ của Key.
+                        </p>
+                        @if (canInteract)
+                        {
+                            <button type="button" class="btn btn-sm btn-info fw-bold px-3 py-2" id="btnTestApi" onclick="runApiTest()">
+                                <i class="bi bi-lightning-charge me-1"></i> Bắt đầu Kiểm tra Kết nối
+                            </button>
+                        }
+                        else
+                        {
+                            <span class="badge-status paused"><i class="bi bi-lock"></i> Bạn không có quyền Test API</span>
+                        }
+
+                        <div id="apiTestResultBox" style="display:none; margin-top:14px;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PANEL B: QUẢN LÝ CÔNG CỤ (TOOL MATRIX) -->
+            <div class="col-lg-6">
+                <div class="agent-card h-100">
+                    <div class="agent-card-header">
+                        <h3 class="agent-card-title">
+                            <i class="bi bi-tools text-info"></i> Ma trận Quyền hạn Công cụ (Function Calling)
+                        </h3>
+                        <span class="text-white-50" style="font-size:12px;">@Model.Config.Tools.Count(t => t.Value.IsEnabled) công cụ kích hoạt</span>
+                    </div>
+
+                    <div style="font-size:12px; color:rgba(255,255,255,0.6); margin-bottom:12px;">
+                        Bật/tắt các công cụ mà Agent được phép gọi. Thao tác nhạy cảm (như Xóa bài viết) được thiết lập yêu cầu người dùng duyệt trước khi thực thi.
+                    </div>
+
+                    <div class="agent-table-wrap" style="max-height: 380px; overflow-y: auto;">
+                        <table class="agent-table">
+                            <thead>
+                                <tr>
+                                    <th>Tên công cụ</th>
+                                    <th>Mô tả chức năng</th>
+                                    <th>Kích hoạt</th>
+                                    <th>Cần xác nhận</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var kv in Model.Config.Tools)
+                                {
+                                    var tool = kv.Value;
+                                    <tr>
+                                        <td>
+                                            <div class="fw-bold text-white">@tool.DisplayName</div>
+                                            <div class="font-monospace" style="font-size:11px; color:var(--agent-cyan);">@tool.ToolName</div>
+                                        </td>
+                                        <td style="font-size:12px; color:rgba(255,255,255,0.65);">
+                                            @tool.Description
+                                            @if (tool.IsSensitive)
+                                            {
+                                                <span class="badge-status warning" style="font-size:9px; padding:1px 4px; margin-left:4px;">Nhạy cảm</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            <div class="form-check form-switch m-0">
+                                                <input class="form-check-input" type="checkbox" id="tool_en_@tool.ToolName" @(tool.IsEnabled ? "checked" : "") onchange="onToolToggleChanged('@tool.ToolName')" @(!canInteract ? "disabled" : "") />
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="form-check form-switch m-0">
+                                                <input class="form-check-input" type="checkbox" id="tool_conf_@tool.ToolName" @(tool.RequireConfirmation ? "checked" : "") onchange="onToolToggleChanged('@tool.ToolName')" @(!canInteract ? "disabled" : "") />
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PANEL C: PHÂN QUYỀN AI AGENT CHO 4 ADMIN CON -->
+            <div class="col-12">
+                <div class="agent-card">
+                    <div class="agent-card-header">
+                        <div>
+                            <h3 class="agent-card-title">
+                                <i class="bi bi-people-fill text-purple"></i> Phân quyền Quản trị AI Agent cho 4 Quản trị viên con
+                            </h3>
+                            <div style="font-size:12px; color:rgba(255,255,255,0.5); margin-top:2px;">
+                                Chỉ Admin tối cao (SuperAdmin) mới có quyền cấp phép hoặc thu hồi quyền truy cập mô-đun AI Agent cho các tài khoản Admin con.
+                            </div>
+                        </div>
+                        <div>
+                            @if (!isSuperAdmin)
+                            {
+                                <span class="badge-status paused"><i class="bi bi-lock-fill"></i> Chỉ Admin tối cao mới có quyền phân quyền</span>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="row g-3">
+                        @foreach (var sub in Model.SubAdmins)
+                        {
+                            <div class="col-lg-6">
+                                <div class="subadmin-card" id="subadmin-card-@sub.UserID">
+                                    <div class="subadmin-header">
+                                        <div class="d-flex align-items-center gap-2">
+                                            <img src="@(string.IsNullOrEmpty(sub.Avatar) ? "/Content/Images/default-avatar.png" : sub.Avatar)" style="width:34px; height:34px; border-radius:50%; object-fit:cover; border:1px solid rgba(0,200,255,0.4);" onerror="this.onerror=null;this.src=window.DEFAULT_AVATAR_SVG||'/Content/Images/default-avatar.png';" />
+                                            <div>
+                                                <div class="fw-bold text-white" style="font-size:13.5px;">@sub.Username</div>
+                                                <div style="font-size:11px; color:rgba(255,255,255,0.5);">@sub.Email</div>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <span class="badge-status info" style="font-size:10.5px;">@sub.AdminRole</span>
+                                        </div>
+                                    </div>
+
+                                    <!-- Switch chính: Cho phép truy cập mô-đun -->
+                                    <div class="d-flex justify-content-between align-items-center p-2 mb-2" style="background:rgba(0,200,255,0.06); border:1px solid rgba(0,200,255,0.2); border-radius:8px;">
+                                        <label class="form-check-label text-white fw-bold" for="sub_en_@sub.UserID" style="font-size:12.5px;">
+                                            <i class="bi bi-robot me-1 text-info"></i> Quyền truy cập AdminAiAgent
+                                        </label>
+                                        <div class="form-check form-switch m-0">
+                                            <input class="form-check-input" type="checkbox" id="sub_en_@sub.UserID" @(sub.IsEnabled ? "checked" : "") @(!isSuperAdmin ? "disabled" : "") />
+                                        </div>
+                                    </div>
+
+                                    <!-- Các quyền con chi tiết -->
+                                    <div class="perm-switches-grid">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="sub_auto_@sub.UserID" @(sub.CanAutomation ? "checked" : "") @(!isSuperAdmin ? "disabled" : "") />
+                                            <label class="form-check-label text-white-50" for="sub_auto_@sub.UserID" style="font-size:12px;">Tác vụ & Lịch</label>
+                                        </div>
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="sub_read_@sub.UserID" @(sub.CanReadData ? "checked" : "") @(!isSuperAdmin ? "disabled" : "") />
+                                            <label class="form-check-label text-white-50" for="sub_read_@sub.UserID" style="font-size:12px;">Xem Nhật ký</label>
+                                        </div>
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="sub_cfg_@sub.UserID" @(sub.CanManageContent ? "checked" : "") @(!isSuperAdmin ? "disabled" : "") />
+                                            <label class="form-check-label text-white-50" for="sub_cfg_@sub.UserID" style="font-size:12px;">Cấu hình Agent</label>
+                                        </div>
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="sub_api_@sub.UserID" @(sub.CanInteract ? "checked" : "") @(!isSuperAdmin ? "disabled" : "") />
+                                            <label class="form-check-label text-white-50" for="sub_api_@sub.UserID" style="font-size:12px;">API & Công cụ</label>
+                                        </div>
+                                    </div>
+
+                                    @if (isSuperAdmin)
+                                    {
+                                        <div class="text-end mt-2">
+                                            <button type="button" class="btn btn-sm btn-outline-info" style="border-radius:6px; font-size:11.5px; font-weight:600;" onclick="saveSubAdminPermission(@sub.UserID)">
+                                                <i class="bi bi-check2 me-1"></i> Lưu quyền cho @sub.Username
+                                            </button>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════ MODAL TẠO TÁC VỤ ═══════════ -->
+<div class="modal fade" id="createTaskModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content modal-dark-content">
+            <div class="modal-header modal-dark-header">
+                <h5 class="modal-title fs-6 fw-bold"><i class="bi bi-plus-circle me-1 text-info"></i> Tạo Tác vụ Tự động Mới</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="createTaskForm" onsubmit="submitCreateTask(event)">
+                @Html.AntiForgeryToken()
+                <div class="modal-body p-3">
+                    <div class="mb-3">
+                        <label class="form-label text-white-50" style="font-size:12.5px;">TÊN TÁC VỤ</label>
+                        <input type="text" name="taskName" class="form-dark-control" placeholder="Ví dụ: Tự động điểm tin sáng, Kiểm duyệt bài viết..." required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-white-50" style="font-size:12.5px;">CHỈ THỊ THỰC THI (PROMPT CHO AGENT)</label>
+                        <textarea name="userPrompt" class="form-dark-control" rows="4" placeholder="Mô tả cụ thể những việc Agent cần làm khi kích hoạt..." required></textarea>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label text-white-50" style="font-size:12.5px;">LOẠI LẬP LỊCH</label>
+                            <select name="scheduleType" class="form-dark-control" onchange="onScheduleTypeChange(this.value)">
+                                <option value="Once">Chạy 1 lần (Once)</option>
+                                <option value="IntervalMinutes">Định kỳ theo phút</option>
+                                <option value="Hourly">Mỗi giờ (Hourly)</option>
+                                <option value="Daily">Hàng ngày (Daily)</option>
+                                <option value="Weekly">Hàng tuần (Weekly)</option>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label text-white-50" style="font-size:12.5px;">CẤU HÌNH (SỐ PHÚT/GIỜ)</label>
+                            <input type="text" name="scheduleConfig" class="form-dark-control" placeholder="Ví dụ: 30 (nếu là phút)" value="30" />
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer modal-dark-footer">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-sm btn-info fw-bold">Tạo tác vụ</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════ MODAL CHỈNH SỬA TÁC VỤ ═══════════ -->
+<div class="modal fade" id="editTaskModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content modal-dark-content">
+            <div class="modal-header modal-dark-header">
+                <h5 class="modal-title fs-6 fw-bold"><i class="bi bi-pencil-square me-1 text-warning"></i> Chỉnh sửa Tác vụ</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="editTaskForm" onsubmit="submitEditTask(event)">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="taskId" id="editTaskId" />
+                <div class="modal-body p-3">
+                    <div class="mb-3">
+                        <label class="form-label text-white-50" style="font-size:12.5px;">TÊN TÁC VỤ</label>
+                        <input type="text" name="taskName" id="editTaskName" class="form-dark-control" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-white-50" style="font-size:12.5px;">CHỈ THỊ CỦA TÁC VỤ</label>
+                        <textarea name="userPrompt" id="editUserPrompt" class="form-dark-control" rows="4" required></textarea>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-4">
+                            <label class="form-label text-white-50" style="font-size:12.5px;">CHU KỲ LẬP LỊCH</label>
+                            <select name="scheduleType" id="editScheduleType" class="form-dark-control">
+                                <option value="Once">Once</option>
+                                <option value="IntervalMinutes">IntervalMinutes</option>
+                                <option value="Hourly">Hourly</option>
+                                <option value="Daily">Daily</option>
+                                <option value="Weekly">Weekly</option>
+                            </select>
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label text-white-50" style="font-size:12.5px;">CẤU HÌNH</label>
+                            <input type="text" name="scheduleConfig" id="editScheduleConfig" class="form-dark-control" />
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label text-white-50" style="font-size:12.5px;">TRẠNG THÁI</label>
+                            <select name="status" id="editStatus" class="form-dark-control">
+                                <option value="Active">Active</option>
+                                <option value="Paused">Paused</option>
+                                <option value="Completed">Completed</option>
+                                <option value="Cancelled">Cancelled</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer modal-dark-footer">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Đóng</button>
+                    <button type="submit" class="btn btn-sm btn-warning fw-bold">Lưu thay đổi</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════ MODAL LỊCH SỬ CHẠY TÁC VỤ ═══════════ -->
+<div class="modal fade" id="taskRunsModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content modal-dark-content">
+            <div class="modal-header modal-dark-header">
+                <h5 class="modal-title fs-6 fw-bold"><i class="bi bi-clock-history me-1 text-info"></i> Lịch sử Thực thi: <span id="taskRunsModalTitle" class="text-white"></span></h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-3">
+                <div class="agent-table-wrap">
+                    <table class="agent-table">
+                        <thead>
+                            <tr>
+                                <th>Run ID</th>
+                                <th>Bắt đầu</th>
+                                <th>Kết thúc</th>
+                                <th>Trạng thái</th>
+                                <th>Kết quả / Lỗi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="taskRunsTableBody">
+                            <tr>
+                                <td colspan="5" class="text-center py-3 text-white-50">Đang tải lịch sử...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════ MODAL CHI TIẾT NHẬT KÝ ═══════════ -->
+<div class="modal fade" id="logDetailModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content modal-dark-content">
+            <div class="modal-header modal-dark-header">
+                <h5 class="modal-title fs-6 fw-bold"><i class="bi bi-file-text me-1 text-info"></i> Chi tiết Bản ghi Kiểm toán #<span id="logDetailId"></span></h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-3">
+                <div class="row g-2 mb-3">
+                    <div class="col-md-4">
+                        <span class="text-white-50" style="font-size:12px;">HÀNH ĐỘNG:</span>
+                        <div class="text-info fw-bold font-monospace" id="logDetailAction"></div>
+                    </div>
+                    <div class="col-md-4">
+                        <span class="text-white-50" style="font-size:12px;">NGƯỜI THỰC HIỆN:</span>
+                        <div class="text-white fw-bold" id="logDetailUser"></div>
+                    </div>
+                    <div class="col-md-4">
+                        <span class="text-white-50" style="font-size:12px;">THỜI GIAN GHI:</span>
+                        <div class="text-white" id="logDetailTime"></div>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label text-white-50" style="font-size:12px;">THAM SỐ ĐẦU VÀO (INPUT JSON):</label>
+                    <div class="json-box" id="logDetailInput"></div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label text-white-50" style="font-size:12px;">KẾT QUẢ ĐẦU RA (RESULT SUMMARY):</label>
+                    <div class="json-box" id="logDetailResult"></div>
+                </div>
+
+                <div id="logDetailErrorContainer" style="display:none;" class="mb-2">
+                    <label class="form-label text-danger" style="font-size:12px;">CHI TIẾT LỖI (ERROR MESSAGE):</label>
+                    <div class="json-box text-danger" id="logDetailError" style="border-color:rgba(255,77,77,0.4); background:rgba(255,77,77,0.06);"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════ MODAL ĐỔI API KEY (SUPERADMIN ONLY) ═══════════ -->
+@if (isSuperAdmin)
+{
+    <div class="modal fade" id="apiKeyModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content modal-dark-content">
+                <div class="modal-header modal-dark-header">
+                    <h5 class="modal-title fs-6 fw-bold"><i class="bi bi-shield-lock me-1 text-warning"></i> Cập nhật Google Gemini API Key</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="saveApiKeyForm" onsubmit="submitSaveApiKey(event)">
+                    @Html.AntiForgeryToken()
+                    <div class="modal-body p-3">
+                        <p style="font-size:12.5px; color:rgba(255,255,255,0.7); margin-bottom:12px;">
+                            Khóa API được lưu trữ an toàn trong file cấu hình máy chủ, tự động che dấu khi hiển thị và không bao giờ bị lộ cho tài khoản cấp dưới.
+                        </p>
+                        <div class="mb-2">
+                            <label class="form-label text-white-50" style="font-size:12px;">GEMINI API KEY MỚI</label>
+                            <input type="password" name="apiKey" id="inputNewApiKey" class="form-dark-control font-monospace" placeholder="Dán khóa API (AIzaSy... hoặc AQ.Ab8...)" required />
+                        </div>
+                    </div>
+                    <div class="modal-footer modal-dark-footer">
+                        <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Đóng</button>
+                        <button type="submit" class="btn btn-sm btn-info fw-bold">Lưu API Key</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+}
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+    function getAntiToken() {
+        return $('input[name="__RequestVerificationToken"]').first().val() || '';
+    }
+
+    // Chuyển Tab
+    function switchAgentTab(tabId, btn) {
+        $('.agent-tab-pane').hide();
+        $('#' + tabId).show();
+        $('.agent-tab-btn').removeClass('active');
+        $(btn).addClass('active');
+    }
+
+    // ── TAB 1: TÁC VỤ ──
+    function filterTasksTable() {
+        const query = ($('#taskSearchInput').val() || '').toLowerCase().trim();
+        const status = $('#taskStatusFilter').val();
+
+        $('.task-row').each(function () {
+            const row = $(this);
+            const rowStatus = row.data('status');
+            const rowSearch = row.data('search') || '';
+
+            const matchQuery = !query || rowSearch.indexOf(query) !== -1;
+            const matchStatus = (status === 'All') || (rowStatus === status);
+
+            if (matchQuery && matchStatus) row.show();
+            else row.hide();
+        });
+    }
+
+    function triggerSchedulerTick() {
+        const btn = $('#btnTriggerScheduler');
+        btn.prop('disabled', true).html('<i class="bi bi-arrow-repeat spin"></i> Đang quét...');
+
+        $.post('/Admin/AdminAiAgent/TriggerSchedulerTick', { __RequestVerificationToken: getAntiToken() }, function (res) {
+            btn.prop('disabled', false).html('<i class="bi bi-arrow-repeat"></i> Quét lịch ngay');
+            if (res.success) {
+                Swal.fire({ icon: 'success', title: 'Thành công', text: res.message, toast: true, position: 'top-end', timer: 3000, showConfirmButton: false });
+            } else {
+                Swal.fire('Lỗi', res.message || 'Không thể quét lịch.', 'error');
+            }
+        }).fail(function () {
+            btn.prop('disabled', false).html('<i class="bi bi-arrow-repeat"></i> Quét lịch ngay');
+            Swal.fire('Lỗi', 'Không thể kết nối đến máy chủ.', 'error');
+        });
+    }
+
+    function openCreateTaskModal() {
+        $('#createTaskForm')[0].reset();
+        $('#createTaskModal').modal('show');
+    }
+
+    function submitCreateTask(e) {
+        e.preventDefault();
+        const form = $('#createTaskForm');
+        $.post('/Admin/AdminAiAgent/CreateTask', form.serialize(), function (res) {
+            if (res.success) {
+                $('#createTaskModal').modal('hide');
+                Swal.fire({ icon: 'success', title: 'Thành công', text: res.message, timer: 1500, showConfirmButton: false }).then(() => location.reload());
+            } else {
+                Swal.fire('Lỗi', res.message, 'error');
+            }
+        });
+    }
+
+    function openEditTaskModal(id, name, prompt, schedType, schedConfig, status) {
+        $('#editTaskId').val(id);
+        $('#editTaskName').val(name);
+        $('#editUserPrompt').val(prompt);
+        $('#editScheduleType').val(schedType);
+        $('#editScheduleConfig').val(schedConfig);
+        $('#editStatus').val(status);
+        $('#editTaskModal').modal('show');
+    }
+
+    function submitEditTask(e) {
+        e.preventDefault();
+        const form = $('#editTaskForm');
+        $.post('/Admin/AdminAiAgent/EditTask', form.serialize(), function (res) {
+            if (res.success) {
+                $('#editTaskModal').modal('hide');
+                Swal.fire({ icon: 'success', title: 'Thành công', text: res.message, timer: 1500, showConfirmButton: false }).then(() => location.reload());
+            } else {
+                Swal.fire('Lỗi', res.message, 'error');
+            }
+        });
+    }
+
+    function runTaskNow(id, isDryRun) {
+        const actionLabel = isDryRun ? 'Chạy thử nghiệm (Dry-Run)' : 'Chạy thật ngay';
+        Swal.fire({
+            title: `Xác nhận ${actionLabel}?`,
+            text: isDryRun ? 'Agent sẽ suy luận và gọi công cụ ở chế độ giả lập an toàn.' : 'Agent sẽ thực thi thật trên dữ liệu hệ thống.',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Thực thi',
+            cancelButtonText: 'Hủy'
+        }).then(r => {
+            if (r.isConfirmed) {
+                Swal.fire({ title: 'Đang thực thi tác vụ...', text: 'Vui lòng chờ trong giây lát...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+                $.post('/Admin/AdminAiAgent/RunTaskNow', { taskId: id, isDryRun: isDryRun, __RequestVerificationToken: getAntiToken() }, function (res) {
+                    if (res.success) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Thực thi thành công!',
+                            html: `<div style="text-align:left; font-size:13px; max-height:200px; overflow-y:auto;"><strong>Kết quả:</strong><br/>${res.resultSummary || 'Hoàn tất.'}</div>`
+                        });
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Thực thi thất bại',
+                            html: `<div style="text-align:left; font-size:13px; color:#ff6b6b;">${res.message || res.errorMessage || 'Lỗi không xác định'}</div>`
+                        });
+                    }
+                });
+            }
+        });
+    }
+
+    function pauseTask(id) {
+        $.post('/Admin/AdminAiAgent/PauseTask', { taskId: id, __RequestVerificationToken: getAntiToken() }, function (res) {
+            if (res.success) location.reload();
+            else Swal.fire('Lỗi', res.message, 'error');
+        });
+    }
+
+    function resumeTask(id) {
+        $.post('/Admin/AdminAiAgent/ResumeTask', { taskId: id, __RequestVerificationToken: getAntiToken() }, function (res) {
+            if (res.success) location.reload();
+            else Swal.fire('Lỗi', res.message, 'error');
+        });
+    }
+
+    function cancelTask(id) {
+        Swal.fire({
+            title: 'Hủy tác vụ này?',
+            text: 'Tác vụ sẽ không còn được kích hoạt theo lịch nữa.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Hủy tác vụ',
+            cancelButtonText: 'Đóng'
+        }).then(r => {
+            if (r.isConfirmed) {
+                $.post('/Admin/AdminAiAgent/CancelTask', { taskId: id, __RequestVerificationToken: getAntiToken() }, function (res) {
+                    if (res.success) location.reload();
+                    else Swal.fire('Lỗi', res.message, 'error');
+                });
+            }
+        });
+    }
+
+    function viewTaskRuns(id, name) {
+        $('#taskRunsModalTitle').text(name);
+        $('#taskRunsTableBody').html('<tr><td colspan="5" class="text-center py-3 text-white-50"><i class="bi bi-arrow-repeat spin"></i> Đang tải...</td></tr>');
+        $('#taskRunsModal').modal('show');
+
+        $.get('/Admin/AdminAiAgent/GetTaskRuns', { taskId: id }, function (res) {
+            if (res.success) {
+                const runs = res.runs || [];
+                if (runs.length === 0) {
+                    $('#taskRunsTableBody').html('<tr><td colspan="5" class="text-center py-3 text-white-50">Chưa có lượt chạy nào cho tác vụ này.</td></tr>');
+                    return;
+                }
+                let html = '';
+                runs.forEach(r => {
+                    const statusBadge = r.Status === 'Succeeded' ? '<span class="badge-status active">Succeeded</span>' : '<span class="badge-status failed">Failed</span>';
+                    html += `<tr>
+                        <td class="font-monospace text-white-50">#${r.RunID}</td>
+                        <td class="font-monospace" style="font-size:11.5px;">${r.StartedAt}</td>
+                        <td class="font-monospace" style="font-size:11.5px;">${r.FinishedAt}</td>
+                        <td>${statusBadge}</td>
+                        <td style="font-size:12px; max-width:280px; word-break:break-word;">
+                            ${r.ErrorMessage ? `<span class="text-danger">${r.ErrorMessage}</span>` : `<span class="text-white-50">${r.ResultSummary || '—'}</span>`}
+                        </td>
+                    </tr>`;
+                });
+                $('#taskRunsTableBody').html(html);
+            }
+        });
+    }
+
+    // ── TAB 2: NHẬT KÝ ──
+    function executeLogFilter() {
+        const keyword = $('#logKeyword').val();
+        const status = $('#logStatus').val();
+        const dateRange = $('#logDateRange').val();
+
+        $('#logsTableBody').html('<tr><td colspan="8" class="text-center py-4 text-white-50"><i class="bi bi-arrow-repeat spin"></i> Đang tìm kiếm...</td></tr>');
+
+        $.get('/Admin/AdminAiAgent/FilterLogs', { keyword, status, dateRange }, function (res) {
+            if (res.success) {
+                const logs = res.logs || [];
+                if (logs.length === 0) {
+                    $('#logsTableBody').html('<tr><td colspan="8" class="text-center py-4 text-white-50">Không tìm thấy bản ghi nhật ký phù hợp.</td></tr>');
+                    return;
+                }
+                let html = '';
+                logs.forEach(l => {
+                    const statusClass = l.Status === 'Success' || l.Status === 'Succeeded' ? 'active' : (l.Status === 'Failed' ? 'failed' : 'paused');
+                    html += `<tr>
+                        <td class="font-monospace text-white-50">#${l.LogID}</td>
+                        <td class="font-monospace" style="font-size:11.5px;">${l.CreatedAtFormatted}</td>
+                        <td class="text-white fw-bold">${l.UserName}</td>
+                        <td><span class="badge-status info" style="font-size:11px;">${l.ActionName}</span></td>
+                        <td style="font-size:11.5px; color:rgba(255,255,255,0.6);">${l.TargetType || '—'} ${l.TargetID ? '#' + l.TargetID : ''}</td>
+                        <td><span class="badge-status ${statusClass}">${l.Status}</span></td>
+                        <td><span style="display:inline-block; max-width:260px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:12px; color:rgba(255,255,255,0.7);">${l.ResultSnippet || l.ErrorMessage || '—'}</span></td>
+                        <td style="text-align:right;">
+                            <button type="button" class="btn-action-icon" title="Xem chi tiết" onclick="viewLogDetail(${l.LogID})">
+                                <i class="bi bi-eye text-info"></i>
+                            </button>
+                        </td>
+                    </tr>`;
+                });
+                $('#logsTableBody').html(html);
+            }
+        });
+    }
+
+    function viewLogDetail(id) {
+        $('#logDetailId').text(id);
+        $('#logDetailAction').text('Đang tải...');
+        $('#logDetailInput').text('...');
+        $('#logDetailResult').text('...');
+        $('#logDetailErrorContainer').hide();
+        $('#logDetailModal').modal('show');
+
+        $.get('/Admin/AdminAiAgent/GetLogDetail', { logId: id }, function (res) {
+            if (res.success && res.log) {
+                const l = res.log;
+                $('#logDetailAction').text(l.ActionName);
+                $('#logDetailUser').text(`${l.UserName} (${l.UserEmail})`);
+                $('#logDetailTime').text(l.CreatedAt);
+
+                try {
+                    const jIn = JSON.parse(l.InputSummary || '{}');
+                    $('#logDetailInput').text(JSON.stringify(jIn, null, 2));
+                } catch (e) {
+                    $('#logDetailInput').text(l.InputSummary || 'Không có tham số');
+                }
+
+                $('#logDetailResult').text(l.ResultSummary || 'Không có kết quả');
+
+                if (l.ErrorMessage) {
+                    $('#logDetailError').text(l.ErrorMessage);
+                    $('#logDetailErrorContainer').show();
+                }
+            }
+        });
+    }
+
+    function promptDeleteOldLogs() {
+        Swal.fire({
+            title: 'Dọn dẹp nhật ký kiểm toán cũ',
+            text: 'Nhập số ngày (các bản ghi cũ hơn X ngày sẽ bị xóa vĩnh viễn):',
+            input: 'number',
+            inputValue: 30,
+            showCancelButton: true,
+            confirmButtonText: 'Xác nhận xóa',
+            cancelButtonText: 'Hủy',
+            confirmButtonColor: '#ff4d4d'
+        }).then(r => {
+            if (r.isConfirmed && r.value) {
+                $.post('/Admin/AdminAiAgent/DeleteOldLogs', { days: parseInt(r.value), __RequestVerificationToken: getAntiToken() }, function (res) {
+                    if (res.success) {
+                        Swal.fire({ icon: 'success', title: 'Thành công', text: res.message, timer: 2000, showConfirmButton: false }).then(() => location.reload());
+                    } else {
+                        Swal.fire('Lỗi', res.message, 'error');
+                    }
+                });
+            }
+        });
+    }
+
+    // ── TAB 3: CẤU HÌNH AGENT ──
+    function saveAgentConfig(e) {
+        e.preventDefault();
+        const form = $('#agentConfigForm');
+        const btn = $('#btnSaveConfig');
+        btn.prop('disabled', true).html('<i class="bi bi-arrow-repeat spin"></i> Đang lưu...');
+
+        $.post('/Admin/AdminAiAgent/SaveAgentConfig', form.serialize(), function (res) {
+            btn.prop('disabled', false).html('<i class="bi bi-save me-1"></i> Lưu và Áp dụng Cấu hình');
+            if (res.success) {
+                Swal.fire({ icon: 'success', title: 'Thành công', text: res.message, toast: true, position: 'top-end', timer: 3000, showConfirmButton: false });
+            } else {
+                Swal.fire('Lỗi', res.message, 'error');
+            }
+        }).fail(() => {
+            btn.prop('disabled', false).html('<i class="bi bi-save me-1"></i> Lưu và Áp dụng Cấu hình');
+            Swal.fire('Lỗi', 'Không thể kết nối đến máy chủ.', 'error');
+        });
+    }
+
+    // ── TAB 4: API & PHÂN QUYỀN ──
+    function runApiTest() {
+        const btn = $('#btnTestApi');
+        const box = $('#apiTestResultBox');
+        btn.prop('disabled', true).html('<i class="bi bi-arrow-repeat spin"></i> Đang gửi yêu cầu...');
+        box.hide().empty();
+
+        $.post('/Admin/AdminAiAgent/TestApiConnection', { __RequestVerificationToken: getAntiToken() }, function (res) {
+            btn.prop('disabled', false).html('<i class="bi bi-lightning-charge me-1"></i> Bắt đầu Kiểm tra Kết nối');
+            box.show();
+            if (res.success) {
+                box.html(`
+                    <div class="alert alert-success d-flex align-items-center gap-2 p-2 m-0" style="font-size:12.5px; border-radius:8px;">
+                        <i class="bi bi-check-circle-fill fs-5"></i>
+                        <div>
+                            <strong>Kết nối thành công!</strong> Độ trễ phản hồi: <span class="fw-bold text-dark font-monospace">${res.latencyMs}ms</span>. Mô hình: <span class="font-monospace text-dark">${res.modelUsed}</span>.
+                        </div>
+                    </div>
+                `);
+            } else {
+                box.html(`
+                    <div class="alert alert-danger d-flex align-items-center gap-2 p-2 m-0" style="font-size:12.5px; border-radius:8px;">
+                        <i class="bi bi-exclamation-triangle-fill fs-5"></i>
+                        <div>
+                            <strong>Kết nối thất bại:</strong> ${res.message}
+                        </div>
+                    </div>
+                `);
+            }
+        }).fail(() => {
+            btn.prop('disabled', false).html('<i class="bi bi-lightning-charge me-1"></i> Bắt đầu Kiểm tra Kết nối');
+            box.show().html('<div class="alert alert-danger p-2 m-0" style="font-size:12.5px;">Lỗi kết nối máy chủ.</div>');
+        });
+    }
+
+    function openApiKeyModal() {
+        $('#inputNewApiKey').val('');
+        $('#apiKeyModal').modal('show');
+    }
+
+    function submitSaveApiKey(e) {
+        e.preventDefault();
+        const key = $('#inputNewApiKey').val().trim();
+        if (!key) return;
+
+        $.post('/Admin/AdminAiAgent/SaveApiKey', { apiKey: key, __RequestVerificationToken: getAntiToken() }, function (res) {
+            if (res.success) {
+                $('#apiKeyModal').modal('hide');
+                $('#maskedApiKeyDisplay').text(res.maskedKey || '••••••••');
+                Swal.fire({ icon: 'success', title: 'Thành công', text: res.message, toast: true, position: 'top-end', timer: 3000, showConfirmButton: false });
+            } else {
+                Swal.fire('Lỗi', res.message, 'error');
+            }
+        });
+    }
+
+    function onToolToggleChanged(toolName) {
+        const isEn = $('#tool_en_' + toolName).is(':checked');
+        const reqConf = $('#tool_conf_' + toolName).is(':checked');
+
+        $.post('/Admin/AdminAiAgent/ToggleTool', {
+            toolName: toolName,
+            isEnabled: isEn,
+            requireConfirmation: reqConf,
+            __RequestVerificationToken: getAntiToken()
+        }, function (res) {
+            if (res.success) {
+                Swal.fire({ icon: 'success', title: 'Đã lưu', text: res.message, toast: true, position: 'top-end', timer: 2000, showConfirmButton: false });
+            } else {
+                Swal.fire('Lỗi', res.message, 'error');
+            }
+        });
+    }
+
+    function saveSubAdminPermission(userId) {
+        const isEnabled = $('#sub_en_' + userId).is(':checked');
+        const canAutomation = $('#sub_auto_' + userId).is(':checked');
+        const canReadData = $('#sub_read_' + userId).is(':checked');
+        const canManageContent = $('#sub_cfg_' + userId).is(':checked');
+        const canInteract = $('#sub_api_' + userId).is(':checked');
+
+        $.post('/Admin/AdminAiAgent/UpdateSubAdminPermission', {
+            targetUserId: userId,
+            isEnabled: isEnabled,
+            canAutomation: canAutomation,
+            canManageContent: canManageContent,
+            canInteract: canInteract,
+            canReadData: canReadData,
+            __RequestVerificationToken: getAntiToken()
+        }, function (res) {
+            if (res.success) {
+                Swal.fire({ icon: 'success', title: 'Thành công', text: res.message, toast: true, position: 'top-end', timer: 2500, showConfirmButton: false });
+            } else {
+                Swal.fire('Lỗi', res.message, 'error');
+            }
+        });
+    }
+</script>

@@ -1,0 +1,938 @@
+@{
+    ViewBag.Title = "Tổng quan hệ thống";
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+
+    string adminRole = Session["AdminRole"] as string ?? "SuperAdmin";
+    bool isSuperAdmin = adminRole == "SuperAdmin";
+    bool canUser = isSuperAdmin || adminRole == "AdminUser";
+    bool canMarket = isSuperAdmin || adminRole == "AdminMarket";
+    bool canConnect = isSuperAdmin || adminRole == "AdminConnect";
+    bool canChat = isSuperAdmin || adminRole == "AdminChat";
+    bool canFeedStory = isSuperAdmin || adminRole == "adminFeedStory";
+    bool canAiAgent = isSuperAdmin || adminRole == "AdminAiAgent";
+    if (!canAiAgent && Session["AdminID"] != null)
+    {
+        try
+        {
+            int curAdminId = Convert.ToInt32(Session["AdminID"]);
+            using (var dbPerm = new StudentConnect.Models.TDMUEcoSystemEntities())
+            {
+                var perm = dbPerm.AgentPermissions.AsNoTracking().FirstOrDefault(p => p.UserID == curAdminId);
+                canAiAgent = perm != null && perm.IsEnabled;
+            }
+        }
+        catch { }
+    }
+
+    string homeRoleTitle = "ADMIN TỐI CAO";
+    string homeRoleBadgeClass = "role-superadmin";
+    string homeRoleDotColor = "#7b61ff";
+    if (adminRole == "SuperAdmin")
+    {
+        homeRoleTitle = "ADMIN TỐI CAO";
+        homeRoleBadgeClass = "role-superadmin";
+        homeRoleDotColor = "#a78bfa";
+    }
+    else if (adminRole == "AdminUser")
+    {
+        homeRoleTitle = "ADMIN QUẢN LÝ NGƯỜI DÙNG";
+        homeRoleBadgeClass = "role-adminuser";
+        homeRoleDotColor = "#22d3ee";
+    }
+    else if (adminRole == "AdminMarket")
+    {
+        homeRoleTitle = "ADMIN QUẢN LÝ CHỢ";
+        homeRoleBadgeClass = "role-adminmarket";
+        homeRoleDotColor = "#22c55e";
+    }
+    else if (adminRole == "AdminConnect")
+    {
+        homeRoleTitle = "ADMIN QUẢN LÝ KẾT NỐI";
+        homeRoleBadgeClass = "role-adminconnect";
+        homeRoleDotColor = "#f59e0b";
+    }
+    else if (adminRole == "AdminChat")
+    {
+        homeRoleTitle = "ADMIN QUẢN LÝ TRÒ CHUYỆN";
+        homeRoleBadgeClass = "role-adminchat";
+        homeRoleDotColor = "#00c8ff";
+    }
+    else if (adminRole == "adminFeedStory")
+    {
+        homeRoleTitle = "ADMIN QUẢN LÝ FEED VÀ TIN";
+        homeRoleBadgeClass = "role-adminfeedstory";
+        homeRoleDotColor = "#f472b6";
+    }
+    else if (adminRole == "AdminAiAgent")
+    {
+        homeRoleTitle = "ADMIN QUẢN LÝ AI AGENT";
+        homeRoleBadgeClass = "role-adminaiagent";
+        homeRoleDotColor = "#a78bfa";
+    }
+}
+
+<style>
+    .page-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 1.75rem;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .page-title {
+        font-family: 'Space Grotesk', sans-serif;
+        font-size: 1.3rem;
+        font-weight: 600;
+        color: #fff;
+        margin: 0;
+    }
+
+    .page-sub {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 10px;
+        color: rgba(0,200,255,0.5);
+        letter-spacing: 0.1em;
+        margin-top: 3px;
+    }
+
+    .date-badge {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        padding: 7px 14px;
+        border-radius: 100px;
+        background: rgba(255,255,255,0.04);
+        border: 1px solid rgba(255,255,255,0.08);
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 11px;
+        color: rgba(255,255,255,0.35);
+        letter-spacing: 0.05em;
+    }
+
+        .date-badge span {
+            color: rgba(0,200,255,0.7);
+        }
+
+    /* STAT CARDS */
+    .stat-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 14px;
+        margin-bottom: 1.5rem;
+    }
+
+    @@media (max-width: 1200px) {
+        .stat-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    @@media (max-width: 768px) {
+        .stat-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-bottom: 1.2rem;
+        }
+        .stat-card {
+            padding: 14px 14px;
+            border-radius: 12px;
+        }
+        .stat-value {
+            font-size: 1.55rem;
+        }
+        .stat-icon {
+            width: 34px;
+            height: 34px;
+            font-size: 15px;
+            border-radius: 9px;
+        }
+        .stat-footer {
+            margin-top: 8px;
+            padding-top: 8px;
+            font-size: 10px;
+        }
+    }
+
+    @@media (max-width: 360px) {
+        .stat-grid {
+            grid-template-columns: 1fr;
+            gap: 8px;
+        }
+        .stat-card {
+            padding: 12px 14px;
+        }
+    }
+
+    .stat-card {
+        background: rgba(255,255,255,0.03);
+        border: 1px solid rgba(255,255,255,0.07);
+        border-radius: 16px;
+        padding: 20px 22px;
+        position: relative;
+        overflow: hidden;
+        transition: border-color 0.2s, background 0.2s;
+    }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+        }
+
+        .stat-card:hover {
+            background: rgba(255,255,255,0.045);
+        }
+
+        .stat-card.c-cyan::before {
+            background: linear-gradient(90deg, transparent, #00c8ff, transparent);
+        }
+
+        .stat-card.c-green::before {
+            background: linear-gradient(90deg, transparent, #00c850, transparent);
+        }
+
+        .stat-card.c-purple::before {
+            background: linear-gradient(90deg, transparent, #7b61ff, transparent);
+        }
+
+        .stat-card.c-amber::before {
+            background: linear-gradient(90deg, transparent, #ffa000, transparent);
+        }
+
+        .stat-card.c-pink::before {
+            background: linear-gradient(90deg, transparent, #f472b6, transparent);
+        }
+
+        .stat-card:hover.c-pink {
+            border-color: rgba(244,114,182,0.25);
+        }
+
+        .stat-card.c-pink .stat-icon {
+            background: rgba(244,114,182,0.1);
+            border: 1px solid rgba(244,114,182,0.25);
+            color: #f472b6;
+        }
+
+        .stat-card.c-pink .stat-value {
+            color: #f472b6;
+        }
+
+        .stat-card:hover.c-cyan {
+            border-color: rgba(0,200,255,0.2);
+        }
+
+        .stat-card:hover.c-green {
+            border-color: rgba(0,200,80,0.2);
+        }
+
+        .stat-card:hover.c-purple {
+            border-color: rgba(123,97,255,0.2);
+        }
+
+        .stat-card:hover.c-amber {
+            border-color: rgba(255,160,0,0.2);
+        }
+
+    .stat-top {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        margin-bottom: 14px;
+    }
+
+    .stat-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 11px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 17px;
+        flex-shrink: 0;
+    }
+
+    .stat-card.c-cyan .stat-icon {
+        background: rgba(0,200,255,0.1);
+        border: 1px solid rgba(0,200,255,0.2);
+        color: #00c8ff;
+    }
+
+    .stat-card.c-green .stat-icon {
+        background: rgba(0,200,80,0.1);
+        border: 1px solid rgba(0,200,80,0.2);
+        color: #00c850;
+    }
+
+    .stat-card.c-purple .stat-icon {
+        background: rgba(123,97,255,0.1);
+        border: 1px solid rgba(123,97,255,0.2);
+        color: #7b61ff;
+    }
+
+    .stat-card.c-amber .stat-icon {
+        background: rgba(255,160,0,0.1);
+        border: 1px solid rgba(255,160,0,0.2);
+        color: #ffa000;
+    }
+
+    .stat-label {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 9px;
+        letter-spacing: 0.12em;
+        color: rgba(255,255,255,0.25);
+        text-transform: uppercase;
+        margin-bottom: 6px;
+    }
+
+    .stat-value {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #fff;
+        line-height: 1;
+        font-family: 'Space Grotesk', sans-serif;
+    }
+
+    .stat-card.c-cyan .stat-value {
+        color: #00c8ff;
+    }
+
+    .stat-card.c-green .stat-value {
+        color: #00c850;
+    }
+
+    .stat-card.c-purple .stat-value {
+        color: #7b61ff;
+    }
+
+    .stat-card.c-amber .stat-value {
+        color: #ffa000;
+    }
+
+    .stat-footer {
+        margin-top: 12px;
+        padding-top: 10px;
+        border-top: 1px solid rgba(255,255,255,0.05);
+        font-size: 11px;
+        color: rgba(255,255,255,0.2);
+        font-family: 'JetBrains Mono', monospace;
+        letter-spacing: 0.04em;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    /* SESSION CARD */
+    .session-card {
+        background: rgba(255,255,255,0.02);
+        border: 1px solid rgba(255,255,255,0.07);
+        border-radius: 16px;
+        overflow: hidden;
+        margin-bottom: 1.5rem;
+    }
+
+    .session-card-header {
+        padding: 13px 20px;
+        border-bottom: 1px solid rgba(255,255,255,0.06);
+        background: rgba(255,255,255,0.02);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 11px;
+        letter-spacing: 0.1em;
+        color: rgba(0,200,255,0.6);
+    }
+
+    .session-card-body {
+        padding: 20px;
+    }
+
+    .admin-greeting {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 16px;
+    }
+
+    .admin-avatar {
+        width: 46px;
+        height: 46px;
+        border-radius: 13px;
+        flex-shrink: 0;
+        background: linear-gradient(135deg, rgba(0,200,255,0.3), rgba(123,97,255,0.3));
+        border: 1px solid rgba(0,200,255,0.2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+    }
+
+    .admin-greeting-text h6 {
+        color: #fff !important;
+        font-weight: 600 !important;
+        font-size: 15px !important;
+        margin-bottom: 3px !important;
+    }
+
+    .admin-email {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 11px;
+        color: rgba(0,200,255,0.65);
+        letter-spacing: 0.04em;
+    }
+
+    .role-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 3px 10px;
+        border-radius: 100px;
+        background: rgba(123,97,255,0.12);
+        border: 1px solid rgba(123,97,255,0.25);
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 10px;
+        color: #7b61ff;
+        letter-spacing: 0.06em;
+    }
+
+    .role-badge.role-superadmin {
+        background: rgba(123,97,255,0.15);
+        border: 1px solid rgba(123,97,255,0.35);
+        color: #c4b5fd;
+    }
+
+    .role-badge.role-adminuser {
+        background: rgba(34,211,238,0.15);
+        border: 1px solid rgba(34,211,238,0.35);
+        color: #22d3ee;
+    }
+
+    .role-badge.role-adminmarket {
+        background: rgba(34,197,94,0.15);
+        border: 1px solid rgba(34,197,94,0.35);
+        color: #4ade80;
+    }
+
+    .role-badge.role-adminconnect {
+        background: rgba(245,158,11,0.15);
+        border: 1px solid rgba(245,158,11,0.35);
+        color: #fbbf24;
+    }
+
+    .role-badge.role-adminchat {
+        background: rgba(0,200,255,0.15);
+        border: 1px solid rgba(0,200,255,0.35);
+        color: #00c8ff;
+    }
+
+    .role-badge.role-adminfeedstory {
+        background: rgba(244,114,182,0.15);
+        border: 1px solid rgba(244,114,182,0.35);
+        color: #f9a8d4;
+    }
+
+    .role-badge.role-adminaiagent {
+        background: rgba(123, 97, 255, 0.15);
+        border: 1px solid rgba(123, 97, 255, 0.35);
+        color: #a78bfa;
+    }
+
+    .role-dot {
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: #7b61ff;
+        animation: pulse 2s infinite;
+    }
+
+    @@keyframes pulse {
+        0%, 100% {
+            opacity: 1
+        }
+
+        50% {
+            opacity: 0.3
+        }
+    }
+
+    .info-divider {
+        height: 1px;
+        background: rgba(255,255,255,0.06);
+        margin: 16px 0;
+    }
+
+    .quick-links {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-top: 14px;
+    }
+
+    .quick-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 7px 14px;
+        border-radius: 9px;
+        font-size: 12px;
+        font-family: 'Space Grotesk', sans-serif;
+        font-weight: 500;
+        text-decoration: none;
+        border: 1px solid;
+        transition: all 0.2s;
+    }
+
+        .quick-link.cyan {
+            color: #00c8ff;
+            border-color: rgba(0,200,255,0.25);
+        }
+
+            .quick-link.cyan:hover {
+                background: rgba(0,200,255,0.1);
+            }
+
+        .quick-link.green {
+            color: #00c850;
+            border-color: rgba(0,200,80,0.25);
+        }
+
+            .quick-link.green:hover {
+                background: rgba(0,200,80,0.1);
+            }
+
+        .quick-link.purple {
+            color: #7b61ff;
+            border-color: rgba(123,97,255,0.25);
+        }
+
+            .quick-link.purple:hover {
+                background: rgba(123,97,255,0.1);
+            }
+
+        .quick-link.amber {
+            color: #ffa000;
+            border-color: rgba(255,160,0,0.25);
+        }
+
+            .quick-link.amber:hover {
+                background: rgba(255,160,0,0.1);
+            }
+
+        .quick-link.pink {
+            color: #f472b6;
+            border-color: rgba(244,114,182,0.25);
+        }
+
+            .quick-link.pink:hover {
+                background: rgba(244,114,182,0.1);
+            }
+
+        .quick-link.indigo {
+            color: #a78bfa;
+            border-color: rgba(167,139,250,0.25);
+        }
+
+            .quick-link.indigo:hover {
+                background: rgba(167,139,250,0.1);
+            }
+
+    /* SESSION META GRID */
+    .session-meta-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 12px;
+        margin-bottom: 16px;
+    }
+
+    .session-meta-box {
+        background: rgba(255,255,255,0.02);
+        border: 1px solid rgba(255,255,255,0.06);
+        border-radius: 12px;
+        padding: 12px 14px;
+        position: relative;
+        transition: border-color 0.2s, background 0.2s;
+    }
+
+    .session-meta-box.highlight {
+        background: rgba(255,160,0,0.03);
+        border-color: rgba(255,160,0,0.18);
+    }
+
+    .session-meta-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 6px;
+    }
+
+    .session-meta-title {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 10px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: rgba(255,255,255,0.4);
+    }
+
+    .session-status-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 2px 7px;
+        border-radius: 100px;
+        font-size: 9px;
+        font-family: 'JetBrains Mono', monospace;
+        letter-spacing: 0.05em;
+    }
+
+    .session-status-pill.online {
+        background: rgba(34,197,94,0.12);
+        border: 1px solid rgba(34,197,94,0.3);
+        color: #4ade80;
+    }
+
+    .pulse-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: #22c55e;
+        box-shadow: 0 0 6px #22c55e;
+        display: inline-block;
+        animation: pulse 1.5s infinite;
+    }
+
+    .session-meta-main {
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+        margin-bottom: 4px;
+        flex-wrap: wrap;
+    }
+
+    .session-meta-time {
+        font-family: 'Space Grotesk', sans-serif;
+        font-size: 1.35rem;
+        font-weight: 700;
+        color: #ffa000;
+        line-height: 1;
+    }
+
+    .session-meta-date {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 11px;
+        color: rgba(255,255,255,0.45);
+    }
+
+    .session-meta-sub {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 10px;
+        color: rgba(255,255,255,0.3);
+    }
+
+    .tip-box {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        padding: 10px 14px;
+        border-radius: 10px;
+        background: rgba(0,200,255,0.04);
+        border: 1px solid rgba(0,200,255,0.1);
+        font-size: 12px;
+        color: rgba(255,255,255,0.3);
+        font-family: 'Space Grotesk', sans-serif;
+        line-height: 1.6;
+    }
+
+        .tip-box i {
+            color: rgba(0,200,255,0.4);
+            font-size: 14px;
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+
+    @@media (max-width: 768px) {
+        .session-card {
+            border-radius: 14px;
+        }
+        .session-card-header {
+            padding: 10px 14px;
+        }
+        .session-card-body {
+            padding: 14px 12px;
+        }
+        .session-meta-grid {
+            grid-template-columns: 1fr;
+            gap: 8px;
+        }
+        .quick-links {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+        }
+        .quick-link {
+            width: 100%;
+            justify-content: center;
+            padding: 8px 10px;
+            font-size: 11.5px;
+            text-align: center;
+            border-radius: 8px;
+        }
+    }
+
+    @@media (max-width: 480px) {
+        .page-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 8px;
+            margin-bottom: 1.2rem;
+        }
+        .page-title {
+            font-size: 1.15rem;
+        }
+        .date-badge {
+            padding: 5px 10px;
+            font-size: 10px;
+        }
+        .admin-greeting {
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .admin-greeting .ms-auto {
+            width: 100%;
+            margin-top: 4px;
+        }
+        .quick-links {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+<!-- PAGE HEADER -->
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Tổng quan hệ thống</h1>
+        <div class="page-sub">SYSTEM DASHBOARD</div>
+    </div>
+    <div class="date-badge">
+        <i class="bi bi-calendar3"></i>
+        <span>@DateTime.Now.ToString("dd/MM/yyyy")</span>
+        &nbsp;·&nbsp;
+        <span id="liveClock"></span>
+    </div>
+</div>
+
+<!-- STAT CARDS (Chỉ để xem & sắp xếp theo thứ tự chuẩn) -->
+<div class="stat-grid">
+    <div class="stat-card c-cyan">
+        <div class="stat-top">
+            <div>
+                <div class="stat-label">Người dùng</div>
+                <div class="stat-value">@ViewBag.TotalUsers</div>
+            </div>
+            <div class="stat-icon"><i class="bi bi-people"></i></div>
+        </div>
+        <div class="stat-footer"><i class="bi bi-arrow-up-right"></i> Tài khoản đã đăng ký</div>
+    </div>
+
+    @if (canFeedStory)
+    {
+        <div class="stat-card c-pink">
+            <div class="stat-top">
+                <div>
+                    <div class="stat-label">Bài viết Feed & Tin</div>
+                    <div class="stat-value">@ViewBag.TotalFeedPosts</div>
+                </div>
+                <div class="stat-icon"><i class="bi bi-collection-play"></i></div>
+            </div>
+            <div class="stat-footer"><i class="bi bi-camera-reels"></i> @ViewBag.TotalStories tin trong hệ thống</div>
+        </div>
+    }
+
+    <div class="stat-card c-green">
+        <div class="stat-top">
+            <div>
+                <div class="stat-label">Bài đăng Chợ</div>
+                <div class="stat-value">@ViewBag.TotalMarketPosts</div>
+            </div>
+            <div class="stat-icon"><i class="bi bi-shop"></i></div>
+        </div>
+        <div class="stat-footer"><i class="bi bi-tag"></i> Chợ sinh viên TDMU</div>
+    </div>
+
+    <div class="stat-card c-purple">
+        <div class="stat-top">
+            <div>
+                <div class="stat-label">Bài viết Kết nối</div>
+                <div class="stat-value">@ViewBag.TotalConnectPosts</div>
+            </div>
+            <div class="stat-icon"><i class="bi bi-globe-americas"></i></div>
+        </div>
+        <div class="stat-footer"><i class="bi bi-compass"></i> Kết nối TDMU</div>
+    </div>
+
+    @if (canAiAgent)
+    {
+        <div class="stat-card c-purple">
+            <div class="stat-top">
+                <div>
+                    <div class="stat-label">AI Agent</div>
+                    <div class="stat-value">@(ViewBag.TotalAgentTasks ?? 0)</div>
+                </div>
+                <div class="stat-icon"><i class="bi bi-robot"></i></div>
+            </div>
+            <div class="stat-footer"><i class="bi bi-journal-text"></i> @(ViewBag.TotalAgentLogs ?? 0) nhật ký hoạt động</div>
+        </div>
+    }
+</div>
+
+<!-- SESSION INFO (Thông tin phiên làm việc chuyển xuống đây) -->
+<div class="session-card">
+    <div class="session-card-header">
+        <i class="bi bi-terminal"></i> THÔNG TIN PHIÊN
+    </div>
+    <div class="session-card-body">
+        <div class="admin-greeting">
+            <div class="admin-avatar">🛡️</div>
+            <div class="admin-greeting-text">
+                <h6>Xin chào, @(Session["AdminUsername"] ?? "Admin")</h6>
+                <div class="admin-email">@Session["AdminEmail"]</div>
+            </div>
+            <div class="ms-auto">
+                <span class="role-badge @homeRoleBadgeClass"><div class="role-dot" style="background:@homeRoleDotColor"></div> @homeRoleTitle</span>
+            </div>
+        </div>
+
+        <!-- THÔNG TIN PHIÊN LÀM VIỆC & LỊCH SỬ ĐĂNG NHẬP -->
+        <div class="session-meta-grid">
+            <div class="session-meta-box highlight">
+                <div class="session-meta-top">
+                    <span class="session-meta-title"><i class="bi bi-clock-history me-1"></i> Phiên đăng nhập</span>
+                    <span class="session-status-pill online"><span class="pulse-dot"></span> Đang hoạt động</span>
+                </div>
+                <div class="session-meta-main">
+                    <span class="session-meta-time">@(((DateTime)(ViewBag.CurrentLoginTime ?? DateTime.Now)).ToString("HH:mm:ss"))</span>
+                    <span class="session-meta-date">@(((DateTime)(ViewBag.CurrentLoginTime ?? DateTime.Now)).ToString("dddd, dd/MM/yyyy"))</span>
+                </div>
+                <div class="session-meta-sub">
+                    <i class="bi bi-broadcast me-1"></i> Phiên làm việc hiện tại của bạn
+                </div>
+            </div>
+
+            <div class="session-meta-box">
+                <div class="session-meta-top">
+                    <span class="session-meta-title"><i class="bi bi-box-arrow-in-right me-1"></i> Đăng nhập trước đó</span>
+                </div>
+                <div class="session-meta-main">
+                    @if (ViewBag.PreviousLoginTime != null)
+                    {
+                        var prev = (DateTime)ViewBag.PreviousLoginTime;
+                        <span class="session-meta-time" style="color: #67e8f9;">@prev.ToString("HH:mm:ss")</span>
+                        <span class="session-meta-date">@prev.ToString("dd/MM/yyyy")</span>
+                    }
+                    else
+                    {
+                        <span class="session-meta-time" style="color: #67e8f9;">Gần đây</span>
+                        <span class="session-meta-date">Phiên hoạt động đầu tiên</span>
+                    }
+                </div>
+                <div class="session-meta-sub">
+                    <i class="bi bi-shield-check me-1"></i> Lịch sử truy cập hệ thống
+                </div>
+            </div>
+
+            <div class="session-meta-box">
+                <div class="session-meta-top">
+                    <span class="session-meta-title"><i class="bi bi-stopwatch me-1"></i> Thời lượng trực tuyến</span>
+                </div>
+                <div class="session-meta-main">
+                    <span class="session-meta-time" id="sessionElapsedTimer" style="color: #a78bfa;">00:00:00</span>
+                    <span class="session-meta-date">Thời gian kết nối liên tục</span>
+                </div>
+                <div class="session-meta-sub">
+                    <i class="bi bi-activity me-1"></i> Đếm thời gian phiên làm việc
+                </div>
+            </div>
+        </div>
+
+        <!-- CÁC NÚT TÁC VỤ QUẢN LÝ (ĐÃ THÊM NÚT QUẢN LÝ FEED VÀ TIN) -->
+        <div class="quick-links">
+            @if (canUser)
+            {
+                <a href="@Url.Action("Index", "AdminUser", new { area = "Admin" })" class="quick-link cyan">
+                    <i class="bi bi-people"></i> Quản lý Người dùng
+                </a>
+            }
+            @if (canFeedStory)
+            {
+                <a href="@Url.Action("Index", "AdminFeedStory", new { area = "Admin" })" class="quick-link pink">
+                    <i class="bi bi-collection-play"></i> Quản lý Feed & Tin
+                </a>
+            }
+            @if (canChat)
+            {
+                <a href="@Url.Action("Index", "AdminChat", new { area = "Admin" })" class="quick-link purple">
+                    <i class="bi bi-chat-dots"></i> Quản lý Chat
+                </a>
+            }
+            @if (canMarket)
+            {
+                <a href="@Url.Action("Index", "AdminMarket", new { area = "Admin" })" class="quick-link green">
+                    <i class="bi bi-shop"></i> Quản lý Chợ
+                </a>
+            }
+            @if (canConnect)
+            {
+                <a href="@Url.Action("Index", "AdminConnect", new { area = "Admin" })" class="quick-link amber">
+                    <i class="bi bi-globe-americas"></i> Quản lý Kết nối
+                </a>
+            }
+            @if (canAiAgent)
+            {
+                <a href="@Url.Action("Index", "AdminAiAgent", new { area = "Admin" })" class="quick-link indigo">
+                    <i class="bi bi-robot"></i> Quản lý AI Agent
+                </a>
+            }
+        </div>
+
+        <div class="info-divider"></div>
+
+        <div class="tip-box">
+            <i class="bi bi-lightbulb"></i>
+            Số liệu phản ánh trạng thái của cơ sở dữ liệu.
+            Làm mới để cập nhật số liệu mới nhất.
+        </div>
+    </div>
+</div>
+
+@section scripts {
+    <script>
+(function () {
+    function pad(n) { return String(n).padStart(2, '0'); }
+    function tick() {
+        var d = new Date();
+        var el = document.getElementById('liveClock');
+        if (el) el.textContent = pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds());
+    }
+    tick();
+    setInterval(tick, 1000);
+
+    // Đếm thời gian phiên làm việc trực tuyến
+    var sessionStart = new Date('@(((DateTime)(ViewBag.CurrentLoginTime ?? DateTime.Now)).ToString("yyyy-MM-ddTHH:mm:ss"))');
+    function updateSessionTimer() {
+        var now = new Date();
+        var diff = Math.max(0, Math.floor((now - sessionStart) / 1000));
+        var h = Math.floor(diff / 3600);
+        var m = Math.floor((diff % 3600) / 60);
+        var s = diff % 60;
+        var el = document.getElementById('sessionElapsedTimer');
+        if (el) el.textContent = pad(h) + ':' + pad(m) + ':' + pad(s);
+    }
+    updateSessionTimer();
+    setInterval(updateSessionTimer, 1000);
+})();
+    </script>
+}

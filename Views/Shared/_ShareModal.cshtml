@@ -1,0 +1,268 @@
+@* Share Modal - Global partial view for sharing posts/items *@
+
+<script>
+    window.__isLoggedIn = @(Session["UserID"] != null ? "true" : "false");
+</script>
+
+<!-- Share Post Modal -->
+<div class="modal fade" id="sharePostModal" tabindex="-1" aria-labelledby="sharePostModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="background: #0d1626; border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; color: rgba(255,255,255,0.85); font-family: 'Space Grotesk', sans-serif;">
+            <!-- Header -->
+            <div class="modal-header" style="border-bottom: 1px solid rgba(255,255,255,0.08); padding: 16px 20px;">
+                <h5 class="modal-title" id="sharePostModalLabel" style="font-weight: 600; font-size: 1.1rem; color: #fff;">
+                    <i class="fas fa-share-alt me-2" style="color: #00c8ff;"></i>Chia sẻ bài viết
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <!-- Body -->
+            <div class="modal-body" style="padding: 20px;">
+                <!-- Post Preview -->
+                <div id="sharePreviewArea" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 14px; margin-bottom: 16px; display: flex; gap: 12px; align-items: flex-start;">
+                    <img id="sharePreviewImage" src="" alt="Preview"
+                         style="width: 64px; height: 64px; object-fit: cover; border-radius: 10px; border: 1px solid rgba(255,255,255,0.08); flex-shrink: 0;"
+                         onerror="this.style.display='none';" />
+                    <div style="flex: 1; min-width: 0;">
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                            <img id="sharePreviewAvatar" src="" alt="Avatar"
+                                 style="width: 24px; height: 24px; border-radius: 50%; object-fit: cover; border: 1px solid rgba(255,255,255,0.1);"
+                                 onerror="this.onerror=null;this.src=window.DEFAULT_AVATAR_SVG||'/Content/Images/default-avatar.png';" />
+                            <span id="sharePreviewAuthor" style="font-size: 0.82rem; color: rgba(255,255,255,0.7); font-weight: 500;"></span>
+                        </div>
+                        <div id="sharePreviewTitle" style="font-size: 0.92rem; font-weight: 600; color: #fff; line-height: 1.35; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;"></div>
+                        <div id="sharePreviewSubtitle" style="font-size: 0.8rem; color: #00c8ff; margin-top: 4px; font-weight: 500;"></div>
+                    </div>
+                </div>
+
+                <!-- Share Caption -->
+                <div style="position: relative;">
+                    <textarea id="shareCaption" rows="3" maxlength="500"
+                              placeholder="Viết gì đó về bài viết này (không bắt buộc)..."
+                              style="width: 100%; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 12px 14px; color: rgba(255,255,255,0.85); font-family: 'Space Grotesk', sans-serif; font-size: 0.9rem; resize: vertical; min-height: 80px; outline: none; transition: border-color 0.2s;"
+                              onfocus="this.style.borderColor='#00c8ff';"
+                              onblur="this.style.borderColor='rgba(255,255,255,0.08)';"></textarea>
+                    <div id="shareCharCount" style="text-align: right; font-size: 0.75rem; color: rgba(255,255,255,0.35); margin-top: 4px;">0/500</div>
+                </div>
+
+                <!-- Hidden fields -->
+                <input type="hidden" id="shareItemType" />
+                <input type="hidden" id="sharePostId" />
+            </div>
+
+            <!-- Footer -->
+            <div class="modal-footer" style="border-top: 1px solid rgba(255,255,255,0.08); padding: 14px 20px; gap: 10px;">
+                <button type="button" class="btn" data-bs-dismiss="modal"
+                        style="background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.7); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 8px 22px; font-family: 'Space Grotesk', sans-serif; font-weight: 500; font-size: 0.9rem; transition: all 0.2s;"
+                        onmouseover="this.style.background='rgba(255,255,255,0.1)'; this.style.color='#fff';"
+                        onmouseout="this.style.background='rgba(255,255,255,0.06)'; this.style.color='rgba(255,255,255,0.7)';">
+                    Hủy
+                </button>
+                <button type="button" id="btnSubmitShare"
+                        style="background: linear-gradient(135deg, #00c8ff, #0ea5e9); color: #fff; border: none; border-radius: 10px; padding: 8px 28px; font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 0.9rem; cursor: pointer; transition: all 0.2s; box-shadow: 0 2px 12px rgba(0,200,255,0.15);"
+                        onmouseover="this.style.boxShadow='0 4px 20px rgba(0,200,255,0.3)'; this.style.transform='translateY(-1px)';"
+                        onmouseout="this.style.boxShadow='0 2px 12px rgba(0,200,255,0.15)'; this.style.transform='translateY(0)';">
+                    <i class="fas fa-share me-1"></i> Chia sẻ
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Share Modal responsive overrides */
+    @@media (max-width: 576px) {
+        #sharePostModal .modal-dialog {
+            margin: 10px;
+            max-width: calc(100% - 20px);
+        }
+        #sharePostModal .modal-content {
+            border-radius: 12px;
+        }
+        #sharePostModal #sharePreviewImage {
+            width: 48px !important;
+            height: 48px !important;
+        }
+    }
+
+    #sharePostModal .modal-content::-webkit-scrollbar {
+        width: 6px;
+    }
+    #sharePostModal .modal-content::-webkit-scrollbar-thumb {
+        background: rgba(255,255,255,0.1);
+        border-radius: 3px;
+    }
+
+    #sharePostModal textarea::placeholder {
+        color: rgba(255,255,255,0.3);
+    }
+</style>
+
+<script>
+    // Live character counter for share caption
+    $(document).ready(function () {
+        $('#shareCaption').on('input', function () {
+            var len = $(this).val().length;
+            $('#shareCharCount').text(len + '/500');
+            if (len >= 450) {
+                $('#shareCharCount').css('color', '#ff6b6b');
+            } else {
+                $('#shareCharCount').css('color', 'rgba(255,255,255,0.35)');
+            }
+        });
+
+        // Submit share
+        $('#btnSubmitShare').on('click', function () {
+            var btn = $(this);
+            var itemType = $('#shareItemType').val();
+            var postId = $('#sharePostId').val();
+            var caption = $('#shareCaption').val().trim();
+            var token = $("input[name='__RequestVerificationToken']").val();
+
+            btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> Đang chia sẻ...');
+
+            $.ajax({
+                url: '/Share/ShareItem',
+                type: 'POST',
+                data: {
+                    __RequestVerificationToken: token,
+                    itemType: itemType,
+                    postId: postId,
+                    caption: caption,
+                    content: caption
+                },
+                success: function (res) {
+                    if (res.success) {
+                        // Update share count on the page
+                        var normalizedType = (itemType || '').toLowerCase();
+                        var countSelector = '.share-count-' + itemType + '-' + postId;
+                        if (normalizedType === 'post' || normalizedType === 'feed' || normalizedType === 'social') {
+                            countSelector += ', .share-count-Post-' + postId;
+                        }
+
+                        $(countSelector).each(function () {
+                            if (res.newCount !== undefined) {
+                                $(this).text(res.newCount);
+                            } else {
+                                var current = parseInt($(this).text()) || 0;
+                                $(this).text(current + 1);
+                            }
+                        });
+
+                        // Close modal
+                        var modal = bootstrap.Modal.getInstance(document.getElementById('sharePostModal'));
+                        if (modal) modal.hide();
+
+                        // Success toast
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Chia sẻ thành công!',
+                            text: res.message || 'Bài viết đã được chia sẻ lên Bảng tin của bạn.',
+                            timer: 2000,
+                            timerProgressBar: true,
+                            showConfirmButton: false,
+                            background: '#0d1626',
+                            color: '#fff',
+                            toast: true,
+                            position: 'top-end'
+                        }).then(function () {
+                            var path = window.location.pathname.toLowerCase();
+                            if (path === '/' || path.indexOf('/home') !== -1 || path.indexOf('/user/profile') !== -1) {
+                                setTimeout(function () {
+                                    location.reload();
+                                }, 400);
+                            }
+                        });
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Lỗi',
+                            text: res.message || 'Không thể chia sẻ bài viết. Vui lòng thử lại.',
+                            background: '#0d1626',
+                            color: '#fff',
+                            confirmButtonColor: '#00c8ff'
+                        });
+                    }
+                },
+                error: function (xhr) {
+                    var errorMsg = 'Đã xảy ra lỗi. Vui lòng thử lại sau.';
+                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                        errorMsg = xhr.responseJSON.message;
+                    }
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Lỗi',
+                        text: errorMsg,
+                        background: '#0d1626',
+                        color: '#fff',
+                        confirmButtonColor: '#00c8ff'
+                    });
+                },
+                complete: function () {
+                    btn.prop('disabled', false).html('<i class="fas fa-share me-1"></i> Chia sẻ');
+                }
+            });
+        });
+
+        // Reset modal on close
+        $('#sharePostModal').on('hidden.bs.modal', function () {
+            $('#shareCaption').val('');
+            $('#shareCharCount').text('0/500').css('color', 'rgba(255,255,255,0.35)');
+        });
+    });
+
+    // Mo modal chia se bai viet
+    function openShareModal(itemType, postId, title, author, image, subtitle, avatar) {
+        // Check login status
+        var isLoggedIn = window.__isLoggedIn || false;
+        if (!isLoggedIn) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Chưa đăng nhập',
+                text: 'Vui lòng đăng nhập để chia sẻ bài viết!',
+                confirmButtonText: 'Đăng nhập',
+                showCancelButton: true,
+                cancelButtonText: 'Hủy',
+                background: '#0d1626',
+                color: '#fff',
+                confirmButtonColor: '#00c8ff'
+            }).then(function (result) {
+                if (result.isConfirmed) {
+                    window.location.href = '/User/Login';
+                }
+            });
+            return;
+        }
+
+        // Populate hidden fields
+        $('#shareItemType').val(itemType);
+        $('#sharePostId').val(postId);
+
+        // Populate preview
+        $('#sharePreviewTitle').text(title || 'Bài viết');
+        $('#sharePreviewAuthor').text(author || '');
+        $('#sharePreviewSubtitle').text(subtitle || '');
+
+        // Preview image
+        var imgEl = document.getElementById('sharePreviewImage');
+        if (image) {
+            imgEl.src = image;
+            imgEl.style.display = 'block';
+        } else {
+            imgEl.style.display = 'none';
+        }
+
+        // Avatar
+        var avatarEl = document.getElementById('sharePreviewAvatar');
+        avatarEl.src = avatar || window.DEFAULT_AVATAR_SVG || '/Content/Images/default-avatar.png';
+
+        // Reset caption
+        $('#shareCaption').val('');
+        $('#shareCharCount').text('0/500').css('color', 'rgba(255,255,255,0.35)');
+
+        // Show modal
+        var modalEl = document.getElementById('sharePostModal');
+        var shareModal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+        shareModal.show();
+    }
+</script>

@@ -1,0 +1,364 @@
+--- UserController.cs.bak
++++ UserController.cs
+@@ -1,4 +1,4 @@
+-﻿using StudentConnect.Helpers;
++using StudentConnect.Helpers;
+ using StudentConnect.Models;
+ using System;
+ using System.Collections.Generic;
+@@ -567,6 +567,13 @@
+             return View();
+         }
+ 
++        private class ProfileCounts
++        {
++            public int FollowerCount { get; set; }
++            public int FollowingCount { get; set; }
++            public int PostCount { get; set; }
++        }
++
+         // PROFILE CÁ NHÂN VÀ MẠNG XÃ HỘI
+         public new ActionResult Profile(int? id)
+         {
+@@ -577,47 +584,102 @@
+             }
+             int targetUserId = id.HasValue && id.Value > 0 ? id.Value : currentUserId;
+             var targetUser = db.Users
++                .AsNoTracking()
+                 .Include(u => u.UserProfiles)
+-                .Include(u => u.MarketPosts.Select(p => p.MarketImages))
+-                .Include(u => u.MarketPosts.Select(p => p.MarketCategory))
+-                .Include(u => u.ConnectPosts.Select(p => p.ConnectCategory))
+                 .FirstOrDefault(u => u.UserID == targetUserId);
+             if (targetUser == null)
+             {
+                 return RedirectToAction("Index", "Home");
+             }
+             var userProfile = targetUser.UserProfiles?.FirstOrDefault();
++            bool isOwner = currentUserId == targetUserId;
++
+             // Quan hệ với người đang xem
+             int? friendshipId = null;
+-            var relStatus = currentUserId > 0
+-                ? SocialHelper.GetRelationshipStatus(currentUserId, targetUserId, db, out friendshipId)
+-                : UserRelationshipStatus.None;
+-            bool isFollowing = currentUserId > 0 && db.Follows.Any(f => f.FollowerID == currentUserId && f.FollowingID == targetUserId);
++            var relStatus = isOwner
++                ? UserRelationshipStatus.Self
++                : (currentUserId > 0
++                    ? SocialHelper.GetRelationshipStatus(currentUserId, targetUserId, db, out friendshipId)
++                    : UserRelationshipStatus.None);
++
++            bool isFriend = relStatus == UserRelationshipStatus.Friends;
++            bool isFollowing = !isOwner && currentUserId > 0 && db.Follows.Any(f => f.FollowerID == currentUserId && f.FollowingID == targetUserId);
++
+             // Thống kê bạn bè & tương tác
+             var friendIds = SocialHelper.GetFriendIds(targetUserId, db);
+             int friendCount = friendIds.Count;
+-            int followerCount = db.Follows.Count(f => f.FollowingID == targetUserId);
+-            int followingCount = db.Follows.Count(f => f.FollowerID == targetUserId);
+-            int postCount = db.Posts.Count(p => p.UserID == targetUserId);
++
++            // Gom nhóm đếm (Follower, Following, Post) trong 1 round-trip SQL duy nhất
++            var counts = db.Database.SqlQuery<ProfileCounts>(@"
++                SELECT 
++                    (SELECT COUNT(1) FROM Follows WHERE FollowingID = @uid) AS FollowerCount,
++                    (SELECT COUNT(1) FROM Follows WHERE FollowerID = @uid) AS FollowingCount,
++                    (SELECT COUNT(1) FROM Posts WHERE UserID = @uid) AS PostCount",
++                new System.Data.SqlClient.SqlParameter("@uid", targetUserId)).FirstOrDefault() ?? new ProfileCounts();
++
++            int followerCount = counts.FollowerCount;
++            int followingCount = counts.FollowingCount;
++            int postCount = counts.PostCount;
++
+             // Bạn bè xem trước (tối đa 9 người)
+-            var friendsPreview = db.Users
+-                .Where(u => friendIds.Contains(u.UserID))
+-                .Take(9)
+-                .ToList()
++            var friendsPreviewUsers = friendIds.Count > 0
++                ? db.Users
++                    .AsNoTracking()
++                    .Include(u => u.UserProfiles)
++                    .Where(u => friendIds.Contains(u.UserID))
++                    .Take(9)
++                    .ToList()
++                : new List<User>();
++
++            // Danh sách bạn bè của người đang xem để tính bạn chung in-memory
++            var myFriendIds = currentUserId > 0
++                ? (isOwner ? friendIds : SocialHelper.GetFriendIds(currentUserId, db))
++                : new List<int>();
++
++            int mutualFriendCount = (!isOwner && currentUserId > 0 && friendIds.Count > 0 && myFriendIds.Count > 0)
++                ? myFriendIds.Intersect(friendIds).Count()
++                : 0;
++
++            // Tính mutual friends count cho các bạn bè preview trong 1 truy vấn duy nhất (loại bỏ N+1)
++            var previewIds = friendsPreviewUsers.Select(u => u.UserID).ToList();
++            var mutualCountsMap = new Dictionary<int, int>();
++            if (currentUserId > 0 && previewIds.Count > 0 && myFriendIds.Count > 0)
++            {
++                var mutualPairs = db.Friendships
++                    .AsNoTracking()
++                    .Where(f => f.Status == FriendshipStatus.Accepted &&
++                        ((previewIds.Contains(f.RequesterID) && myFriendIds.Contains(f.ReceiverID)) ||
++                         (previewIds.Contains(f.ReceiverID) && myFriendIds.Contains(f.RequesterID))))
++                    .Select(f => new {
++                        PreviewId = previewIds.Contains(f.RequesterID) ? f.RequesterID : f.ReceiverID,
++                        FriendId = previewIds.Contains(f.RequesterID) ? f.ReceiverID : f.RequesterID
++                    })
++                    .ToList();
++
++                foreach (var group in mutualPairs.Where(x => x.FriendId != currentUserId && x.FriendId != x.PreviewId).GroupBy(x => x.PreviewId))
++                {
++                    mutualCountsMap[group.Key] = group.Select(x => x.FriendId).Distinct().Count();
++                }
++            }
++
++            var friendsPreview = friendsPreviewUsers
+                 .Select(u => new UserProfilePreviewItem
+                 {
+                     UserID = u.UserID,
+                     Username = u.DisplayName,
+                     Avatar = u.SafeAvatar,
+                     Faculty = u.UserProfiles?.FirstOrDefault()?.Faculty,
+-                    MutualFriendsCount = (currentUserId > 0 && currentUserId != u.UserID)
+-                        ? SocialHelper.GetMutualFriendsCount(currentUserId, u.UserID, db)
++                    MutualFriendsCount = (currentUserId > 0 && currentUserId != u.UserID && mutualCountsMap.ContainsKey(u.UserID))
++                        ? mutualCountsMap[u.UserID]
+                         : 0
+                 })
+                 .ToList();
+-            // Tin 24h đang còn hiệu lực
++
++            // Tin 24h đang còn hiệu lực kèm eager load StoryViews (loại bỏ lazy loading N+1)
+             var now = DateTime.Now;
+             var activeStories = db.Stories
++                .AsNoTracking()
++                .Include(s => s.StoryViews)
+                 .Where(s => s.UserID == targetUserId && s.ExpiresAt > now)
+                 .OrderBy(s => s.CreatedAt)
+                 .ToList()
+@@ -631,25 +693,30 @@
+                     ExpiresAt = s.ExpiresAt,
+                     TimeAgo = SocialHelper.FormatTimeAgo(s.CreatedAt),
+                     ViewCount = s.StoryViews?.Count ?? 0,
+-                    HasViewed = currentUserId > 0 && s.StoryViews.Any(v => v.ViewerID == currentUserId),
+-                    IsOwner = currentUserId == targetUserId
++                    HasViewed = currentUserId > 0 && s.StoryViews != null && s.StoryViews.Any(v => v.ViewerID == currentUserId),
++                    IsOwner = isOwner
+                 })
+                 .ToList();
++
+             // Danh sách ảnh gần đây từ bài viết
+             var recentPhotos = db.PostMedias
++                .AsNoTracking()
+                 .Where(m => m.Post.UserID == targetUserId && m.MediaType == "image")
+                 .OrderByDescending(m => m.Post.CreatedAt)
+                 .Take(9)
+                 .Select(m => m.MediaUrl)
+                 .ToList();
++
+             // Dòng thời gian bài viết (kiểm tra tài khoản riêng tư)
+             var postsVm = new List<PostItemViewModel>();
+-            bool isOwner = currentUserId == targetUserId;
+-            bool isFriend = relStatus == UserRelationshipStatus.Friends;
+             bool canViewTimeline = isOwner || !targetUser.IsPrivate || isFriend;
++            List<MarketPost> marketPosts = null;
++            List<ConnectPost> connectPosts = null;
++
+             if (canViewTimeline)
+             {
+                 var rawPosts = db.Posts
++                    .AsNoTracking()
+                     .Include(p => p.User)
+                     .Include(p => p.User.UserProfiles)
+                     .Include(p => p.PostMedias)
+@@ -658,13 +725,17 @@
+                     .Include(p => p.PostComments.Select(c => c.PostComments1.Select(r => r.User)))
+                     .Where(p => p.UserID == targetUserId)
+                     .OrderByDescending(p => p.CreatedAt)
++                    .Take(20)
+                     .ToList();
++
+                 postsVm = rawPosts
+                     .Where(p => SocialHelper.CanViewPost(p, currentUserId, db, friendIds))
+                     .Select(p => SocialHelper.MapToPostViewModel(p, currentUserId))
+                     .ToList();
++
+                 // Lấy các bài viết mà người này đã chia sẻ
+                 var rawShares = db.PostShares
++                    .AsNoTracking()
+                     .Include(s => s.User)
+                     .Include(s => s.User.UserProfiles)
+                     .Include(s => s.Post)
+@@ -673,43 +744,78 @@
+                     .Include(s => s.Post.PostMedias)
+                     .Include(s => s.Post.PostLikes)
+                     .Include(s => s.Post.PostComments.Select(c => c.User))
+-                    .Include(s => s.Post.PostComments.Select(c => c.PostComments1.Select(r => r.User)))
+                     .Where(s => s.UserID == targetUserId)
+                     .OrderByDescending(s => s.CreatedAt)
++                    .Take(20)
+                     .ToList();
++
+                 var sharedPostsVm = rawShares
+                     .Where(s => s.Post == null || SocialHelper.CanViewPost(s.Post, currentUserId, db, friendIds))
+                     .Select(s => SocialHelper.MapShareToPostViewModel(s, currentUserId))
+                     .Where(vmItem => vmItem != null)
+                     .ToList();
++
+                 // Lấy các bài chia sẻ từ Chợ và Kết nối
+                 var rawSharedItems = db.SharedPosts
++                    .AsNoTracking()
+                     .Include(s => s.User)
+                     .Include(s => s.User.UserProfiles)
+                     .Where(s => s.UserID == targetUserId)
+                     .OrderByDescending(s => s.CreatedAt)
++                    .Take(20)
+                     .ToList();
++
+                 var sharedItemsVm = rawSharedItems
+                     .Select(s => SocialHelper.MapSharedPostToPostViewModel(s, currentUserId, db))
+                     .Where(vmItem => vmItem != null)
+                     .ToList();
++
+                 // Trộn bài viết tự đăng và bài viết đã chia sẻ theo thứ tự thời gian
+                 postsVm = postsVm.Concat(sharedPostsVm).Concat(sharedItemsVm)
+                     .OrderByDescending(p => p.CreatedAt)
+                     .ToList();
+-            }
+-            if (currentUserId > 0)
+-            {
+-                try
+-                {
+-                    var hiddenPostIds = db.Database.SqlQuery<int>(
+-                        "SELECT PostID FROM UserHiddenPosts WHERE UserID = @uid",
+-                        new System.Data.SqlClient.SqlParameter("@uid", currentUserId)).ToList();
+-                    postsVm = postsVm.Where(p => !hiddenPostIds.Contains(p.PostID)).ToList();
+-                }
+-                catch { }
+-            }
+-            SocialHelper.ApplyCommentModeration(postsVm, db, currentUserId);
++
++                if (currentUserId > 0 && postsVm.Count > 0)
++                {
++                    try
++                    {
++                        var hiddenPostIds = db.Database.SqlQuery<int>(
++                            "SELECT PostID FROM UserHiddenPosts WHERE UserID = @uid",
++                            new System.Data.SqlClient.SqlParameter("@uid", currentUserId)).ToList();
++                        if (hiddenPostIds.Count > 0)
++                        {
++                            var hiddenSet = new HashSet<int>(hiddenPostIds);
++                            postsVm = postsVm.Where(p => !hiddenSet.Contains(p.PostID)).ToList();
++                        }
++                    }
++                    catch { }
++                }
++
++                if (postsVm.Count > 0)
++                {
++                    bool isAdmin = (Session["IsAdmin"] as bool?) ?? (isOwner && targetUser.IsAdmin == true);
++                    SocialHelper.ApplyCommentModeration(postsVm, db, currentUserId, isAdmin);
++                }
++
++                // Nạp Chợ và Kết nối độc lập, loại bỏ cartesian join phình to targetUser
++                marketPosts = db.MarketPosts
++                    .AsNoTracking()
++                    .Include(p => p.MarketImages)
++                    .Include(p => p.MarketCategory)
++                    .Where(p => p.UserID == targetUserId)
++                    .OrderByDescending(p => p.CreatedAt)
++                    .Take(20)
++                    .ToList();
++
++                connectPosts = db.ConnectPosts
++                    .AsNoTracking()
++                    .Include(p => p.ConnectCategory)
++                    .Where(p => p.UserID == targetUserId)
++                    .OrderByDescending(p => p.CreatedAt)
++                    .Take(20)
++                    .ToList();
++            }
++
+             var vm = new SocialProfileViewModel
+             {
+                 UserID = targetUser.UserID,
+@@ -727,13 +833,11 @@
+                 Major = userProfile?.Major,
+                 StudentYear = userProfile?.StudentYear,
+                 Hometown = userProfile?.Hometown,
+-                RelationshipStatus = isOwner ? UserRelationshipStatus.Self : relStatus,
++                RelationshipStatus = relStatus,
+                 FriendshipID = friendshipId,
+                 IsFollowing = isFollowing,
+                 FriendCount = friendCount,
+-                MutualFriendCount = (currentUserId > 0 && currentUserId != targetUserId)
+-                    ? SocialHelper.GetMutualFriendsCount(currentUserId, targetUserId, db)
+-                    : 0,
++                MutualFriendCount = mutualFriendCount,
+                 FollowerCount = followerCount,
+                 FollowingCount = followingCount,
+                 PostCount = postCount,
+@@ -743,8 +847,8 @@
+                 ActiveStories = activeStories,
+                 Highlights = StoryHelper.GetHighlights(targetUserId)
+             };
+-            ViewBag.MarketPosts = targetUser.MarketPosts?.OrderByDescending(p => p.CreatedAt).ToList() ?? new List<MarketPost>();
+-            ViewBag.ConnectPosts = targetUser.ConnectPosts?.OrderByDescending(p => p.CreatedAt).ToList() ?? new List<ConnectPost>();
++            ViewBag.MarketPosts = marketPosts ?? new List<MarketPost>();
++            ViewBag.ConnectPosts = connectPosts ?? new List<ConnectPost>();
+             ViewBag.IsOwner = isOwner;
+             if (isOwner)
+             {
+@@ -1098,24 +1202,32 @@
+         // QUẢN LÝ ĐỔI TÊN NGƯỜI DÙNG (14 NGÀY / LẦN)
+         // ==========================================
+         private const int UsernameChangeCooldownDays = 14;
++        private static volatile bool _userNameChangesTableEnsured = false;
++        private static readonly object _tableEnsureLock = new object();
+         private void EnsureUserNameChangesTable()
+         {
+-            try
+-            {
+-                string sql = @"
+-                    IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='UserNameChanges' AND xtype='U')
+-                    BEGIN
+-                        CREATE TABLE UserNameChanges (
+-                            ChangeID INT IDENTITY(1,1) PRIMARY KEY,
+-                            UserID INT NOT NULL,
+-                            OldUsername NVARCHAR(100),
+-                            NewUsername NVARCHAR(100),
+-                            ChangedAt DATETIME NOT NULL DEFAULT GETDATE()
+-                        );
+-                    END";
+-                db.Database.ExecuteSqlCommand(sql);
+-            }
+-            catch { }
++            if (_userNameChangesTableEnsured) return;
++            lock (_tableEnsureLock)
++            {
++                if (_userNameChangesTableEnsured) return;
++                try
++                {
++                    string sql = @"
++                        IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='UserNameChanges' AND xtype='U')
++                        BEGIN
++                            CREATE TABLE UserNameChanges (
++                                ChangeID INT IDENTITY(1,1) PRIMARY KEY,
++                                UserID INT NOT NULL,
++                                OldUsername NVARCHAR(100),
++                                NewUsername NVARCHAR(100),
++                                ChangedAt DATETIME NOT NULL DEFAULT GETDATE()
++                            );
++                        END";
++                    db.Database.ExecuteSqlCommand(sql);
++                    _userNameChangesTableEnsured = true;
++                }
++                catch { }
++            }
+         }
+         private void GetNameChangeStatus(int userId, out bool canChange, out DateTime? lastChange, out DateTime? nextAllowed, out int daysRemaining)
+         {

@@ -1,0 +1,48 @@
+﻿/* Set padding to keep content from hitting the edges */
+.body-content {
+    margin-top: 15px;
+    padding-left: 15px;
+    padding-right: 15px;
+}
+
+/* Override the default bootstrap behavior where horizontal description lists 
+   will truncate terms that are too long to fit in the left column 
+*/
+.dl-horizontal dt {
+    white-space: normal;
+}
+
+/* Set width on the form input elements since they're 100% wide by default */
+input,
+select,
+textarea {
+    max-width: 280px;
+}
+
+/* ==========================================================================
+   Navy - Purple Gradient Theme & Image Placeholders
+   Colors: Navy #0B1026 | Deep Blue #172554 | Purple #6D28D9
+   ========================================================================== */
+.bg-gradient-navy-purple {
+    background: linear-gradient(135deg, #0B1026 0%, #172554 50%, #6D28D9 100%) !important;
+}
+
+.avatar-placeholder-gradient {
+    background: linear-gradient(135deg, #0B1026 0%, #172554 50%, #6D28D9 100%);
+    object-fit: cover;
+}
+
+.cover-placeholder-gradient {
+    background: linear-gradient(135deg, #0B1026 0%, #172554 45%, #6D28D9 100%);
+    object-fit: cover;
+}
+
+.market-placeholder-gradient {
+    background: linear-gradient(135deg, #0B1026 0%, #172554 50%, #6D28D9 100%);
+    object-fit: cover;
+}
+
+.post-placeholder-gradient {
+    background: linear-gradient(135deg, #0B1026 0%, #172554 50%, #6D28D9 100%);
+    object-fit: cover;
+}

@@ -1,0 +1,88 @@
+@model PagedList.IPagedList<StudentConnect.Models.MarketPost>
+@using PagedList.Mvc;
+
+@{
+    bool isLoggedIn = Session["UserID"] != null;
+    int currentUserId = isLoggedIn ? (int)Session["UserID"] : 0;
+}
+
+@if (Model != null && Model.Any())
+{
+    <div class="market-grid">
+        @foreach (var item in Model)
+        {
+            string hinhDaiDien = item.MarketImages != null && item.MarketImages.Count > 0
+                ? item.MarketImages.First().ImageUrl
+                : item.MainImage ?? "https://via.placeholder.com/300x200/0d1626/00c8ff?text=No+Image";
+
+            <div class="product-card-wrap">
+                <div class="card product-card position-relative">
+                    @if (currentUserId == item.UserID)
+                    {
+                        <div class="position-absolute top-0 start-0 m-1 m-sm-2 d-flex gap-1 gap-sm-2" style="z-index:20;">
+                            <a href="@Url.Action("Edit","Market",new{id=item.PostID})"
+                               class="btn btn-sm btn-warning btn-action-owner rounded-circle d-flex align-items-center justify-content-center shadow"
+                               style="width:30px;height:30px;" title="Sửa tin">
+                                <i class="bi bi-pencil-fill"></i>
+                            </a>
+                            <button type="button"
+                                    class="btn btn-sm btn-danger btn-action-owner rounded-circle d-flex align-items-center justify-content-center shadow"
+                                    style="width:30px;height:30px;" title="Xóa tin"
+                                    onclick="event.preventDefault();event.stopPropagation();openDeleteModal('@item.PostID','@item.Title')">
+                                <i class="bi bi-trash-fill"></i>
+                            </button>
+                        </div>
+                    }
+                    <a href="@Url.Action("Details","Market",new{id=item.PostID})" class="text-decoration-none h-100 d-flex flex-column">
+                        <div class="position-relative">
+                            <img src="@hinhDaiDien" class="card-img-top" alt="@item.Title" loading="lazy">
+                            <span class="badge bg-dark position-absolute top-0 end-0 m-1 m-sm-2">
+                                @(item.MarketCategory?.CategoryName ?? "Khác")
+                            </span>
+                        </div>
+                        <div class="card-body">
+                            <h5 class="card-title text-white" title="@item.Title">@item.Title</h5>
+                            <div class="product-price">@((item.Price ?? 0).ToString("N0")) VNĐ</div>
+                            <p class="card-text text-muted">
+                                @item.Description
+                            </p>
+                            <div class="d-flex justify-content-between align-items-center border-top pt-2 mt-auto">
+                                <div class="card-meta">
+                                    <div><i class="bi bi-person-circle me-1"></i>@(item.User?.Username ?? "Ẩn danh")</div>
+                                    <div><i class="bi bi-clock me-1"></i>@(item.CreatedAt?.ToString("dd/MM/yyyy") ?? "")</div>
+                                </div>
+                                @{
+                                    var marketShareCounts = ViewBag.ShareCounts as Dictionary<int, int>;
+                                    int mShareCount = (marketShareCounts != null && marketShareCounts.ContainsKey(item.PostID)) ? marketShareCounts[item.PostID] : 0;
+                                }
+                                <div class="d-flex align-items-center gap-2">
+                                    <button type="button" class="btn btn-sm btn-outline-secondary border-0 px-2 py-1" style="font-size:11px;color:#9ca3af;" title="Chia sẻ"
+                                            onclick="event.preventDefault();event.stopPropagation();openShareModal('Market', @item.PostID, '@HttpUtility.JavaScriptStringEncode(item.Title ?? "")', '@HttpUtility.JavaScriptStringEncode(item.User?.Username ?? "Ẩn danh")', '@HttpUtility.JavaScriptStringEncode(hinhDaiDien)', '@HttpUtility.JavaScriptStringEncode((item.Price ?? 0).ToString("N0") + " VNĐ")')">
+                                        <i class="bi bi-share"></i> <span class="share-count-Market-@item.PostID">@(mShareCount > 0 ? mShareCount.ToString() : "")</span>
+                                    </button>
+                                    <span class="btn btn-outline-info btn-detail-sm">Chi tiết</span>
+                                </div>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        }
+    </div>
+
+    <div class="d-flex justify-content-center mt-4 mb-4 pagination-dark">
+        @Html.PagedListPager(Model, page => Url.Action("Index",
+            new { page, searchString = ViewBag.CurrentFilter, categoryId = ViewBag.CurrentCategory }))
+    </div>
+}
+else
+{
+    <div class="empty-market text-center py-5" style="background:var(--c-surface); border:1px dashed var(--c-border2); border-radius:var(--radius); margin: 20px 0;">
+        <i class="bi bi-inbox text-muted" style="font-size: 3rem; display:block; margin-bottom:12px;"></i>
+        <h5 class="text-white">Không tìm thấy sản phẩm nào</h5>
+        <p class="text-muted small mb-3">Thử tìm kiếm với từ khóa khác hoặc chuyển sang danh mục khác xem sao.</p>
+        <button type="button" class="btn btn-outline-info btn-sm rounded-pill px-3" onclick="resetMarketFilter()">
+            <i class="bi bi-arrow-counterclockwise me-1"></i>Xem tất cả sản phẩm
+        </button>
+    </div>
+}

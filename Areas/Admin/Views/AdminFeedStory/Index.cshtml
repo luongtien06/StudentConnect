@@ -1,0 +1,980 @@
+@model StudentConnect.Models.AdminFeedStoryViewModel
+@{
+    ViewBag.Title = "Quản lý Feed và Tin";
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+    string searchQuery = ViewBag.SearchQuery as string ?? "";
+}
+
+<style>
+    /* ══════════════════════════════════════
+       BASE / DESKTOP STYLES
+       ══════════════════════════════════════ */
+    .feed-head { display:flex; align-items:flex-end; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:20px; }
+    .feed-title { margin:0; color:#fff; font-size:1.35rem; font-weight:700; }
+    .feed-subtitle { color:rgba(255,255,255,.48); font-size:12px; margin-top:5px; }
+    .feed-search { display:flex; gap:8px; width:min(100%, 380px); }
+    .feed-search input { background:#101a2b; color:#fff; border:1px solid rgba(255,255,255,.12); }
+    .feed-search input:focus { background:#101a2b; color:#fff; border-color:#00c8ff; box-shadow:none; }
+
+    .feed-metrics { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; margin-bottom:18px; }
+    .feed-metric { padding:15px 17px; background:rgba(16,26,43,.85); border:1px solid rgba(255,255,255,.08); border-radius:10px; transition:transform .15s; }
+    .feed-metric:hover { transform:translateY(-2px); }
+    .feed-metric-label { color:rgba(255,255,255,.5); font-size:11px; text-transform:uppercase; }
+    .feed-metric-value { color:#fff; font-size:23px; font-weight:700; margin-top:5px; }
+
+    .feed-panel { background:rgba(16,26,43,.78); border:1px solid rgba(255,255,255,.08); border-radius:10px; overflow:hidden; }
+    .feed-tabs { display:flex; gap:4px; border-bottom:1px solid rgba(255,255,255,.08); padding:10px 14px 0; }
+    .feed-tab { border:0; border-bottom:2px solid transparent; background:transparent; padding:10px 14px; color:rgba(255,255,255,.55); font-weight:600; cursor:pointer; transition:color .2s; white-space:nowrap; }
+    .feed-tab.active { color:#00c8ff; border-bottom-color:#00c8ff; }
+
+    .feed-table-wrap { overflow-x:auto; -webkit-overflow-scrolling:touch; }
+    .feed-table { width:100%; min-width:720px; border-collapse:collapse; }
+    .feed-table th { color:rgba(255,255,255,.44); font-size:10px; text-transform:uppercase; letter-spacing:.06em; font-weight:600; padding:12px 15px; border-bottom:1px solid rgba(255,255,255,.08); text-align:left; }
+    .feed-table td { color:rgba(255,255,255,.83); padding:13px 15px; border-bottom:1px solid rgba(255,255,255,.055); vertical-align:middle; font-size:12px; }
+    .feed-table tr:last-child td { border-bottom:0; }
+    .feed-table tr:hover { background:rgba(0,200,255,.03); }
+    .feed-owner { color:#fff; font-weight:600; }
+    .feed-snippet { color:rgba(255,255,255,.62); max-width:320px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .feed-kind { display:inline-flex; align-items:center; gap:5px; border:1px solid rgba(0,200,255,.22); border-radius:99px; padding:3px 8px; color:#67dcff; font-size:10px; white-space:nowrap; }
+    .feed-kind.expired { color:#fbbf24; border-color:rgba(251,191,36,.25); }
+    .feed-empty { padding:42px 16px; text-align:center; color:rgba(255,255,255,.45); }
+
+    /* Action Buttons */
+    .feed-actions { display:flex; gap:5px; align-items:center; flex-wrap:nowrap; }
+    .feed-btn { border:1px solid rgba(255,255,255,.12); background:rgba(255,255,255,.04); color:rgba(255,255,255,.7); padding:5px 8px; border-radius:6px; cursor:pointer; transition:all .2s; font-size:12px; display:inline-flex; align-items:center; gap:3px; white-space:nowrap; }
+    .feed-btn:hover { background:rgba(255,255,255,.1); color:#fff; }
+    .feed-btn-view { border-color:rgba(0,200,255,.25); color:#67dcff; }
+    .feed-btn-view:hover { background:rgba(0,200,255,.12); color:#00c8ff; }
+    .feed-btn-edit { border-color:rgba(34,197,94,.25); color:#86efac; }
+    .feed-btn-edit:hover { background:rgba(34,197,94,.12); color:#22c55e; }
+    .feed-btn-warn { border-color:rgba(245,158,11,.25); color:#fbbf24; }
+    .feed-btn-warn:hover { background:rgba(245,158,11,.12); color:#f59e0b; }
+    .feed-btn-delete { border:1px solid rgba(239,68,68,.25); background:rgba(239,68,68,.08); color:#fca5a5; }
+    .feed-btn-delete:hover { background:rgba(239,68,68,.2); color:#fff; }
+
+    /* Detail Modal Overlay */
+    .feed-modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.7); backdrop-filter:blur(6px); z-index:9998; display:none; animation:fadeIn .2s ease; }
+    .feed-modal-overlay.show { display:flex; align-items:center; justify-content:center; padding:16px; }
+    .feed-modal-panel { background:#0d1626; border:1px solid rgba(255,255,255,.1); border-radius:14px; max-width:680px; width:100%; max-height:88vh; overflow-y:auto; box-shadow:0 20px 60px rgba(0,0,0,.6); animation:slideUp .25s ease; }
+    .feed-modal-header { display:flex; align-items:center; justify-content:space-between; padding:16px 20px; border-bottom:1px solid rgba(255,255,255,.08); position:sticky; top:0; background:#0d1626; z-index:2; }
+    .feed-modal-header h5 { margin:0; color:#fff; font-size:15px; font-weight:700; }
+    .feed-modal-close { background:none; border:none; color:rgba(255,255,255,.5); font-size:22px; cursor:pointer; padding:4px 10px; border-radius:6px; line-height:1; }
+    .feed-modal-close:hover { background:rgba(255,255,255,.08); color:#fff; }
+    .feed-modal-body { padding:20px; }
+
+    /* Detail Content Styles */
+    .detail-author-row { display:flex; align-items:center; gap:12px; margin-bottom:16px; }
+    .detail-avatar { width:44px; height:44px; border-radius:50%; object-fit:cover; border:2px solid rgba(0,200,255,.3); flex-shrink:0; }
+    .detail-author-name { color:#fff; font-weight:700; font-size:14px; word-break:break-word; }
+    .detail-author-meta { color:rgba(255,255,255,.45); font-size:11px; word-break:break-word; }
+    .detail-content-box { background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.08); border-radius:10px; padding:14px 16px; color:rgba(255,255,255,.85); font-size:13px; line-height:1.6; margin-bottom:14px; white-space:pre-wrap; word-break:break-word; min-height:40px; }
+    .detail-media-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(140px, 1fr)); gap:8px; margin-bottom:14px; }
+    .detail-media-grid img, .detail-media-grid video { width:100%; height:120px; object-fit:cover; border-radius:8px; border:1px solid rgba(255,255,255,.08); cursor:pointer; transition:transform .2s; }
+    .detail-media-grid img:hover, .detail-media-grid video:hover { transform:scale(1.03); }
+    .detail-stats { display:flex; gap:10px; flex-wrap:wrap; }
+    .detail-stat { display:flex; align-items:center; gap:6px; background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.06); border-radius:8px; padding:8px 12px; color:rgba(255,255,255,.7); font-size:12px; }
+    .detail-stat i { font-size:14px; }
+    .detail-stat .stat-val { color:#fff; font-weight:700; }
+    .detail-story-media { width:100%; max-height:400px; object-fit:contain; border-radius:10px; border:1px solid rgba(255,255,255,.08); margin-bottom:14px; }
+
+    /* Mobile card layout helper — hidden on desktop */
+    .feed-card-label { display:none; }
+
+    @@keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
+    @@keyframes slideUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+
+    /* ══════════════════════════════════════
+       RESPONSIVE: LARGE TABLET (≤992px)
+       ══════════════════════════════════════ */
+    @@media (max-width:992px) {
+        .feed-metrics { grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+        .feed-metric-value { font-size:20px; }
+        .feed-snippet { max-width:200px; }
+        .detail-media-grid { grid-template-columns:repeat(auto-fill, minmax(110px, 1fr)); }
+    }
+
+    /* ══════════════════════════════════════
+       RESPONSIVE: TABLET / SMALL TABLET (≤768px)
+       Card-based table layout
+       ══════════════════════════════════════ */
+    @@media (max-width:768px) {
+        .feed-head { flex-direction:column; align-items:stretch; gap:12px; }
+        .feed-search { width:100%; }
+        .feed-title { font-size:1.15rem; }
+
+        .feed-tabs { padding:8px 10px 0; gap:2px; }
+        .feed-tab { padding:8px 10px; font-size:13px; }
+
+        /* Card layout: hide table header, stack rows as cards */
+        .feed-table { min-width:0; }
+        .feed-table thead { display:none; }
+        .feed-table tbody { display:flex; flex-direction:column; gap:10px; padding:12px; }
+        .feed-table tr { display:flex; flex-direction:column; gap:6px; background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.07); border-radius:10px; padding:14px; }
+        .feed-table td { display:flex; align-items:center; gap:8px; padding:0; border:none; font-size:12.5px; }
+        .feed-table tr:hover { background:rgba(0,200,255,.05); }
+
+        /* Show card labels */
+        .feed-card-label { display:inline-block; min-width:80px; color:rgba(255,255,255,.4); font-size:10px; text-transform:uppercase; font-weight:600; letter-spacing:.04em; flex-shrink:0; }
+
+        .feed-snippet { max-width:none; white-space:normal; }
+        .feed-actions { justify-content:flex-start !important; flex-wrap:wrap; gap:6px; padding-top:6px; border-top:1px solid rgba(255,255,255,.06); margin-top:4px; }
+        .feed-btn { padding:6px 10px; }
+
+        /* Modal */
+        .feed-modal-overlay.show { padding:8px; }
+        .feed-modal-panel { max-width:100%; border-radius:12px; max-height:92vh; }
+        .feed-modal-header { padding:12px 16px; }
+        .feed-modal-body { padding:14px; }
+        .detail-media-grid { grid-template-columns:repeat(auto-fill, minmax(100px, 1fr)); gap:6px; }
+        .detail-media-grid img, .detail-media-grid video { height:95px; }
+        .detail-story-media { max-height:300px; }
+        .detail-stats { gap:8px; }
+        .detail-stat { padding:6px 10px; font-size:11px; }
+    }
+
+    /* ══════════════════════════════════════
+       RESPONSIVE: MOBILE (≤576px)
+       ══════════════════════════════════════ */
+    @@media (max-width:576px) {
+        .feed-metrics { grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+        .feed-metric { padding:12px 14px; border-radius:8px; }
+        .feed-metric-value { font-size:18px; }
+        .feed-metric-label { font-size:10px; }
+
+        .feed-panel { border-radius:8px; }
+        .feed-tabs { overflow-x:auto; -webkit-overflow-scrolling:touch; padding:6px 8px 0; }
+        .feed-tab { padding:7px 10px; font-size:12px; flex-shrink:0; }
+
+        .feed-table tbody { padding:8px; gap:8px; }
+        .feed-table tr { padding:12px; border-radius:8px; }
+
+        .feed-actions { gap:4px; }
+        .feed-btn { padding:5px 7px; font-size:11px; }
+
+        .feed-modal-header h5 { font-size:13px; }
+        .detail-avatar { width:38px; height:38px; }
+        .detail-author-name { font-size:13px; }
+        .detail-content-box { padding:10px 12px; font-size:12px; }
+        .detail-media-grid { grid-template-columns:repeat(2, 1fr); }
+        .detail-media-grid img, .detail-media-grid video { height:85px; }
+        .detail-story-media { max-height:240px; border-radius:8px; }
+    }
+
+    /* ══════════════════════════════════════
+       RESPONSIVE: SMALL MOBILE (≤420px)
+       ══════════════════════════════════════ */
+    @@media (max-width:420px) {
+        .feed-title { font-size:1rem; }
+        .feed-subtitle { font-size:11px; }
+        .feed-metric { padding:10px 12px; }
+        .feed-metric-value { font-size:16px; }
+
+        .feed-card-label { min-width:70px; font-size:9px; }
+        .feed-table tr { padding:10px; }
+        .feed-snippet, .feed-owner, .feed-table td { overflow-wrap:anywhere; word-break:break-word; }
+
+        .feed-modal-body { padding:10px; }
+        .detail-author-row { gap:8px; }
+        .detail-media-grid { grid-template-columns:1fr 1fr; gap:5px; }
+        .detail-media-grid img, .detail-media-grid video { height:75px; }
+        .detail-stats { flex-direction:column; gap:6px; }
+        .detail-stat { justify-content:center; }
+    }
+
+    @@media (max-width:360px) {
+        .feed-metric { padding:8px 10px; }
+        .feed-metric-value { font-size:15px; }
+        .feed-metric-label { font-size:9px; }
+        .feed-btn { padding:6px 8px; font-size:11px; }
+    }
+
+    /* ══════════════════════════════════════
+       SWEETALERT2 CYBER DARK THEME
+       ══════════════════════════════════════ */
+    .swal2-popup.admin-swal-popup {
+        background: #0d1626 !important;
+        border: 1px solid rgba(0, 200, 255, 0.25) !important;
+        border-radius: 16px !important;
+        box-shadow: 0 25px 60px rgba(0, 0, 0, 0.75), 0 0 25px rgba(0, 200, 255, 0.08) !important;
+        color: #e2e8f0 !important;
+        font-family: 'Space Grotesk', sans-serif !important;
+    }
+    .swal2-popup.admin-swal-danger {
+        border-color: rgba(239, 68, 68, 0.4) !important;
+        box-shadow: 0 25px 60px rgba(0, 0, 0, 0.75), 0 0 25px rgba(239, 68, 68, 0.12) !important;
+    }
+    .admin-swal-confirm-btn {
+        border-radius: 8px !important;
+        padding: 9px 20px !important;
+        font-weight: 600 !important;
+        font-size: 13px !important;
+        box-shadow: none !important;
+    }
+    .admin-swal-cancel-btn {
+        border-radius: 8px !important;
+        padding: 9px 18px !important;
+        font-weight: 500 !important;
+        font-size: 13px !important;
+        background: rgba(255,255,255,0.08) !important;
+        color: rgba(255,255,255,0.7) !important;
+        border: 1px solid rgba(255,255,255,0.12) !important;
+    }
+    .admin-swal-cancel-btn:hover {
+        background: rgba(255,255,255,0.15) !important;
+        color: #fff !important;
+    }
+    .swal2-timer-progress-bar {
+        background: #00c8ff !important;
+    }
+</style>
+
+<div class="feed-head">
+    <div>
+        <h1 class="feed-title"><i class="bi bi-collection-play text-info me-2"></i>Quản lý Feed và Tin</h1>
+        <div class="feed-subtitle">Tổng quan và kiểm duyệt bài viết mạng xã hội, tin 24 giờ và kho lưu trữ.</div>
+    </div>
+    <form class="feed-search" method="get" action="@Url.Action("Index", "AdminFeedStory", new { area = "Admin" })">
+        <input class="form-control" type="search" name="q" value="@searchQuery" placeholder="Tìm nội dung hoặc tên tài khoản" />
+        <button class="btn btn-info text-dark fw-semibold" type="submit" aria-label="Tìm kiếm"><i class="bi bi-search"></i></button>
+    </form>
+</div>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success py-2">@TempData["SuccessMessage"]</div>
+}
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger py-2">@TempData["ErrorMessage"]</div>
+}
+
+<div class="feed-metrics">
+    <div class="feed-metric"><div class="feed-metric-label">Bài viết</div><div class="feed-metric-value">@Model.TotalPosts</div></div>
+    <div class="feed-metric"><div class="feed-metric-label">Tổng tin</div><div class="feed-metric-value">@Model.TotalStories</div></div>
+    <div class="feed-metric"><div class="feed-metric-label">Tin còn hạn</div><div class="feed-metric-value">@Model.StoriesActive</div></div>
+    <div class="feed-metric"><div class="feed-metric-label">Tin lưu trữ</div><div class="feed-metric-value">@Model.StoriesArchived</div></div>
+</div>
+
+<section class="feed-panel">
+    <div class="feed-tabs" role="tablist">
+        <button class="feed-tab active" type="button" data-feed-tab="posts"><i class="bi bi-card-text me-1"></i>Bài viết (@Model.Posts.Count)</button>
+        <button class="feed-tab" type="button" data-feed-tab="stories"><i class="bi bi-camera-reels me-1"></i>Tin (@Model.Stories.Count)</button>
+    </div>
+
+    <!-- ═══════ TAB BÀI VIẾT ═══════ -->
+    <div class="feed-table-wrap" id="feedPostsPanel">
+        @if (Model.Posts.Any())
+        {
+            <table class="feed-table">
+                <thead><tr><th>Bài viết</th><th>Tác giả</th><th>Quyền riêng tư</th><th>Ngày đăng</th><th style="text-align:right;">Thao tác</th></tr></thead>
+                <tbody>
+                    @foreach (var post in Model.Posts)
+                    {
+                        <tr id="postRow-@post.PostID">
+                            <td><span class="feed-card-label">Bài viết</span><div><div class="feed-snippet" title="@post.Content">@(string.IsNullOrWhiteSpace(post.Content) ? "Bài viết có media" : post.Content)</div><small class="text-white-50">@post.PostMedias.Count media</small></div></td>
+                            <td><span class="feed-card-label">Tác giả</span><span class="feed-owner">@(post.User?.DisplayName ?? post.User?.Username ?? "Người dùng")</span></td>
+                            <td><span class="feed-card-label">Riêng tư</span><span class="feed-kind"><i class="bi @StudentConnect.Models.PostPrivacy.GetIcon(post.Privacy)"></i>@StudentConnect.Models.PostPrivacy.GetLabel(post.Privacy)</span></td>
+                            <td><span class="feed-card-label">Ngày đăng</span><span>@(post.CreatedAt.HasValue ? post.CreatedAt.Value.ToString("dd/MM/yyyy HH:mm") : "—")</span></td>
+                            <td>
+                                <div class="feed-actions" style="justify-content:flex-end;">
+                                    <button type="button" class="feed-btn feed-btn-view" title="Xem chi tiết" onclick="viewPostDetail(@post.PostID)"><i class="bi bi-eye"></i></button>
+                                    <button type="button" class="feed-btn feed-btn-edit" title="Chỉnh sửa" onclick="openEditPost(@post.PostID)"><i class="bi bi-pencil-square"></i></button>
+                                    <button type="button" class="feed-btn feed-btn-warn" title="Gửi cảnh báo" onclick="openWarnPost(@post.PostID, @post.UserID, '@Html.Raw(HttpUtility.JavaScriptStringEncode(post.User?.DisplayName ?? post.User?.Username ?? "Người dùng"))')"><i class="bi bi-exclamation-triangle"></i></button>
+                                    <button type="button" class="feed-btn feed-btn-delete" title="Xóa bài viết" onclick="confirmDeletePost(@post.PostID, '@Html.Raw(HttpUtility.JavaScriptStringEncode(post.User?.DisplayName ?? post.User?.Username ?? "Người dùng"))', '@Html.Raw(HttpUtility.JavaScriptStringEncode((post.Content ?? "Bài viết media").Substring(0, Math.Min(40, (post.Content ?? "Bài viết media").Length))))')"><i class="bi bi-trash3"></i></button>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+        else
+        {
+            <div class="feed-empty"><i class="bi bi-inbox fs-3 d-block mb-2"></i>Không tìm thấy bài viết.</div>
+        }
+    </div>
+
+    <!-- ═══════ TAB TIN ═══════ -->
+    <div class="feed-table-wrap" id="feedStoriesPanel" style="display:none;">
+        @if (Model.Stories.Any())
+        {
+            <table class="feed-table">
+                <thead><tr><th>Tin</th><th>Tác giả</th><th>Trạng thái</th><th>Lượt xem</th><th>Ngày đăng</th><th style="text-align:right;">Thao tác</th></tr></thead>
+                <tbody>
+                    @foreach (var story in Model.Stories)
+                    {
+                        bool isActive = story.ExpiresAt > DateTime.Now;
+                        <tr id="storyRow-@story.StoryID">
+                            <td><span class="feed-card-label">Tin</span><div class="feed-snippet" title="@story.Caption">@(string.IsNullOrWhiteSpace(story.Caption) ? story.MediaUrl : story.Caption)</div></td>
+                            <td><span class="feed-card-label">Tác giả</span><span class="feed-owner">@(story.User?.DisplayName ?? story.User?.Username ?? "Người dùng")</span></td>
+                            <td><span class="feed-card-label">Trạng thái</span><span class="feed-kind @(isActive ? "" : "expired")">@(isActive ? "Còn hạn" : "Lưu trữ")</span></td>
+                            <td><span class="feed-card-label">Lượt xem</span><span>@(story.StoryViews?.Count ?? 0)</span></td>
+                            <td><span class="feed-card-label">Ngày đăng</span><span>@(story.CreatedAt.HasValue ? story.CreatedAt.Value.ToString("dd/MM/yyyy HH:mm") : "—")</span></td>
+                            <td>
+                                <div class="feed-actions" style="justify-content:flex-end;">
+                                    <button type="button" class="feed-btn feed-btn-view" title="Xem chi tiết" onclick="viewStoryDetail(@story.StoryID)"><i class="bi bi-eye"></i></button>
+                                    <button type="button" class="feed-btn feed-btn-edit" title="Chỉnh sửa" onclick="openEditStory(@story.StoryID)"><i class="bi bi-pencil-square"></i></button>
+                                    <button type="button" class="feed-btn feed-btn-warn" title="Gửi cảnh báo" onclick="openWarnStory(@story.StoryID, @story.UserID, '@Html.Raw(HttpUtility.JavaScriptStringEncode(story.User?.DisplayName ?? story.User?.Username ?? "Người dùng"))')"><i class="bi bi-exclamation-triangle"></i></button>
+                                    <button type="button" class="feed-btn feed-btn-delete" title="Xóa tin" onclick="confirmDeleteStory(@story.StoryID, '@Html.Raw(HttpUtility.JavaScriptStringEncode(story.User?.DisplayName ?? story.User?.Username ?? "Người dùng"))', '@Html.Raw(HttpUtility.JavaScriptStringEncode((story.Caption ?? "Tin media").Substring(0, Math.Min(40, (story.Caption ?? "Tin media").Length))))')"><i class="bi bi-trash3"></i></button>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+        else
+        {
+            <div class="feed-empty"><i class="bi bi-inbox fs-3 d-block mb-2"></i>Không tìm thấy tin.</div>
+        }
+    </div>
+</section>
+
+<!-- ═══════════════════════════════════════════
+     MODAL: XEM CHI TIẾT BÀI VIẾT
+     ═══════════════════════════════════════════ -->
+<div class="feed-modal-overlay" id="postDetailOverlay" onclick="if(event.target===this) closePostDetail();">
+    <div class="feed-modal-panel">
+        <div class="feed-modal-header">
+            <h5><i class="bi bi-card-text text-info me-2"></i>Chi tiết bài viết <span id="postDetailIdBadge" class="text-white-50"></span></h5>
+            <button class="feed-modal-close" onclick="closePostDetail();">&times;</button>
+        </div>
+        <div class="feed-modal-body" id="postDetailBody">
+            <div class="text-center py-4"><div class="spinner-border text-info" role="status"></div></div>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     MODAL: XEM CHI TIẾT TIN
+     ═══════════════════════════════════════════ -->
+<div class="feed-modal-overlay" id="storyDetailOverlay" onclick="if(event.target===this) closeStoryDetail();">
+    <div class="feed-modal-panel">
+        <div class="feed-modal-header">
+            <h5><i class="bi bi-camera-reels text-info me-2"></i>Chi tiết tin <span id="storyDetailIdBadge" class="text-white-50"></span></h5>
+            <button class="feed-modal-close" onclick="closeStoryDetail();">&times;</button>
+        </div>
+        <div class="feed-modal-body" id="storyDetailBody">
+            <div class="text-center py-4"><div class="spinner-border text-info" role="status"></div></div>
+        </div>
+    </div>
+</div>
+
+<form id="csrfForm" style="display:none;">@Html.AntiForgeryToken()</form>
+
+@section scripts {
+<script>
+    // ══════════════════════════════════════════
+    // CSRF TOKEN HELPER
+    // ══════════════════════════════════════════
+    function getCsrfToken() {
+        return $('input[name="__RequestVerificationToken"]').first().val() || '';
+    }
+
+    // ══════════════════════════════════════════
+    // 1. TAB SWITCHING (WITH PERSISTENCE)
+    // ══════════════════════════════════════════
+    function switchFeedTab(tabName) {
+        document.querySelectorAll('[data-feed-tab]').forEach(function(tab) {
+            tab.classList.toggle('active', tab.dataset.feedTab === tabName);
+        });
+        var postsPanel = document.getElementById('feedPostsPanel');
+        var storiesPanel = document.getElementById('feedStoriesPanel');
+        if (postsPanel) postsPanel.style.display = tabName === 'posts' ? '' : 'none';
+        if (storiesPanel) storiesPanel.style.display = tabName === 'stories' ? '' : 'none';
+        try { sessionStorage.setItem('activeFeedTab', tabName); } catch(e){}
+    }
+
+    document.querySelectorAll('[data-feed-tab]').forEach(function(button) {
+        button.addEventListener('click', function() {
+            switchFeedTab(this.dataset.feedTab);
+        });
+    });
+
+    $(function() {
+        var savedTab = 'posts';
+        try {
+            savedTab = sessionStorage.getItem('activeFeedTab') || (window.location.hash === '#stories' ? 'stories' : 'posts');
+        } catch(e){}
+        if (savedTab === 'stories') {
+            switchFeedTab('stories');
+        }
+    });
+
+    // Escape key closes any open modal
+    $(document).on('keydown', function(e) {
+        if (e.key === 'Escape') { closePostDetail(); closeStoryDetail(); }
+    });
+
+    function escHtml(str) {
+        var d = document.createElement('div');
+        d.appendChild(document.createTextNode(str || ''));
+        return d.innerHTML;
+    }
+
+    // ══════════════════════════════════════════
+    // 2. XEM CHI TIẾT BÀI VIẾT
+    // ══════════════════════════════════════════
+    function viewPostDetail(postId) {
+        $('#postDetailIdBadge').text('#' + postId);
+        $('#postDetailBody').html('<div class="text-center py-4"><div class="spinner-border text-info" role="status"></div></div>');
+        $('#postDetailOverlay').addClass('show');
+
+        $.getJSON('@Url.Action("GetPostDetail", "AdminFeedStory", new { area = "Admin" })', { id: postId }, function(res) {
+            if (!res.success) {
+                $('#postDetailBody').html('<div class="text-center text-danger py-3">' + escHtml(res.message) + '</div>');
+                return;
+            }
+
+            var mediaHtml = '';
+            if (res.mediaList && res.mediaList.length > 0) {
+                mediaHtml = '<div class="detail-media-grid">';
+                res.mediaList.forEach(function(m) {
+                    if (m.MediaType === 'video') {
+                        mediaHtml += '<video src="' + escHtml(m.MediaUrl) + '" controls style="height:120px;"></video>';
+                    } else {
+                        mediaHtml += '<img src="' + escHtml(m.MediaUrl) + '" alt="Media" onclick="window.open(\'' + escHtml(m.MediaUrl) + '\', \'_blank\');" />';
+                    }
+                });
+                mediaHtml += '</div>';
+            }
+
+            var html = '' +
+                '<div class="detail-author-row">' +
+                    '<img src="' + escHtml(res.authorAvatar) + '" class="detail-avatar" onerror="this.onerror=null;this.src=\'/Content/Images/default-avatar.png\';" />' +
+                    '<div>' +
+                        '<div class="detail-author-name">' + escHtml(res.authorName) + ' <span class="text-white-50 fw-normal" style="font-size:11px;">(ID: ' + res.authorId + ')</span></div>' +
+                        '<div class="detail-author-meta"><i class="bi bi-clock me-1"></i>' + escHtml(res.createdAt) + ' · <i class="bi bi-shield-lock ms-1 me-1"></i>' + escHtml(res.privacyLabel) + '</div>' +
+                    '</div>' +
+                '</div>' +
+                '<div class="detail-content-box">' + (res.content ? escHtml(res.content) : '<span class="text-white-50 fst-italic">Không có nội dung văn bản</span>') + '</div>' +
+                mediaHtml +
+                '<div class="detail-stats">' +
+                    '<div class="detail-stat"><i class="bi bi-heart-fill text-danger"></i><span class="stat-val">' + res.likeCount + '</span> lượt thích</div>' +
+                    '<div class="detail-stat"><i class="bi bi-chat-dots-fill text-info"></i><span class="stat-val">' + res.commentCount + '</span> bình luận</div>' +
+                    '<div class="detail-stat"><i class="bi bi-share-fill text-success"></i><span class="stat-val">' + res.shareCount + '</span> lượt chia sẻ</div>' +
+                '</div>' +
+                '<div class="d-flex gap-2 mt-3 pt-3 flex-wrap" style="border-top:1px solid rgba(255,255,255,.08);">' +
+                    '<button class="feed-btn feed-btn-edit" onclick="closePostDetail(); openEditPost(' + res.postId + ');"><i class="bi bi-pencil-square me-1"></i>Chỉnh sửa</button>' +
+                    '<button class="feed-btn feed-btn-warn" onclick="closePostDetail(); openWarnPost(' + res.postId + ', ' + res.authorId + ', \'' + escHtml(res.authorName).replace(/'/g, "\\'") + '\');"><i class="bi bi-exclamation-triangle me-1"></i>Gửi cảnh báo</button>' +
+                    '<button class="feed-btn feed-btn-delete" onclick="closePostDetail(); confirmDeletePost(' + res.postId + ', \'' + escHtml(res.authorName).replace(/'/g, "\\'") + '\', \'' + escHtml((res.content || 'Bài viết media').substring(0, 40)).replace(/'/g, "\\'") + '\');"><i class="bi bi-trash3 me-1"></i>Xóa bài viết</button>' +
+                '</div>';
+
+            $('#postDetailBody').html(html);
+        }).fail(function() {
+            $('#postDetailBody').html('<div class="text-center text-danger py-3">Lỗi kết nối máy chủ.</div>');
+        });
+    }
+
+    function closePostDetail() {
+        $('#postDetailOverlay').find('video').each(function() { this.pause(); this.currentTime = 0; });
+        $('#postDetailOverlay').removeClass('show');
+    }
+
+    // ══════════════════════════════════════════
+    // 3. XEM CHI TIẾT TIN
+    // ══════════════════════════════════════════
+    function viewStoryDetail(storyId) {
+        $('#storyDetailIdBadge').text('#' + storyId);
+        $('#storyDetailBody').html('<div class="text-center py-4"><div class="spinner-border text-info" role="status"></div></div>');
+        $('#storyDetailOverlay').addClass('show');
+
+        $.getJSON('@Url.Action("GetStoryDetail", "AdminFeedStory", new { area = "Admin" })', { id: storyId }, function(res) {
+            if (!res.success) {
+                $('#storyDetailBody').html('<div class="text-center text-danger py-3">' + escHtml(res.message) + '</div>');
+                return;
+            }
+
+            var isImage = res.mediaUrl && !res.mediaUrl.match(/\.(mp4|webm|ogg|mov)$/i);
+            var mediaHtml = '';
+            if (res.mediaUrl) {
+                if (isImage) {
+                    mediaHtml = '<img src="' + escHtml(res.mediaUrl) + '" class="detail-story-media" onclick="window.open(\'' + escHtml(res.mediaUrl) + '\', \'_blank\');" />';
+                } else {
+                    mediaHtml = '<video src="' + escHtml(res.mediaUrl) + '" class="detail-story-media" controls></video>';
+                }
+            }
+
+            var statusBadge = res.isActive
+                ? '<span class="feed-kind"><i class="bi bi-check-circle me-1"></i>Còn hạn</span>'
+                : '<span class="feed-kind expired"><i class="bi bi-clock-history me-1"></i>Đã hết hạn</span>';
+
+            var html = '' +
+                '<div class="detail-author-row">' +
+                    '<img src="' + escHtml(res.authorAvatar) + '" class="detail-avatar" onerror="this.onerror=null;this.src=\'/Content/Images/default-avatar.png\';" />' +
+                    '<div>' +
+                        '<div class="detail-author-name">' + escHtml(res.authorName) + ' <span class="text-white-50 fw-normal" style="font-size:11px;">(ID: ' + res.authorId + ')</span></div>' +
+                        '<div class="detail-author-meta"><i class="bi bi-clock me-1"></i>' + escHtml(res.createdAt) + ' · Hết hạn: ' + escHtml(res.expiresAt) + '</div>' +
+                    '</div>' +
+                '</div>' +
+                mediaHtml +
+                '<div class="detail-content-box">' + (res.caption ? escHtml(res.caption) : '<span class="text-white-50 fst-italic">Không có chú thích</span>') + '</div>' +
+                '<div class="detail-stats">' +
+                    '<div class="detail-stat"><i class="bi bi-eye-fill text-info"></i><span class="stat-val">' + res.viewCount + '</span> lượt xem</div>' +
+                    '<div class="detail-stat">' + statusBadge + '</div>' +
+                '</div>' +
+                '<div class="d-flex gap-2 mt-3 pt-3 flex-wrap" style="border-top:1px solid rgba(255,255,255,.08);">' +
+                    '<button class="feed-btn feed-btn-edit" onclick="closeStoryDetail(); openEditStory(' + res.storyId + ');"><i class="bi bi-pencil-square me-1"></i>Chỉnh sửa</button>' +
+                    '<button class="feed-btn feed-btn-warn" onclick="closeStoryDetail(); openWarnStory(' + res.storyId + ', ' + res.authorId + ', \'' + escHtml(res.authorName).replace(/'/g, "\\'") + '\');"><i class="bi bi-exclamation-triangle me-1"></i>Gửi cảnh báo</button>' +
+                    '<button class="feed-btn feed-btn-delete" onclick="closeStoryDetail(); confirmDeleteStory(' + res.storyId + ', \'' + escHtml(res.authorName).replace(/'/g, "\\'") + '\', \'' + escHtml((res.caption || 'Tin media').substring(0, 40)).replace(/'/g, "\\'") + '\');"><i class="bi bi-trash3 me-1"></i>Xóa tin</button>' +
+                '</div>';
+
+            $('#storyDetailBody').html(html);
+        }).fail(function() {
+            $('#storyDetailBody').html('<div class="text-center text-danger py-3">Lỗi kết nối máy chủ.</div>');
+        });
+    }
+
+    function closeStoryDetail() {
+        $('#storyDetailOverlay').find('video').each(function() { this.pause(); this.currentTime = 0; });
+        $('#storyDetailOverlay').removeClass('show');
+    }
+
+    // ══════════════════════════════════════════
+    // UNIFIED NOTIFICATION TOAST SYSTEM
+    // ══════════════════════════════════════════
+    function showAdminToast(icon, title, message) {
+        const Toast = Swal.mixin({
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 3500,
+            timerProgressBar: true,
+            background: '#0d1626',
+            color: '#fff',
+            customClass: {
+                popup: 'admin-swal-popup'
+            },
+            didOpen: function(toast) {
+                toast.addEventListener('mouseenter', Swal.stopTimer);
+                toast.addEventListener('mouseleave', Swal.resumeTimer);
+            }
+        });
+        Toast.fire({
+            icon: icon || 'success',
+            title: title ? '<strong>' + title + '</strong>' : undefined,
+            text: message
+        });
+    }
+
+    // ══════════════════════════════════════════
+    // 4. XÓA BÀI VIẾT (SweetAlert2 Dialog)
+    // ══════════════════════════════════════════
+    function confirmDeletePost(postId, authorName, snippet) {
+        Swal.fire({
+            title: '<i class="bi bi-trash3-fill text-danger me-2"></i>Xác nhận xóa bài viết #' + postId,
+            html:
+                '<div style="text-align:left;font-size:13px;color:#cbd5e1;">' +
+                    '<p style="margin-bottom:8px;">Bạn có chắc chắn muốn xóa bài viết của <strong style="color:#00c8ff;">' + escHtml(authorName) + '</strong>?</p>' +
+                    '<div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:10px;margin-bottom:12px;font-style:italic;color:rgba(255,255,255,0.7);">' +
+                        '"' + escHtml(snippet || 'Bài viết media') + '..."' +
+                    '</div>' +
+                    '<div style="padding:10px 12px;border-radius:8px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.25);color:#fca5a5;font-size:12px;">' +
+                        '<i class="bi bi-exclamation-triangle-fill me-1"></i> Cảnh báo: Toàn bộ hình ảnh, video, bình luận và lượt tương tác sẽ bị xóa vĩnh viễn khỏi hệ thống.' +
+                    '</div>' +
+                '</div>',
+            icon: 'warning',
+            iconColor: '#ef4444',
+            showCancelButton: true,
+            confirmButtonText: '<i class="bi bi-trash3-fill me-1"></i> Xóa vĩnh viễn',
+            cancelButtonText: 'Hủy bỏ',
+            confirmButtonColor: '#ef4444',
+            customClass: {
+                popup: 'admin-swal-popup admin-swal-danger',
+                confirmButton: 'admin-swal-confirm-btn',
+                cancelButton: 'admin-swal-cancel-btn'
+            },
+            background: '#0d1626',
+            color: '#fff',
+            focusCancel: true
+        }).then(function(result) {
+            if (!result.isConfirmed) return;
+
+            Swal.fire({
+                title: 'Đang xóa bài viết...',
+                text: 'Hệ thống đang dọn dẹp dữ liệu bài viết và tập tin media...',
+                allowOutsideClick: false,
+                didOpen: function() { Swal.showLoading(); }
+            });
+
+            $.ajax({
+                url: '@Url.Action("DeletePost", "AdminFeedStory", new { area = "Admin" })',
+                type: 'POST',
+                data: {
+                    id: postId,
+                    __RequestVerificationToken: getCsrfToken()
+                },
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                success: function(res) {
+                    if (res.success) {
+                        Swal.close();
+                        $('#postRow-' + postId).fadeOut(300, function() {
+                            $(this).remove();
+                        });
+                        showAdminToast('success', 'Đã xóa bài viết', res.message);
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Không thể xóa',
+                            text: res.message || 'Lỗi không xác định khi xóa bài viết.',
+                            background: '#0d1626',
+                            color: '#fff',
+                            customClass: { popup: 'admin-swal-popup' }
+                        });
+                    }
+                },
+                error: function(xhr) {
+                    var errorMsg = (xhr.responseJSON && xhr.responseJSON.message) || 'Không thể kết nối đến máy chủ.';
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Lỗi',
+                        text: errorMsg,
+                        background: '#0d1626',
+                        color: '#fff',
+                        customClass: { popup: 'admin-swal-popup' }
+                    });
+                }
+            });
+        });
+    }
+
+    // ══════════════════════════════════════════
+    // 5. XÓA TIN (SweetAlert2 Dialog)
+    // ══════════════════════════════════════════
+    function confirmDeleteStory(storyId, authorName, snippet) {
+        Swal.fire({
+            title: '<i class="bi bi-trash3-fill text-danger me-2"></i>Xác nhận xóa tin #' + storyId,
+            html:
+                '<div style="text-align:left;font-size:13px;color:#cbd5e1;">' +
+                    '<p style="margin-bottom:8px;">Bạn có chắc chắn muốn xóa tin của <strong style="color:#00c8ff;">' + escHtml(authorName) + '</strong>?</p>' +
+                    '<div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:10px;margin-bottom:12px;font-style:italic;color:rgba(255,255,255,0.7);">' +
+                        '"' + escHtml(snippet || 'Tin media') + '..."' +
+                    '</div>' +
+                    '<div style="padding:10px 12px;border-radius:8px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.25);color:#fca5a5;font-size:12px;">' +
+                        '<i class="bi bi-exclamation-triangle-fill me-1"></i> Cảnh báo: Tệp tin phương tiện và lượt xem của tin sẽ bị xóa hoàn toàn.' +
+                    '</div>' +
+                '</div>',
+            icon: 'warning',
+            iconColor: '#ef4444',
+            showCancelButton: true,
+            confirmButtonText: '<i class="bi bi-trash3-fill me-1"></i> Xóa vĩnh viễn',
+            cancelButtonText: 'Hủy bỏ',
+            confirmButtonColor: '#ef4444',
+            customClass: {
+                popup: 'admin-swal-popup admin-swal-danger',
+                confirmButton: 'admin-swal-confirm-btn',
+                cancelButton: 'admin-swal-cancel-btn'
+            },
+            background: '#0d1626',
+            color: '#fff',
+            focusCancel: true
+        }).then(function(result) {
+            if (!result.isConfirmed) return;
+
+            Swal.fire({
+                title: 'Đang xóa tin...',
+                text: 'Hệ thống đang dọn dẹp tập tin tin phương tiện...',
+                allowOutsideClick: false,
+                didOpen: function() { Swal.showLoading(); }
+            });
+
+            $.ajax({
+                url: '@Url.Action("DeleteStory", "AdminFeedStory", new { area = "Admin" })',
+                type: 'POST',
+                data: {
+                    id: storyId,
+                    __RequestVerificationToken: getCsrfToken()
+                },
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                success: function(res) {
+                    if (res.success) {
+                        Swal.close();
+                        $('#storyRow-' + storyId).fadeOut(300, function() {
+                            $(this).remove();
+                        });
+                        showAdminToast('success', 'Đã xóa tin', res.message);
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Không thể xóa',
+                            text: res.message || 'Lỗi không xác định khi xóa tin.',
+                            background: '#0d1626',
+                            color: '#fff',
+                            customClass: { popup: 'admin-swal-popup' }
+                        });
+                    }
+                },
+                error: function(xhr) {
+                    var errorMsg = (xhr.responseJSON && xhr.responseJSON.message) || 'Không thể kết nối đến máy chủ.';
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Lỗi',
+                        text: errorMsg,
+                        background: '#0d1626',
+                        color: '#fff',
+                        customClass: { popup: 'admin-swal-popup' }
+                    });
+                }
+            });
+        });
+    }
+
+    // ══════════════════════════════════════════
+    // 6. CHỈNH SỬA BÀI VIẾT (SweetAlert2 Modal)
+    // ══════════════════════════════════════════
+    function openEditPost(postId) {
+        Swal.fire({
+            title: 'Đang tải thông tin...',
+            allowOutsideClick: false,
+            didOpen: function() { Swal.showLoading(); }
+        });
+
+        $.getJSON('@Url.Action("GetPostDetail", "AdminFeedStory", new { area = "Admin" })', { id: postId }, function(res) {
+            if (!res.success) {
+                Swal.fire({ icon: 'error', title: 'Lỗi', text: res.message, background: '#0d1626', color: '#fff', customClass: { popup: 'admin-swal-popup' } });
+                return;
+            }
+
+            Swal.fire({
+                title: '<i class="bi bi-pencil-square text-success me-2"></i>Chỉnh sửa bài viết #' + postId,
+                html:
+                    '<div style="text-align:left;font-size:13px;color:#cbd5e1;">' +
+                        '<div style="margin-bottom:12px;padding:8px 12px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:8px;">' +
+                            '<span style="color:rgba(255,255,255,0.5);font-size:11px;">TÁC GIẢ:</span> <strong style="color:#00c8ff;">' + escHtml(res.authorName) + '</strong> (ID: #' + res.authorId + ')' +
+                        '</div>' +
+                        '<label style="font-size:11px;color:rgba(255,255,255,0.5);font-weight:600;display:block;margin-bottom:5px;">NỘI DUNG BÀI VIẾT:</label>' +
+                        '<textarea id="swal-edit-content" class="form-control" style="background:#101a2b;color:#fff;border:1px solid rgba(255,255,255,0.15);border-radius:8px;padding:10px;margin:0 0 14px;width:100%;height:110px;font-size:13px;resize:vertical;">' + escHtml(res.content) + '</textarea>' +
+                        '<label style="font-size:11px;color:rgba(255,255,255,0.5);font-weight:600;display:block;margin-bottom:5px;">QUYỀN RIÊNG TƯ:</label>' +
+                        '<select id="swal-edit-privacy" class="form-select" style="background:#101a2b;color:#fff;border:1px solid rgba(255,255,255,0.15);border-radius:8px;padding:9px;margin:0;width:100%;font-size:13px;">' +
+                            '<option value="Public"' + (res.privacy === 'Public' ? ' selected' : '') + '>🌐 Công khai (Mọi người đều xem được)</option>' +
+                            '<option value="Friends"' + (res.privacy === 'Friends' ? ' selected' : '') + '>👥 Bạn bè (Chỉ bạn bè xem được)</option>' +
+                            '<option value="OnlyMe"' + (res.privacy === 'OnlyMe' ? ' selected' : '') + '>🔒 Chỉ mình tôi (Riêng tư cá nhân)</option>' +
+                        '</select>' +
+                    '</div>',
+                showCancelButton: true,
+                confirmButtonText: '<i class="bi bi-check2-circle me-1"></i> Lưu thay đổi',
+                cancelButtonText: 'Hủy bỏ',
+                confirmButtonColor: '#22c55e',
+                customClass: {
+                    popup: 'admin-swal-popup',
+                    confirmButton: 'admin-swal-confirm-btn',
+                    cancelButton: 'admin-swal-cancel-btn'
+                },
+                background: '#0d1626',
+                color: '#fff',
+                preConfirm: function() {
+                    return {
+                        content: $('#swal-edit-content').val(),
+                        privacy: $('#swal-edit-privacy').val()
+                    };
+                }
+            }).then(function(result) {
+                if (result.isConfirmed) {
+                    Swal.fire({
+                        title: 'Đang lưu bài viết...',
+                        allowOutsideClick: false,
+                        didOpen: function() { Swal.showLoading(); }
+                    });
+
+                    $.post('@Url.Action("AdminEditPost", "AdminFeedStory", new { area = "Admin" })', {
+                        postId: postId,
+                        content: result.value.content,
+                        privacy: result.value.privacy,
+                        __RequestVerificationToken: getCsrfToken()
+                    }, function(res) {
+                        if (res.success) {
+                            Swal.close();
+                            showAdminToast('success', 'Thành công', res.message);
+                            try { sessionStorage.setItem('activeFeedTab', 'posts'); } catch(e){}
+                            setTimeout(function() { location.reload(); }, 900);
+                        } else {
+                            Swal.fire({ icon: 'error', title: 'Lỗi', text: res.message || 'Không thể cập nhật bài viết.', background: '#0d1626', color: '#fff', customClass: { popup: 'admin-swal-popup' } });
+                        }
+                    }).fail(function(xhr) {
+                        var errorMsg = (xhr.responseJSON && xhr.responseJSON.message) || 'Không thể kết nối đến máy chủ.';
+                        Swal.fire({ icon: 'error', title: 'Lỗi', text: errorMsg, background: '#0d1626', color: '#fff', customClass: { popup: 'admin-swal-popup' } });
+                    });
+                }
+            });
+        }).fail(function(xhr) {
+            var errorMsg = (xhr.responseJSON && xhr.responseJSON.message) || 'Không thể tải thông tin bài viết.';
+            Swal.fire({ icon: 'error', title: 'Lỗi', text: errorMsg, background: '#0d1626', color: '#fff', customClass: { popup: 'admin-swal-popup' } });
+        });
+    }
+
+    // ══════════════════════════════════════════
+    // 7. CHỈNH SỬA TIN (SweetAlert2 Modal)
+    // ══════════════════════════════════════════
+    function openEditStory(storyId) {
+        Swal.fire({
+            title: 'Đang tải thông tin...',
+            allowOutsideClick: false,
+            didOpen: function() { Swal.showLoading(); }
+        });
+
+        $.getJSON('@Url.Action("GetStoryDetail", "AdminFeedStory", new { area = "Admin" })', { id: storyId }, function(res) {
+            if (!res.success) {
+                Swal.fire({ icon: 'error', title: 'Lỗi', text: res.message || 'Không thể tải thông tin tin.', background: '#0d1626', color: '#fff', customClass: { popup: 'admin-swal-popup' } });
+                return;
+            }
+
+            var previewHtml = '';
+            if (res.mediaUrl) {
+                var isImg = !res.mediaUrl.match(/\.(mp4|webm|ogg|mov)$/i);
+                if (isImg) {
+                    previewHtml = '<div style="margin-bottom:12px;text-align:center;"><img src="' + escHtml(res.mediaUrl) + '" style="max-width:100%;max-height:180px;object-fit:contain;border-radius:8px;border:1px solid rgba(255,255,255,.1);" /></div>';
+                } else {
+                    previewHtml = '<div style="margin-bottom:12px;text-align:center;"><video src="' + escHtml(res.mediaUrl) + '" style="max-width:100%;max-height:180px;border-radius:8px;" controls></video></div>';
+                }
+            }
+
+            Swal.fire({
+                title: '<i class="bi bi-pencil-square text-success me-2"></i>Chỉnh sửa tin #' + storyId,
+                html:
+                    '<div style="text-align:left;font-size:13px;color:#cbd5e1;">' +
+                        previewHtml +
+                        '<label style="font-size:11px;color:rgba(255,255,255,0.5);font-weight:600;display:block;margin-bottom:5px;">CHÚ THÍCH TIN:</label>' +
+                        '<textarea id="swal-edit-caption" class="form-control" style="background:#101a2b;color:#fff;border:1px solid rgba(255,255,255,0.15);border-radius:8px;padding:10px;margin:0;width:100%;height:85px;font-size:13px;resize:vertical;">' + escHtml(res.caption) + '</textarea>' +
+                    '</div>',
+                showCancelButton: true,
+                confirmButtonText: '<i class="bi bi-check2-circle me-1"></i> Lưu thay đổi',
+                cancelButtonText: 'Hủy bỏ',
+                confirmButtonColor: '#22c55e',
+                customClass: {
+                    popup: 'admin-swal-popup',
+                    confirmButton: 'admin-swal-confirm-btn',
+                    cancelButton: 'admin-swal-cancel-btn'
+                },
+                background: '#0d1626',
+                color: '#fff',
+                preConfirm: function() {
+                    return $('#swal-edit-caption').val();
+                }
+            }).then(function(result) {
+                if (result.isConfirmed) {
+                    Swal.fire({
+                        title: 'Đang lưu tin...',
+                        allowOutsideClick: false,
+                        didOpen: function() { Swal.showLoading(); }
+                    });
+
+                    $.post('@Url.Action("AdminEditStory", "AdminFeedStory", new { area = "Admin" })', {
+                        storyId: storyId,
+                        caption: result.value,
+                        __RequestVerificationToken: getCsrfToken()
+                    }, function(res) {
+                        if (res.success) {
+                            Swal.close();
+                            showAdminToast('success', 'Thành công', res.message);
+                            try { sessionStorage.setItem('activeFeedTab', 'stories'); } catch(e){}
+                            setTimeout(function() { location.reload(); }, 900);
+                        } else {
+                            Swal.fire({ icon: 'error', title: 'Lỗi', text: res.message || 'Không thể cập nhật tin.', background: '#0d1626', color: '#fff', customClass: { popup: 'admin-swal-popup' } });
+                        }
+                    }).fail(function(xhr) {
+                        var errorMsg = (xhr.responseJSON && xhr.responseJSON.message) || 'Không thể kết nối đến máy chủ.';
+                        Swal.fire({ icon: 'error', title: 'Lỗi', text: errorMsg, background: '#0d1626', color: '#fff', customClass: { popup: 'admin-swal-popup' } });
+                    });
+                }
+            });
+        }).fail(function(xhr) {
+            var errorMsg = (xhr.responseJSON && xhr.responseJSON.message) || 'Không thể tải thông tin tin.';
+            Swal.fire({ icon: 'error', title: 'Lỗi', text: errorMsg, background: '#0d1626', color: '#fff', customClass: { popup: 'admin-swal-popup' } });
+        });
+    }
+
+    // ══════════════════════════════════════════
+    // 8. GỬI CẢNH BÁO BÀI VIẾT / TIN VI PHẠM
+    // ══════════════════════════════════════════
+    function openWarnPost(postId, userId, userName) {
+        showWarningDialog('post', postId, null, userId, userName);
+    }
+
+    function openWarnStory(storyId, userId, userName) {
+        showWarningDialog('story', null, storyId, userId, userName);
+    }
+
+    function showWarningDialog(type, postId, storyId, userId, userName) {
+        var itemLabel = type === 'post' ? 'bài viết #' + postId : 'tin #' + storyId;
+
+        Swal.fire({
+            title: '<i class="bi bi-exclamation-triangle-fill text-warning me-2"></i>Gửi Cảnh Báo Vi Phạm',
+            html:
+                '<div style="text-align:left;font-size:13px;color:#cbd5e1;">' +
+                    '<div style="margin-bottom:12px;padding:9px 12px;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.25);border-radius:8px;">' +
+                        'Gửi cảnh báo đến <strong style="color:#00c8ff;">' + escHtml(userName) + '</strong> (ID: #' + userId + ') liên quan đến <strong>' + itemLabel + '</strong>.' +
+                    '</div>' +
+                    '<label style="font-size:11px;color:rgba(255,255,255,0.5);font-weight:600;display:block;margin-bottom:5px;">CHỌN LÝ DO MẪU (NHANH):</label>' +
+                    '<select id="swal-warn-tpl" class="form-select" style="background:#101a2b;color:#fff;border:1px solid rgba(255,255,255,0.15);border-radius:8px;padding:9px;margin:0 0 12px;width:100%;font-size:13px;">' +
+                        '<option value="">-- Chọn mẫu cảnh báo sẵn có --</option>' +
+                        '<option value="Nội dung có ngôn từ xúc phạm, thù ghét hoặc thiếu chuẩn mực. Vui lòng chỉnh sửa hoặc xóa bỏ để tránh bị khóa tài khoản.">1. Ngôn từ xúc phạm, thiếu chuẩn mực</option>' +
+                        '<option value="Nội dung mang tính spam, quảng cáo trái phép hoặc không liên quan đến mục đích của nền tảng.">2. Spam, quảng cáo trái quy định</option>' +
+                        '<option value="Nội dung có dấu hiệu gian lận, lừa đảo hoặc sai sự thật. Ban quản trị đang giám sát tài khoản của bạn.">3. Nghi vấn gian lận, lừa đảo</option>' +
+                        '<option value="Nội dung/hình ảnh phản cảm, không phù hợp chuẩn mực sinh viên. Đề nghị gỡ bỏ ngay lập tức.">4. Nội dung phản cảm, không phù hợp</option>' +
+                        '<option value="Vi phạm bản quyền hoặc sử dụng nội dung của người khác mà chưa được phép.">5. Vi phạm bản quyền</option>' +
+                        '<option value="Tùy chỉnh">6. Nhập nội dung cảnh báo riêng...</option>' +
+                    '</select>' +
+                    '<label style="font-size:11px;color:rgba(255,255,255,0.5);font-weight:600;display:block;margin-bottom:5px;">LỜI CẢNH BÁO GỬI ĐẾN NGƯỜI DÙNG:</label>' +
+                    '<textarea id="swal-warn-msg" class="form-control" placeholder="Nhập nội dung cảnh báo chi tiết..." style="background:#101a2b;color:#fff;border:1px solid rgba(255,255,255,0.15);border-radius:8px;padding:10px;margin:0;width:100%;height:90px;font-size:13px;resize:vertical;"></textarea>' +
+                '</div>',
+            showCancelButton: true,
+            confirmButtonText: '<i class="bi bi-send-fill me-1"></i> Gửi cảnh báo ngay',
+            cancelButtonText: 'Hủy bỏ',
+            confirmButtonColor: '#f59e0b',
+            customClass: {
+                popup: 'admin-swal-popup',
+                confirmButton: 'admin-swal-confirm-btn',
+                cancelButton: 'admin-swal-cancel-btn'
+            },
+            background: '#0d1626',
+            color: '#fff',
+            didOpen: function() {
+                $('#swal-warn-tpl').on('change', function() {
+                    var val = $(this).val();
+                    if (val && val !== 'Tùy chỉnh') {
+                        $('#swal-warn-msg').val(val);
+                    } else if (val === 'Tùy chỉnh') {
+                        $('#swal-warn-msg').val('').focus();
+                    }
+                });
+            },
+            preConfirm: function() {
+                var text = $('#swal-warn-msg').val().trim();
+                if (!text) {
+                    Swal.showValidationMessage('Vui lòng chọn mẫu hoặc nhập nội dung cảnh báo!');
+                    return false;
+                }
+                return text;
+            }
+        }).then(function(result) {
+            if (result.isConfirmed) {
+                Swal.fire({
+                    title: 'Đang gửi cảnh báo...',
+                    text: 'Hệ thống đang chuyển thông báo tới người dùng...',
+                    allowOutsideClick: false,
+                    didOpen: function() { Swal.showLoading(); }
+                });
+
+                $.post('@Url.Action("SendWarning", "AdminFeedStory", new { area = "Admin" })', {
+                    targetUserId: userId,
+                    warningType: type,
+                    warningMessage: result.value,
+                    postId: postId,
+                    storyId: storyId,
+                    __RequestVerificationToken: getCsrfToken()
+                }, function(res) {
+                    if (res.success) {
+                        Swal.close();
+                        showAdminToast('success', 'Thành công', res.message);
+                    } else {
+                        Swal.fire({ icon: 'error', title: 'Không thể gửi cảnh báo', text: res.message || 'Lỗi gửi cảnh báo.', background: '#0d1626', color: '#fff', customClass: { popup: 'admin-swal-popup' } });
+                    }
+                }).fail(function(xhr) {
+                    var errorMsg = (xhr.responseJSON && xhr.responseJSON.message) || 'Không thể kết nối đến máy chủ.';
+                    Swal.fire({ icon: 'error', title: 'Lỗi', text: errorMsg, background: '#0d1626', color: '#fff', customClass: { popup: 'admin-swal-popup' } });
+                });
+            }
+        });
+    }
+</script>
+}

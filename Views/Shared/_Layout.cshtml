@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>@ViewBag.Title</title>
+    @Styles.Render("~/Content/css")
+    @Scripts.Render("~/bundles/modernizr")
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="@Url.Content("~/Content/vendor/fontawesome/css/all.min.css")">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script>
+        (function () {
+            // ── SVG DATA-URI GRADIENT NAVY - PURPLE (#0B1026 -> #172554 -> #6D28D9)
+            var SVG_AVATAR = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' width='100' height='100'><defs><linearGradient id='av_np' x1='0%25' y1='0%25' x2='100%25' y2='100%25'><stop offset='0%25' stop-color='%230B1026'/><stop offset='50%25' stop-color='%23172554'/><stop offset='100%25' stop-color='%236D28D9'/></linearGradient></defs><rect width='100' height='100' fill='url(%23av_np)'/><circle cx='50' cy='38' r='18' fill='rgba(255,255,255,0.78)'/><path d='M22 84 C22 66, 34 58, 50 58 C66 58, 78 66, 78 84 Z' fill='rgba(255,255,255,0.78)'/></svg>";
+            var SVG_COVER = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 400' width='1200' height='400'><defs><linearGradient id='cov_np' x1='0%25' y1='0%25' x2='100%25' y2='100%25'><stop offset='0%25' stop-color='%230B1026'/><stop offset='45%25' stop-color='%23172554'/><stop offset='100%25' stop-color='%236D28D9'/></linearGradient><radialGradient id='cov_glow' cx='85%25' cy='25%25' r='50%25'><stop offset='0%25' stop-color='%238B5CF6' stop-opacity='0.35'/><stop offset='100%25' stop-color='%236D28D9' stop-opacity='0'/></radialGradient></defs><rect width='1200' height='400' fill='url(%23cov_np)'/><rect width='1200' height='400' fill='url(%23cov_glow)'/><g opacity='0.15' stroke='%23FFF' stroke-width='1.5' fill='none'><circle cx='1050' cy='200' r='160'/><circle cx='1050' cy='200' r='100'/><path d='M0 320 Q 300 240, 600 320 T 1200 280'/></g><text x='50%25' y='50%25' fill='rgba(255,255,255,0.45)' font-family='sans-serif' font-size='26' font-weight='600' text-anchor='middle' dy='.3em' letter-spacing='4'>TDMU CONNECT</text></svg>";
+            var SVG_MARKET = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 600 600' width='600' height='600'><defs><linearGradient id='mkt_np' x1='0%25' y1='0%25' x2='100%25' y2='100%25'><stop offset='0%25' stop-color='%230B1026'/><stop offset='50%25' stop-color='%23172554'/><stop offset='100%25' stop-color='%236D28D9'/></linearGradient></defs><rect width='600' height='600' fill='url(%23mkt_np)'/><g fill='none' stroke='rgba(255,255,255,0.68)' stroke-width='14' stroke-linecap='round' stroke-linejoin='round' transform='translate(180, 160)'><path d='M40 80 L200 80 L180 260 L60 260 Z'/><path d='M85 80 C85 30, 155 30, 155 80'/></g><text x='50%25' y='76%25' fill='rgba(255,255,255,0.5)' font-family='sans-serif' font-size='22' font-weight='500' text-anchor='middle' letter-spacing='2'>TDMU MARKET</text></svg>";
+            var SVG_IMAGE = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 500' width='800' height='500'><defs><linearGradient id='post_np' x1='0%25' y1='0%25' x2='100%25' y2='100%25'><stop offset='0%25' stop-color='%230B1026'/><stop offset='50%25' stop-color='%23172554'/><stop offset='100%25' stop-color='%236D28D9'/></linearGradient></defs><rect width='800' height='500' fill='url(%23post_np)'/><g fill='none' stroke='rgba(255,255,255,0.68)' stroke-width='12' stroke-linecap='round' stroke-linejoin='round' transform='translate(300, 150)'><rect x='0' y='0' width='200' height='150' rx='16'/><circle cx='55' cy='50' r='18' fill='rgba(255,255,255,0.68)' stroke='none'/><path d='M20 130 L80 75 L130 115 L160 90 L185 130'/></g><text x='50%25' y='78%25' fill='rgba(255,255,255,0.45)' font-family='sans-serif' font-size='20' font-weight='500' text-anchor='middle' letter-spacing='2'>STUDENT CONNECT</text></svg>";
+
+            window.DEFAULT_AVATAR_SVG = SVG_AVATAR;
+            window.DEFAULT_COVER_SVG = SVG_COVER;
+            window.DEFAULT_MARKET_SVG = SVG_MARKET;
+            window.DEFAULT_IMAGE_SVG = SVG_IMAGE;
+
+            // ── CHẶN BẮT LỖI ẢNH TOÀN CỤC Ở PHA CAPTURE
+            window.addEventListener('error', function (e) {
+                // 1. Chỉ xử lý lỗi tải ảnh của thẻ <img>, bỏ qua hoàn toàn các sự kiện lỗi khác (script, window, media)
+                if (!e || !e.target || e.target.nodeType !== 1 || e.target.tagName !== 'IMG') {
+                    return;
+                }
+
+                var img = e.target;
+
+                // 2. Chống lặp tuyệt đối: Mỗi thẻ ảnh chỉ fallback tối đa một lần duy nhất
+                if (img.dataset.hasFallback === '1') {
+                    img.onerror = null;
+                    return;
+                }
+                img.dataset.hasFallback = '1';
+                img.onerror = null;
+
+                var s = (img.getAttribute('src') || '').toLowerCase();
+                var cls = (img.className || '').toLowerCase();
+                var alt = (img.getAttribute('alt') || '').toLowerCase();
+                var id = (img.id || '').toLowerCase();
+
+                // 3. Phân biệt ngữ nghĩa chính xác theo thứ tự ưu tiên:
+                // Ưu tiên 1: Avatar người dùng (kể cả có chữ 'post' trong post-author-avatar)
+                var isAvatar = cls.indexOf('avatar') !== -1 || id.indexOf('avatar') !== -1 ||
+                               alt.indexOf('avatar') !== -1 || s.indexOf('avatar') !== -1 ||
+                               alt.indexOf('người dùng') !== -1 || alt.indexOf('tác giả') !== -1;
+
+                if (isAvatar) {
+                    img.src = SVG_AVATAR;
+                    img.classList.add('avatar-placeholder-gradient');
+                    return;
+                }
+
+                // Ưu tiên 2: Ảnh bìa (Cover)
+                var isCover = cls.indexOf('cover') !== -1 || id.indexOf('cover') !== -1 ||
+                              cls.indexOf('story-card-bg') !== -1 || cls.indexOf('story-grid-img') !== -1 ||
+                              alt.indexOf('bìa') !== -1 || alt.indexOf('cover') !== -1 || s.indexOf('cover') !== -1;
+
+                if (isCover) {
+                    img.src = SVG_COVER;
+                    img.classList.add('cover-placeholder-gradient');
+                    return;
+                }
+
+                // Ưu tiên 3: Sản phẩm Chợ (Market)
+                var isMarket = cls.indexOf('market') !== -1 || id.indexOf('market') !== -1 ||
+                               s.indexOf('market') !== -1 || alt.indexOf('sản phẩm') !== -1 || alt.indexOf('chợ') !== -1;
+
+                if (isMarket) {
+                    img.src = SVG_MARKET;
+                    img.classList.add('market-placeholder-gradient');
+                    return;
+                }
+
+                // Ưu tiên 4: Bài viết / Tin tức / Kết nối / Post Image
+                img.src = SVG_IMAGE;
+                img.classList.add('post-placeholder-gradient');
+            }, true); // useCapture = true để bắt trước inline onerror
+        })();
+    </script>
+    <style>
+        :root {
+            --tdmu-bg: #050a14;
+            --tdmu-surface: rgba(255,255,255,0.03);
+            --tdmu-border: rgba(255,255,255,0.08);
+            --tdmu-cyan: #00c8ff;
+            --tdmu-green: #00c850;
+            --tdmu-purple: #7b61ff;
+            --tdmu-text: rgba(255,255,255,0.85);
+            --tdmu-muted: rgba(255,255,255,0.4);
+        }
+        * { box-sizing: border-box; }
+        html, body {
+            background-color: var(--tdmu-bg) !important;
+            font-family: 'Space Grotesk', sans-serif;
+            color: var(--tdmu-text);  min-height: 100vh;
+            background: linear-gradient(270deg, black, #030031, #1d1531);
+            background-size: 400% 400%;
+            animation: gradientShift 25s ease infinite;
+        }
+        @@keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        body::before {
+            content: '';
+            position: fixed; inset: 0; z-index: 0;
+            background-image:
+                linear-gradient(rgba(0,200,255,0.035) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0,200,255,0.035) 1px, transparent 1px);
+            background-size: 48px 48px;
+            pointer-events: none;
+        }
+        body::after {
+            content: '';
+            position: fixed;
+            width: 500px; height: 500px;
+            top: -150px; left: -100px;
+            background: radial-gradient(circle, rgba(0,80,200,0.18), transparent 70%);
+            border-radius: 50%; filter: blur(60px);
+            pointer-events: none; z-index: 0;
+        }
+        @@keyframes pageEnter {
+            from { opacity: 0; transform: translateY(18px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        @@keyframes pageLeave {
+            from { opacity: 1; transform: translateY(0); }
+            to   { opacity: 0; transform: translateY(-10px); }
+        }
+        .body-content {
+            animation: pageEnter 0.4s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+            position: relative; z-index: 2;
+        }
+        body.page-leaving .body-content {
+            animation: pageLeave 0.35s ease forwards;
+        }
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(0,200,255,0.2); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(0,200,255,0.4); }
+
+        .swal2-popup {
+            background: #0d1626 !important;
+            border: 1px solid rgba(0,200,255,0.2) !important;
+            border-radius: 16px !important;
+            font-family: 'Space Grotesk', sans-serif !important;
+            color: #fff !important;
+        }
+        .swal2-title { color: #fff !important; font-weight: 600 !important; }
+        .swal2-content { color: rgba(255,255,255,0.6) !important; }
+        .swal2-confirm {
+            background: rgba(0,200,255,0.15) !important;
+            border: 1px solid rgba(0,200,255,0.35) !important;
+            color: #00c8ff !important;
+            border-radius: 100px !important;
+            font-family: 'Space Grotesk', sans-serif !important;
+        }
+        .swal2-cancel {
+            background: rgba(255,255,255,0.06) !important;
+            border: 1px solid rgba(255,255,255,0.1) !important;
+            color: rgba(255,255,255,0.6) !important;
+            border-radius: 100px !important;
+        }
+        .swal2-timer-progress-bar { background: var(--tdmu-cyan) !important; }
+        .swal2-require-login-popup {
+            box-shadow: 0 10px 40px rgba(0,200,255,0.15), 0 0 0 1px rgba(0,200,255,0.25) !important;
+        }
+        .btn-sc-login-confirm {
+            background: linear-gradient(135deg, #00c8ff 0%, #0077ff 100%) !important;
+            color: #fff !important;
+            font-weight: 600 !important;
+            padding: 8px 20px !important;
+            box-shadow: 0 4px 14px rgba(0,200,255,0.3) !important;
+        }
+        .btn-sc-login-cancel {
+            padding: 8px 18px !important;
+        }
+        .swal2-popup.swal2-toast {
+            background: #0d1626 !important;
+            border: 1px solid rgba(0,200,255,0.25) !important;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.5) !important;
+        }
+
+        .card {
+            background: rgba(255,255,255,0.03) !important;
+            border: 1px solid rgba(255,255,255,0.08) !important;
+            border-radius: 16px !important;
+            color: var(--tdmu-text) !important;
+        }
+        .btn-primary {
+            background: rgba(0,200,255,0.12) !important;
+            border: 1px solid rgba(0,200,255,0.35) !important;
+            color: #00c8ff !important;
+            border-radius: 100px !important;
+            font-weight: 500 !important;
+        }
+        .btn-primary:hover {
+            background: rgba(0,200,255,0.25) !important;
+            border-color: rgba(0,200,255,0.6) !important;
+            color: #fff !important;
+        }
+        .form-control, .form-select {
+            background: rgba(255,255,255,0.04) !important;
+            border: 1px solid rgba(255,255,255,0.1) !important;
+            color: #fff !important;
+            border-radius: 10px !important;
+        }
+        .form-control:focus, .form-select:focus {
+            background: rgba(255,255,255,0.06) !important;
+            border-color: rgba(0,200,255,0.4) !important;
+            box-shadow: 0 0 0 3px rgba(0,200,255,0.1) !important;
+            color: #fff !important;
+        }
+        .form-control::placeholder { color: rgba(255,255,255,0.25) !important; }
+        .text-muted { color: rgba(255,255,255,0.4) !important; }
+        .table { color: var(--tdmu-text) !important; }
+        .table-bordered > :not(caption) > * > * { border-color: rgba(255,255,255,0.07) !important; }
+        .badge { border-radius: 100px !important; font-family: 'JetBrains Mono', monospace !important; font-size: 10px !important; letter-spacing: 0.06em !important; }
+        .modal-content {
+            background: #0d1626 !important;
+            border: 1px solid rgba(0,200,255,0.15) !important;
+            border-radius: 20px !important;
+        }
+        .modal-header { border-bottom: 1px solid rgba(255,255,255,0.07) !important; }
+        .modal-footer { border-top: 1px solid rgba(255,255,255,0.07) !important; }
+        .modal-title { color: #fff !important; font-weight: 600 !important; }
+        .dropdown-menu {
+            background: #0d1626 !important;
+            border: 1px solid rgba(255,255,255,0.1) !important;
+            border-radius: 12px !important;
+            padding: 6px !important;
+        }
+        .dropdown-item { color: rgba(255,255,255,0.65) !important; border-radius: 8px !important; font-size: 13px !important; }
+        .dropdown-item:hover { background: rgba(255,255,255,0.06) !important; color: #fff !important; }
+        .dropdown-divider { border-color: rgba(255,255,255,0.08) !important; }
+
+        .site-footer {
+            background: rgba(5,10,20,0.98);
+            border-top: 1px solid rgba(0,200,255,0.08);
+            padding: 1.5rem 0;
+            position: relative; z-index: 2;
+            margin-top: auto;
+        }
+        .footer-inner {
+            display: flex; align-items: center; justify-content: space-between;
+            flex-wrap: wrap; gap: 12px;
+        }
+        .footer-brand {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px; color: rgba(255,255,255,0.2); letter-spacing: 0.08em;
+        }
+        .footer-links { display: flex; gap: 20px; list-style: none; padding: 0; margin: 0; }
+        .footer-links a { font-size: 12px; color: rgba(255,255,255,0.3); text-decoration: none; transition: color 0.2s; }
+        .footer-links a:hover { color: rgba(0,200,255,0.7); }
+        .footer-status {
+            display: flex; align-items: center; gap: 6px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px; color: rgba(0,200,80,0.7); letter-spacing: 0.08em;
+        }
+        .footer-status-dot {
+            width: 5px; height: 5px; border-radius: 50%;
+            background: #00c850; animation: blink 2s infinite;
+        }
+        @@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+        /* Đảm bảo Bootstrap modal luôn nổi trên backdrop và không bị che mờ */
+        .modal { z-index: 1060 !important; }
+        .modal-backdrop { z-index: 1050 !important; }
+    </style>
+
+    @RenderSection("styles", required: false)
+</head>
+<body class="d-flex flex-column min-vh-100">
+
+    @Html.Partial("_Navbar")
+    @Html.AntiForgeryToken()
+
+    <div class="container body-content flex-grow-1 py-4">
+        @RenderBody()
+    </div>
+
+    @Html.Partial("_Footer")
+
+    @RenderSection("Modals", required: false)
+
+    @Scripts.Render("~/bundles/jquery")
+    <script src="~/Scripts/bootstrap.bundle.min.js"></script>
+    <script>
+        window.isUserLoggedIn = @(Session["UserID"] != null && Session["Username"] != null ? "true" : "false");
+        window.currentUserId = @(Session["UserID"] != null && Session["Username"] != null ? (int)Session["UserID"] : 0);
+    </script>
+    <script src="~/Scripts/app-notification.js"></script>
+    <script src="~/Scripts/jquery.signalR-2.4.3.min.js"></script>
+    <script src="~/signalr/hubs"></script>
+
+    @RenderSection("scripts", required: false)
+
+    <script>
+    // Tự động đưa modal ra ngoài body để tránh lỗi stacking context từ animation/transforms
+    $(document).on('show.bs.modal', '.modal', function () {
+        if (!$(this).parent().is('body')) {
+            $(this).appendTo('body');
+        }
+    });
+
+    // Helper functions for hiding/unhiding posts (per-user hide)
+    function hidePostAjax(postId) {
+        if (!postId) return;
+        var token = $('input[name="__RequestVerificationToken"]').val();
+        $.post('/Post/Hide', { postId: postId, __RequestVerificationToken: token }, function (res) {
+            if (res && res.success) {
+                location.reload();
+            } else {
+                Swal.fire('Lỗi', res && res.message ? res.message : 'Không thể ẩn bài viết', 'error');
+            }
+        }).fail(function (xhr) {
+            var msg = 'Yêu cầu thất bại';
+            try { var j = JSON.parse(xhr.responseText); if (j && j.message) msg = j.message; } catch (e) {}
+            Swal.fire('Lỗi', msg, 'error');
+        });
+    }
+
+    function unhidePostAjax(postId) {
+        if (!postId) return;
+        var token = $('input[name="__RequestVerificationToken"]').val();
+        $.post('/Post/Unhide', { postId: postId, __RequestVerificationToken: token }, function (res) {
+            if (res && res.success) {
+                location.reload();
+            } else {
+                Swal.fire('Lỗi', res && res.message ? res.message : 'Không thể hiện lại bài viết', 'error');
+            }
+        }).fail(function (xhr) {
+            var msg = 'Yêu cầu thất bại';
+            try { var j = JSON.parse(xhr.responseText); if (j && j.message) msg = j.message; } catch (e) {}
+            Swal.fire('Lỗi', msg, 'error');
+        });
+    }
+    $(function () {
+        var currentUserId = @(Session["UserID"] ?? 0);
+        if (currentUserId <= 0) return;
+
+        var hub = $.connection.chatHub;
+        if (hub) {
+            // Lắng nghe thông báo đẩy Real-time toàn trang
+            hub.client.receiveNotification = function (notif) {
+                if (typeof window.onReceiveNotification === 'function') {
+                    window.onReceiveNotification(notif);
+                }
+            };
+
+            // Lắng nghe sự kiện đăng Story mới Real-time
+            hub.client.onNewStoryPosted = function (story) {
+                if (story.userId != currentUserId) {
+                    Swal.fire({
+                        title: '⚡ Tin 24h mới',
+                        text: (story.username || 'Một bạn sinh viên') + ' vừa chia sẻ một khoảnh khắc mới!',
+                        icon: 'info',
+                        showCancelButton: true,
+                        confirmButtonText: 'Xem tin ngay',
+                        cancelButtonText: 'Bỏ qua',
+                        toast: true,
+                        position: 'top-end',
+                        timer: 8000,
+                        timerProgressBar: true
+                    }).then(function (result) {
+                        if (result.isConfirmed) {
+                            if (typeof openStoryViewer === 'function') {
+                                openStoryViewer(story.userId, 0);
+                            } else {
+                                window.location.href = '/Story';
+                            }
+                        }
+                    });
+                }
+            };
+
+            var isChatPage = @(ViewBag.IsChatPage != null ? "true" : "false");
+            if (!isChatPage) {
+                hub.client.receiveChatInvitation = function (fromId, fromName, roomId, forUserId) {
+                    if (forUserId == currentUserId) {
+                        Swal.fire({
+                            title: 'Tin nhắn riêng mới',
+                            text: fromName + " đã nhắn tin trò chuyện với bạn!",
+                            icon: 'info',
+                            showCancelButton: true,
+                            confirmButtonColor: 'rgba(0,200,255,0.8)',
+                            cancelButtonColor: 'rgba(255,255,255,0.1)',
+                            confirmButtonText: 'Mở đoạn chat',
+                            cancelButtonText: 'Để sau',
+                            toast: true,
+                            position: 'top-end',
+                            timer: 10000,
+                            timerProgressBar: true
+                        }).then((result) => {
+                            if (result.isConfirmed) {
+                                window.location.href = '/Chat/Private/' + roomId;
+                            }
+                        });
+                    }
+                };
+
+                // Khởi động Realtime SAU KHI trang đã nạp xong (window.load + delay)
+                // để không cản trở nạp trang và không giữ spinner vô hạn trên tab trình duyệt
+                function startGlobalRealtime() {
+                    if (!window.WebSocket || !$.connection || !$.connection.hub) return;
+
+                    var isConnected = false;
+                    var connectTimeout = setTimeout(function () {
+                        if (!isConnected && $.connection && $.connection.hub) {
+                            console.warn('Realtime connection timeout (Site4Now safe stop).');
+                            try { $.connection.hub.stop(); } catch (e) { }
+                        }
+                    }, 6000);
+
+                    $.connection.hub.start({ transport: ['webSockets'] }).done(function () {
+                        isConnected = true;
+                        clearTimeout(connectTimeout);
+                        console.log("Hub connected, userId:", currentUserId);
+                        if (hub.server && hub.server.joinUser) {
+                            hub.server.joinUser(currentUserId);
+                        }
+                        if (window.marketPostId && hub.server && hub.server.joinMarketPost) {
+                            hub.server.joinMarketPost(window.marketPostId);
+                        }
+                    }).fail(function () {
+                        clearTimeout(connectTimeout);
+                        console.warn('Không thể kết nối cập nhật thời gian thực qua WebSocket.');
+                    });
+                }
+
+                var startedRealtime = false;
+                function triggerRealtime() {
+                    if (startedRealtime) return;
+                    startedRealtime = true;
+                    setTimeout(startGlobalRealtime, 600);
+                }
+
+                if (document.readyState === 'complete') {
+                    triggerRealtime();
+                } else {
+                    window.addEventListener('load', triggerRealtime);
+                    setTimeout(triggerRealtime, 3000);
+                }
+            }
+        }
+    });
+
+    // ── PAGE TRANSITION & BROWSER BACK/FORWARD RELOAD
+    (function () {
+        window.addEventListener('pageshow', function (event) {
+            var perfEntries = (window.performance && window.performance.getEntriesByType) ? window.performance.getEntriesByType("navigation") : [];
+            var isBackForward = event.persisted || (perfEntries.length > 0 && perfEntries[0].type === 'back_forward');
+
+            if (isBackForward) {
+                window.location.reload();
+            } else {
+                document.body.classList.remove('page-leaving');
+            }
+        });
+
+        document.querySelectorAll('a[href]').forEach(function (link) {
+            var href = link.getAttribute('href');
+            if (!href || href.startsWith('#') || href.startsWith('javascript') ||
+                href.startsWith('http') || link.hasAttribute('download') ||
+                link.getAttribute('target') === '_blank') return;
+
+            link.addEventListener('click', function (e) {
+                e.preventDefault();
+                var dest = this.href;
+                document.body.classList.add('page-leaving');
+                setTimeout(function () { window.location.href = dest; }, 220);
+            });
+        });
+
+        document.querySelectorAll('form').forEach(function (form) {
+            form.addEventListener('submit', function (event) {
+                if (event.defaultPrevented || form.hasAttribute('data-ajax')) return;
+                document.body.classList.add('page-leaving');
+            });
+        });
+    })();
+    </script>
+    @Html.Partial("_AiChatWidget")
+    @Html.Partial("~/Views/Shared/_ShareModal.cshtml")
+</body>
+</html>

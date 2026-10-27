@@ -1,0 +1,2677 @@
+﻿@model StudentConnect.Models.AdminChatViewModel
+@{
+    ViewBag.Title = "Quản lý Trò chuyện";
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+    bool isSuperAdmin = Model.IsSuperAdmin;
+}
+
+@functions {
+    string GetTypeLabel(string type)
+    {
+        switch (type)
+        {
+            case "1vs1": return "Chat riêng";
+            case "Anonymous": return "Ẩn danh";
+            case "RandomGroup": return "Nhóm ngẫu nhiên";
+            case "Group": return "Nhóm tự tạo";
+            default: return "Khác";
+        }
+    }
+
+    string GetTypeBadge(string type)
+    {
+        switch (type)
+        {
+            case "1vs1": return "badge-cyan";
+            case "Anonymous": return "badge-amber";
+            case "RandomGroup": return "badge-purple";
+            case "Group": return "badge-green";
+            default: return "badge-gray";
+        }
+    }
+
+    string GetReportStatusBadge(string status)
+    {
+        switch (status)
+        {
+            case "Pending": return "badge-amber";
+            case "Processing": return "badge-cyan";
+            case "Resolved": return "badge-green";
+            case "Rejected": return "badge-dim";
+            default: return "badge-gray";
+        }
+    }
+
+    string GetReportStatusLabel(string status)
+    {
+        switch (status)
+        {
+            case "Pending": return "Chờ xử lý";
+            case "Processing": return "Đang xử lý";
+            case "Resolved": return "Đã xử lý";
+            case "Rejected": return "Từ chối";
+            default: return status;
+        }
+    }
+}
+
+<style>
+    :root {
+        --chat-cyan: #00c8ff;
+        --chat-purple: #7b61ff;
+        --chat-green: #00c850;
+        --chat-amber: #ffa000;
+        --chat-red: #ff4d4d;
+        --chat-card-bg: rgba(255, 255, 255, 0.025);
+        --chat-card-border: rgba(255, 255, 255, 0.08);
+    }
+
+    .page-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 1.5rem;
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+
+    .page-title {
+        font-family: 'Space Grotesk', sans-serif;
+        font-size: 1.35rem;
+        font-weight: 700;
+        color: #fff;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .page-title i {
+        color: var(--chat-cyan);
+    }
+
+    .page-sub {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 10.5px;
+        color: rgba(0,200,255,0.6);
+        letter-spacing: 0.08em;
+        margin-top: 4px;
+    }
+
+    /* Navigation Tabs */
+    .chat-nav-tabs {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 1.5rem;
+        border-bottom: 1px solid var(--chat-card-border);
+        padding-bottom: 12px;
+        overflow-x: auto;
+        white-space: nowrap;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .chat-nav-btn {
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid var(--chat-card-border);
+        color: rgba(255, 255, 255, 0.7);
+        padding: 9px 16px;
+        border-radius: 10px;
+        font-size: 13px;
+        font-weight: 600;
+        font-family: 'Space Grotesk', sans-serif;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-decoration: none;
+    }
+
+    .chat-nav-btn:hover {
+        background: rgba(0, 200, 255, 0.08);
+        border-color: rgba(0, 200, 255, 0.35);
+        color: #fff;
+        transform: translateY(-1px);
+    }
+
+    .chat-nav-btn.active {
+        background: linear-gradient(135deg, rgba(0, 200, 255, 0.2), rgba(123, 97, 255, 0.2));
+        border-color: var(--chat-cyan);
+        color: #fff;
+        box-shadow: 0 0 16px rgba(0, 200, 255, 0.25);
+    }
+
+    .chat-tab-badge {
+        font-size: 10.5px;
+        padding: 2px 7px;
+        border-radius: 100px;
+        background: rgba(255, 255, 255, 0.12);
+        color: #fff;
+        font-family: 'JetBrains Mono', monospace;
+    }
+
+    .chat-tab-badge.amber {
+        background: rgba(255, 160, 0, 0.25);
+        color: #ffb830;
+        border: 1px solid rgba(255, 160, 0, 0.4);
+    }
+
+    .chat-tab-badge.red {
+        background: rgba(255, 77, 77, 0.25);
+        color: #ff6b6b;
+        border: 1px solid rgba(255, 77, 77, 0.4);
+    }
+
+    /* Stat cards */
+    .stat-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+        gap: 12px;
+        margin-bottom: 1.5rem;
+    }
+
+    .stat-card {
+        background: rgba(255,255,255,0.03);
+        border: 1px solid var(--chat-card-border);
+        border-radius: 12px;
+        padding: 14px 18px;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .stat-card::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0; height: 2px;
+        background: transparent;
+    }
+    .stat-card.cyan::before { background: var(--chat-cyan); }
+    .stat-card.purple::before { background: var(--chat-purple); }
+    .stat-card.green::before { background: var(--chat-green); }
+    .stat-card.amber::before { background: var(--chat-amber); }
+    .stat-card.red::before { background: var(--chat-red); }
+
+    .stat-label {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 10px;
+        letter-spacing: 0.08em;
+        color: rgba(255,255,255,0.4);
+        margin-bottom: 6px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .stat-value {
+        font-size: 1.65rem;
+        font-weight: 700;
+        color: #fff;
+        line-height: 1;
+        font-family: 'Space Grotesk', sans-serif;
+    }
+
+    .stat-value.cyan { color: #00c8ff; }
+    .stat-value.purple { color: #7b61ff; }
+    .stat-value.green { color: #00c850; }
+    .stat-value.amber { color: #ffa000; }
+    .stat-value.red { color: #ff6b6b; }
+
+    /* Admin Cards */
+    .admin-card {
+        background: rgba(255,255,255,0.02);
+        border: 1px solid var(--chat-card-border);
+        border-radius: 16px;
+        overflow: hidden;
+        margin-bottom: 1.5rem;
+    }
+
+    .admin-card-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 14px 20px;
+        border-bottom: 1px solid var(--chat-card-border);
+        background: rgba(255,255,255,0.02);
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .admin-card-title {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 11.5px;
+        letter-spacing: 0.08em;
+        color: rgba(0,200,255,0.85);
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    /* Toolbar & Search */
+    .toolbar {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .btn-adm {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 7px 14px;
+        border-radius: 8px;
+        font-size: 12px;
+        font-weight: 500;
+        font-family: 'Space Grotesk', sans-serif;
+        border: 1px solid;
+        cursor: pointer;
+        transition: all 0.2s;
+        background: none;
+        text-decoration: none;
+    }
+
+    .btn-adm:disabled { opacity: 0.3; cursor: not-allowed; }
+    .btn-adm.danger { color: #ff6b6b; border-color: rgba(255,60,60,0.3); }
+    .btn-adm.danger:not(:disabled):hover { background: rgba(255,60,60,0.15); border-color: rgba(255,60,60,0.6); }
+    .btn-adm.cyan { color: #00c8ff; border-color: rgba(0,200,255,0.3); }
+    .btn-adm.cyan:hover { background: rgba(0,200,255,0.15); border-color: rgba(0,200,255,0.6); }
+    .btn-adm.amber { color: #ffa000; border-color: rgba(255,160,0,0.3); }
+    .btn-adm.amber:hover { background: rgba(255,160,0,0.15); border-color: rgba(255,160,0,0.6); }
+    .btn-adm.green { color: #00c850; border-color: rgba(0,200,80,0.3); }
+    .btn-adm.green:hover { background: rgba(0,200,80,0.15); border-color: rgba(0,200,80,0.6); }
+    .btn-adm.icon-only { padding: 6px 10px; }
+
+    .form-dark-ctrl {
+        background: rgba(5, 10, 20, 0.7);
+        border: 1px solid var(--chat-card-border);
+        border-radius: 8px;
+        color: #fff;
+        font-size: 12px;
+        padding: 7px 12px;
+        outline: none;
+        font-family: 'Space Grotesk', sans-serif;
+        transition: all 0.2s;
+    }
+
+    .form-dark-ctrl:focus {
+        border-color: rgba(0, 200, 255, 0.4);
+        background: rgba(0, 200, 255, 0.04);
+    }
+
+    .form-dark-ctrl::placeholder { color: rgba(255, 255, 255, 0.25); }
+
+    /* Tables */
+    .admin-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-family: 'Space Grotesk', sans-serif;
+    }
+
+    .admin-table thead tr {
+        border-bottom: 1px solid var(--chat-card-border);
+        background: rgba(255,255,255,0.02);
+    }
+
+    .admin-table th {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 10px;
+        letter-spacing: 0.08em;
+        color: rgba(255,255,255,0.35);
+        padding: 11px 14px;
+        text-align: left;
+        font-weight: 500;
+        white-space: nowrap;
+    }
+
+    .admin-table tbody tr {
+        border-bottom: 1px solid rgba(255,255,255,0.04);
+        transition: background 0.15s;
+    }
+
+    .admin-table tbody tr:hover { background: rgba(255,255,255,0.035); }
+    .admin-table tbody tr.selected { background: rgba(0,200,255,0.06); }
+
+    .admin-table td {
+        padding: 11px 14px;
+        font-size: 12.5px;
+        color: rgba(255,255,255,0.75);
+        vertical-align: middle;
+    }
+
+    /* Badges */
+    .adm-badge {
+        font-size: 11px;
+        padding: 3px 8px;
+        border-radius: 6px;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        white-space: nowrap;
+    }
+
+    .badge-cyan { background: rgba(0,200,255,0.15); color: #00c8ff; border: 1px solid rgba(0,200,255,0.3); }
+    .badge-amber { background: rgba(255,160,0,0.15); color: #ffa000; border: 1px solid rgba(255,160,0,0.3); }
+    .badge-purple { background: rgba(123,97,255,0.15); color: #9f8cff; border: 1px solid rgba(123,97,255,0.3); }
+    .badge-green { background: rgba(0,200,80,0.15); color: #00e664; border: 1px solid rgba(0,200,80,0.3); }
+    .badge-danger { background: rgba(255,77,77,0.15); color: #ff6b6b; border: 1px solid rgba(255,77,77,0.3); }
+    .badge-dim { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.5); border: 1px solid rgba(255,255,255,0.1); }
+
+    .cell-id { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: rgba(255,255,255,0.35); }
+    .cell-name { color: #fff; font-weight: 500; }
+    .cell-name.anon { color: rgba(255,255,255,0.45); font-style: italic; }
+    .cell-date { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: rgba(255,255,255,0.4); }
+
+    .adm-check {
+        width: 15px; height: 15px; border-radius: 4px; cursor: pointer; accent-color: #00c8ff;
+    }
+
+    /* Selected Bar */
+    .select-bar {
+        background: rgba(0,200,255,0.06);
+        border-bottom: 1px solid rgba(0,200,255,0.2);
+        padding: 8px 20px;
+        display: none;
+        align-items: center;
+        gap: 10px;
+        font-size: 12px;
+        color: #00c8ff;
+    }
+    .select-bar.show { display: flex; }
+
+    /* Trend Bar Chart */
+    .trend-bars-wrap {
+        display: flex;
+        align-items: flex-end;
+        gap: 12px;
+        height: 120px;
+        padding: 10px 0 0;
+    }
+
+    .trend-bar-col {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        height: 100%;
+        justify-content: flex-end;
+    }
+
+    .trend-bar-fill {
+        width: 100%;
+        max-width: 28px;
+        border-radius: 6px 6px 2px 2px;
+        background: linear-gradient(180deg, #00c8ff, rgba(123, 97, 255, 0.6));
+        transition: height 0.3s;
+        min-height: 4px;
+    }
+
+    .trend-bar-label {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 10px;
+        color: rgba(255, 255, 255, 0.45);
+    }
+
+    .trend-bar-val {
+        font-size: 10px;
+        color: #00c8ff;
+        font-weight: 600;
+    }
+
+    /* Custom Modals (Cyberpunk Dark) */
+    .chat-modal-overlay {
+        position: fixed; inset: 0;
+        background: rgba(0, 0, 0, 0.85);
+        backdrop-filter: blur(10px);
+        z-index: 1050;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+    }
+    .chat-modal-overlay.show { display: flex; }
+
+    .chat-modal-panel {
+        background: #0d1626;
+        border: 1px solid rgba(0, 200, 255, 0.3);
+        border-radius: 18px;
+        width: 100%;
+        max-width: 820px;
+        max-height: 90vh;
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 25px 70px rgba(0, 0, 0, 0.85), 0 0 35px rgba(0, 200, 255, 0.1);
+        overflow: hidden;
+    }
+
+    .chat-modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 16px 22px;
+        border-bottom: 1px solid var(--chat-card-border);
+        background: rgba(255, 255, 255, 0.02);
+    }
+
+    .chat-modal-title {
+        font-size: 15px;
+        font-weight: 700;
+        color: #fff;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .chat-modal-close {
+        background: none;
+        border: none;
+        color: rgba(255,255,255,0.6);
+        font-size: 24px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .chat-modal-close:hover { color: #fff; transform: scale(1.1); }
+
+    .chat-modal-body {
+        padding: 18px 22px;
+        overflow-y: auto;
+        flex: 1;
+    }
+
+    .chat-modal-footer {
+        padding: 12px 22px;
+        border-top: 1px solid var(--chat-card-border);
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        gap: 8px;
+        background: rgba(255, 255, 255, 0.02);
+    }
+
+    /* Json snippet box */
+    .code-box {
+        background: #050a14;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 8px;
+        padding: 12px;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 12px;
+        color: #38d6ff;
+        max-height: 220px;
+        overflow-y: auto;
+        white-space: pre-wrap;
+        word-break: break-all;
+    }
+
+    /* Messages Feed in Modal */
+    .chat-messages-container {
+        display: flex; flex-direction: column; gap: 10px; max-height: 420px;
+        overflow-y: auto; padding-right: 6px;
+    }
+    .chat-msg-item {
+        display: flex; gap: 10px; align-items: flex-start;
+        padding: 10px 12px; border-radius: 10px;
+        background: rgba(255, 255, 255, 0.025);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    .chat-msg-item.hidden-msg {
+        border-color: rgba(255, 77, 77, 0.35);
+        background: rgba(255, 77, 77, 0.04);
+    }
+    .chat-msg-avatar {
+        width: 34px; height: 34px; border-radius: 8px; object-fit: cover;
+        border: 1px solid rgba(0, 200, 255, 0.3); flex-shrink: 0;
+    }
+    .chat-msg-sender { font-weight: 600; color: #00c8ff; font-size: 12px; }
+    .chat-msg-time { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: rgba(255,255,255,0.35); }
+    .chat-msg-text { font-size: 12.5px; color: rgba(255,255,255,0.85); line-height: 1.5; margin-top: 2px; }
+
+    /* Lightbox */
+    .chat-lightbox {
+        position: fixed; inset: 0; background: rgba(0, 0, 0, 0.94);
+        backdrop-filter: blur(12px); z-index: 100000; display: none;
+        align-items: center; justify-content: center; padding: 20px;
+        cursor: zoom-out;
+    }
+    .chat-lightbox.show { display: flex; }
+    .chat-lightbox-img {
+        max-width: 90vw; max-height: 88vh; border-radius: 12px;
+        box-shadow: 0 0 50px rgba(0, 200, 255, 0.3);
+        border: 1px solid rgba(0, 200, 255, 0.4);
+    }
+
+    /* ── COMPREHENSIVE RESPONSIVE MOBILE STYLES (320px - 768px) ── */
+    @@media (max-width: 768px) {
+        .page-header {
+            flex-direction: column;
+            align-items: flex-start !important;
+            gap: 10px;
+            margin-bottom: 1.2rem;
+        }
+        .page-title {
+            font-size: 1.15rem;
+            word-break: break-word;
+        }
+        .page-sub {
+            font-size: 9.5px;
+        }
+
+        /* Nav Tabs: smooth horizontal scroll on touch */
+        .chat-nav-tabs {
+            gap: 6px;
+            padding-bottom: 8px;
+            margin-bottom: 1.2rem;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+        }
+        .chat-nav-tabs::-webkit-scrollbar {
+            display: none;
+        }
+        .chat-nav-btn {
+            padding: 8px 12px;
+            font-size: 12px;
+            min-height: 38px;
+            flex-shrink: 0;
+            border-radius: 8px;
+        }
+
+        /* Stat Grid */
+        .stat-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 10px;
+            margin-bottom: 1.2rem;
+        }
+        .stat-card {
+            padding: 12px 14px;
+            border-radius: 12px;
+        }
+        .stat-value {
+            font-size: 1.5rem;
+        }
+
+        /* Card Headers & Toolbars */
+        .admin-card-header {
+            flex-direction: column;
+            align-items: stretch !important;
+            gap: 10px;
+            padding: 12px 14px;
+        }
+        .admin-card-title {
+            font-size: 13.5px;
+            word-break: break-word;
+        }
+        .toolbar {
+            width: 100%;
+            flex-direction: column;
+            align-items: stretch !important;
+            gap: 8px;
+        }
+        .toolbar input, .toolbar select, .search-wrap, .search-wrap input#liveSearch {
+            width: 100% !important;
+            min-height: 38px;
+            font-size: 13px;
+        }
+
+        /* Selection Bars */
+        .select-bar {
+            flex-wrap: wrap;
+            gap: 6px;
+            padding: 8px 12px;
+            font-size: 11.5px;
+        }
+
+        /* Table responsiveness */
+        .table-responsive {
+            margin: 0 -1px;
+            border-radius: 8px;
+            border: 1px solid var(--chat-card-border);
+        }
+        .admin-table {
+            min-width: 600px;
+        }
+        .admin-table th, .admin-table td {
+            padding: 9px 10px;
+            font-size: 12px;
+        }
+
+        /* Touch-friendly action buttons */
+        .btn-adm {
+            min-height: 36px;
+        }
+        .btn-adm.icon-only {
+            min-width: 34px;
+            min-height: 34px;
+            padding: 6px 10px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Modals */
+        .chat-modal-overlay {
+            padding: 8px !important;
+        }
+        .chat-modal-panel {
+            max-width: 100% !important;
+            max-height: 94vh !important;
+            border-radius: 14px !important;
+        }
+        .chat-modal-header {
+            padding: 12px 14px !important;
+        }
+        .chat-modal-title {
+            font-size: 13.5px !important;
+        }
+        .chat-modal-body {
+            padding: 12px 14px !important;
+        }
+        .chat-modal-footer {
+            padding: 12px 14px !important;
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: 8px;
+        }
+        .chat-modal-footer .btn-adm {
+            width: 100% !important;
+            justify-content: center !important;
+            min-height: 38px;
+        }
+
+        .chat-messages-container {
+            max-height: 320px;
+        }
+    }
+
+    @@media (max-width: 480px) {
+        .stat-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 8px;
+        }
+        .stat-card {
+            padding: 10px 12px;
+        }
+        .stat-label {
+            font-size: 9px;
+            letter-spacing: 0.04em;
+        }
+        .stat-value {
+            font-size: 1.35rem;
+        }
+        .form-dark-ctrl {
+            font-size: 13px !important;
+            min-height: 38px;
+        }
+    }
+
+    @@media (max-width: 360px) {
+        .stat-grid {
+            grid-template-columns: 1fr !important;
+            gap: 6px;
+        }
+        .stat-card {
+            padding: 8px 10px;
+        }
+        .page-title {
+            font-size: 1.05rem;
+        }
+        .chat-nav-btn {
+            padding: 7px 10px;
+            font-size: 11.5px;
+        }
+    }
+</style>
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">
+            <i class="bi bi-chat-dots-fill"></i>
+            Quản trị Trò chuyện
+        </h1>
+        <div class="page-sub">PHÒNG · TIN NHẮN · BÁO CÁO · CẤM CHAT</div>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+        @if (isSuperAdmin)
+        {
+            <span class="adm-badge badge-green"><i class="bi bi-shield-check"></i> SuperAdmin (Toàn quyền)</span>
+        }
+        else
+        {
+            <span class="adm-badge badge-cyan"><i class="bi bi-person-badge"></i> Quản trị Chat</span>
+        }
+    </div>
+</div>
+
+<!-- ═══════════ NAVIGATION TABS (5 MỤC) ═══════════ -->
+<div class="chat-nav-tabs">
+    <button type="button" class="chat-nav-btn active" data-tab="tab-overview" onclick="switchMainTab('tab-overview', this)">
+        <i class="bi bi-speedometer2"></i> 0. Tổng quan
+    </button>
+    <button type="button" class="chat-nav-btn" data-tab="tab-rooms" onclick="switchMainTab('tab-rooms', this)">
+        <i class="bi bi-door-open"></i> 1. Quản lý phòng
+        <span class="chat-tab-badge">@Model.Rooms.Count</span>
+    </button>
+    <button type="button" class="chat-nav-btn" data-tab="tab-messages" onclick="switchMainTab('tab-messages', this)">
+        <i class="bi bi-chat-text"></i> 2. Quản lý tin nhắn
+        <span class="chat-tab-badge">@Model.Stats.TotalMessages</span>
+    </button>
+    <button type="button" class="chat-nav-btn" data-tab="tab-reports" onclick="switchMainTab('tab-reports', this)">
+        <i class="bi bi-shield-exclamation"></i> 3. Báo cáo vi phạm
+        @if (Model.Stats.PendingReports > 0)
+        {
+            <span class="chat-tab-badge red">@Model.Stats.PendingReports chờ xử lý</span>
+        }
+        else
+        {
+            <span class="chat-tab-badge">@Model.Stats.TotalReports</span>
+        }
+    </button>
+    <button type="button" class="chat-nav-btn" data-tab="tab-members" onclick="switchMainTab('tab-members', this)">
+        <i class="bi bi-people"></i> 4. Thành viên & Cấm chat
+        @if (Model.Stats.ActiveBannedUsersCount > 0)
+        {
+            <span class="chat-tab-badge amber">@Model.Stats.ActiveBannedUsersCount bị cấm</span>
+        }
+        else
+        {
+            <span class="chat-tab-badge">@Model.Members.Count</span>
+        }
+    </button>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════
+     TAB 0: TỔNG QUAN TRÒ CHUYỆN (OVERVIEW)
+     ════════════════════════════════════════════════════════════════ -->
+<div id="tab-overview" class="chat-tab-pane">
+    <!-- Stat Grid -->
+    <div class="stat-grid">
+        <div class="stat-card cyan">
+            <div class="stat-label">TỔNG PHÒNG CHAT <i class="bi bi-door-open"></i></div>
+            <div class="stat-value cyan">@Model.Stats.TotalRooms</div>
+            <div style="font-size:11px; color:rgba(255,255,255,0.45); margin-top:4px;">
+                @Model.Stats.ActiveRooms hoạt động · @Model.Stats.ClosedRooms đã đóng
+            </div>
+        </div>
+        <div class="stat-card purple">
+            <div class="stat-label">TỔNG TIN NHẮN <i class="bi bi-chat-dots"></i></div>
+            <div class="stat-value purple">@Model.Stats.TotalMessages</div>
+            <div style="font-size:11px; color:rgba(255,255,255,0.45); margin-top:4px;">
+                +@Model.Stats.MessagesToday tin hôm nay
+            </div>
+        </div>
+        <div class="stat-card green">
+            <div class="stat-label">NGƯỜI DÙNG TƯƠNG TÁC <i class="bi bi-people"></i></div>
+            <div class="stat-value green">@Model.Stats.TotalActiveUsers</div>
+            <div style="font-size:11px; color:rgba(255,255,255,0.45); margin-top:4px;">
+                Đã tham gia gửi tin nhắn
+            </div>
+        </div>
+        <div class="stat-card amber">
+            <div class="stat-label">BÁO CÁO VI PHẠM <i class="bi bi-flag"></i></div>
+            <div class="stat-value amber">@Model.Stats.TotalReports</div>
+            <div style="font-size:11px; color:rgba(255,255,255,0.45); margin-top:4px;">
+                @Model.Stats.PendingReports chờ · @Model.Stats.ResolvedReports đã xong
+            </div>
+        </div>
+        <div class="stat-card red">
+            <div class="stat-label">ĐANG BỊ CẤM / HẠN CHẾ <i class="bi bi-slash-circle"></i></div>
+            <div class="stat-value red">@(Model.Stats.ActiveBannedUsersCount + Model.Stats.ActiveMutedUsersCount)</div>
+            <div style="font-size:11px; color:rgba(255,255,255,0.45); margin-top:4px;">
+                @Model.Stats.ActiveBannedUsersCount cấm chat · @Model.Stats.ActiveMutedUsersCount hạn chế gửi
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts & Trends -->
+    <div class="row g-3 mb-4">
+        <div class="col-lg-7">
+            <div class="admin-card h-100">
+                <div class="admin-card-header">
+                    <span class="admin-card-title"><i class="bi bi-graph-up text-info"></i> TẦN SUẤT TIN NHẮN 7 NGÀY GẦN NHẤT</span>
+                    <span class="cell-date">Dữ liệu từ database thực tế</span>
+                </div>
+                <div style="padding:16px 20px;">
+                    <div class="trend-bars-wrap">
+                        @{
+                            int maxCount = Model.Stats.DailyTrends.Max(t => t.MessageCount);
+                            if (maxCount < 1) { maxCount = 1; }
+                        }
+                        @foreach (var d in Model.Stats.DailyTrends)
+                        {
+                            int pct = (int)Math.Max(5, Math.Round((double)d.MessageCount / maxCount * 100));
+                            <div class="trend-bar-col" title="@d.DateLabel: @d.MessageCount tin nhắn, @d.ActiveUsers người gửi">
+                                <span class="trend-bar-val">@d.MessageCount</span>
+                                <div class="trend-bar-fill" style="height:@pct%;"></div>
+                                <span class="trend-bar-label">@d.DateLabel</span>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-5">
+            <div class="admin-card h-100">
+                <div class="admin-card-header">
+                    <span class="admin-card-title"><i class="bi bi-pie-chart text-warning"></i> PHÂN BỔ LOẠI PHÒNG CHAT</span>
+                </div>
+                <div style="padding:16px 20px;">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span style="font-size:13px; color:rgba(255,255,255,0.7);"><i class="bi bi-person me-2 text-cyan"></i> Chat riêng (1vs1)</span>
+                        <span class="fw-bold text-white">@Model.Stats.Rooms1vs1 phòng</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span style="font-size:13px; color:rgba(255,255,255,0.7);"><i class="bi bi-incognito me-2 text-warning"></i> Chat ẩn danh (Anonymous)</span>
+                        <span class="fw-bold text-white">@Model.Stats.RoomsAnonymous phòng</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span style="font-size:13px; color:rgba(255,255,255,0.7);"><i class="bi bi-people me-2 text-purple"></i> Nhóm tự tạo / Ngẫu nhiên</span>
+                        <span class="fw-bold text-white">@Model.Stats.RoomsGroup phòng</span>
+                    </div>
+
+                    <hr style="border-color:rgba(255,255,255,0.08); margin:14px 0;" />
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span style="font-size:12px; color:rgba(255,255,255,0.5);">Tin nhắn trong tuần qua:</span>
+                        <span class="adm-badge badge-cyan font-monospace">@Model.Stats.MessagesThisWeek tin</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mt-2">
+                        <span style="font-size:12px; color:rgba(255,255,255,0.5);">Tin nhắn trong tháng qua:</span>
+                        <span class="adm-badge badge-purple font-monospace">@Model.Stats.MessagesThisMonth tin</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Alerts & Pending Reports -->
+    <div class="row g-3">
+        <div class="col-lg-6">
+            <div class="admin-card">
+                <div class="admin-card-header">
+                    <span class="admin-card-title"><i class="bi bi-exclamation-triangle text-danger"></i> BÁO CÁO CẦN XỬ LÝ GẤP</span>
+                    <button type="button" class="btn-adm cyan" style="font-size:11px; padding:4px 10px;" onclick="switchMainTab('tab-reports')">Xem tất cả</button>
+                </div>
+                <div class="table-responsive">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Người báo cáo</th>
+                                <th>Đối tượng</th>
+                                <th>Lý do</th>
+                                <th>Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (!Model.Reports.Any(r => r.Status == "Pending" || r.Status == "Processing"))
+                            {
+                                <tr><td colspan="5" class="text-center py-4 text-white-50">Không có báo cáo nào đang chờ xử lý. Tình trạng an toàn!</td></tr>
+                            }
+                            @foreach (var r in Model.Reports.Where(r => r.Status == "Pending" || r.Status == "Processing").Take(5))
+                            {
+                                <tr>
+                                    <td><span class="cell-id">#@r.ReportID</span></td>
+                                    <td><span class="text-white fw-bold">@r.ReporterName</span></td>
+                                    <td>
+                                        <div class="d-flex flex-column">
+                                            @if (r.ReportedUserID.HasValue && r.ReportedUserID > 0)
+                                            {
+                                                <span class="text-danger fw-bold">@r.ReportedUserRealDisplayName</span>
+                                                <span class="cell-id text-cyan" style="font-size:10px;">ID: #@r.ReportedUserID (@r.ReportedUserRealUsername)</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-warning fw-bold">@r.ReportedUserName</span>
+                                                <span class="badge bg-warning text-dark" style="font-size:9px; width:fit-content;">@r.IdentityStatus</span>
+                                            }
+                                            if (r.IsReportedUserAnonymous)
+                                            {
+                                                <span class="badge bg-secondary text-white mt-1" style="font-size:9px; width:fit-content;"><i class="bi bi-incognito"></i> Ẩn danh: @r.AnonymousAlias</span>
+                                            }
+                                        </div>
+                                    </td>
+                                    <td><span class="adm-badge badge-amber" style="font-size:10px;">@r.Reason</span></td>
+                                    <td>
+                                        <button type="button" class="btn-adm cyan icon-only" title="Xử lý báo cáo" onclick="openReportDetailModal(@r.ReportID)">
+                                            <i class="bi bi-lightning-charge"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="admin-card">
+                <div class="admin-card-header">
+                    <span class="admin-card-title"><i class="bi bi-chat-left-text text-cyan"></i> TIN NHẮN MỚI GỬI TOÀN HỆ THỐNG</span>
+                    <button type="button" class="btn-adm cyan" style="font-size:11px; padding:4px 10px;" onclick="switchMainTab('tab-messages')">Xem tất cả</button>
+                </div>
+                <div class="table-responsive">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th>Thời gian</th>
+                                <th>Người gửi</th>
+                                <th>Phòng</th>
+                                <th>Nội dung</th>
+                                <th>Xem</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (!Model.RecentMessages.Any())
+                            {
+                                <tr><td colspan="5" class="text-center py-4 text-white-50">Chưa có tin nhắn nào.</td></tr>
+                            }
+                            @foreach (var m in Model.RecentMessages.Take(5))
+                            {
+                                <tr>
+                                    <td><span class="cell-date">@(m.SentAt.HasValue ? m.SentAt.Value.ToString("HH:mm dd/MM") : "—")</span></td>
+                                    <td><span class="text-white fw-bold">@m.SenderDisplayName</span></td>
+                                    <td><span class="adm-badge @GetTypeBadge(m.RoomType)" style="font-size:10px;">@m.RoomName</span></td>
+                                    <td>
+                                        <span style="display:inline-block; max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:12px;">
+                                            @if (m.IsHidden)
+                                            {
+                                                <span class="text-danger fst-italic">[Đã ẩn] @m.DisplayText</span>
+                                            }
+                                            else
+                                            {
+                                                <span>@m.DisplayText</span>
+                                            }
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <button type="button" class="btn-adm cyan icon-only" title="Xem chi tiết" onclick="openMessageDetailModal(@m.MessageID)">
+                                            <i class="bi bi-eye"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════
+     TAB 1: QUẢN LÝ PHÒNG CHAT (ROOM MANAGEMENT - BẢO TOÀN NGUYÊN BẢN)
+     ════════════════════════════════════════════════════════════════ -->
+<div id="tab-rooms" class="chat-tab-pane" style="display:none;">
+    <div class="admin-card">
+        <div class="admin-card-header">
+            <span class="admin-card-title"><i class="bi bi-door-open text-cyan"></i> DANH SÁCH PHÒNG TRÒ CHUYỆN HIỆN CÓ</span>
+            <div class="toolbar">
+                <div class="search-wrap" style="position:relative;">
+                    <i class="bi bi-search" style="position:absolute; left:10px; top:50%; transform:translateY(-50%); color:rgba(255,255,255,0.3);"></i>
+                    <input type="text" id="liveSearch" class="form-dark-ctrl" style="padding-left:32px; width:220px;" placeholder="Tìm tên hoặc ID phòng..." />
+                </div>
+            </div>
+        </div>
+
+        <!-- selected bar -->
+        <div class="select-bar" id="selectBar">
+            <i class="bi bi-check2-square"></i>
+            <span id="selectCount">0</span> phòng đã chọn
+            <button class="btn-adm danger" style="padding:4px 12px; font-size:11px;" id="btnDeleteSelectedBar" disabled>
+                <i class="bi bi-trash3"></i> Xóa
+            </button>
+            <button class="btn-adm cyan" style="padding:4px 12px; font-size:11px;" id="btnClearSelect">
+                Bỏ chọn
+            </button>
+        </div>
+
+        <div class="table-responsive">
+            <table class="admin-table" id="dataTable">
+                <thead>
+                    <tr>
+                        <th width="36"><input type="checkbox" class="adm-check" id="selectAll"></th>
+                        <th>ID</th>
+                        <th>PHÒNG</th>
+                        <th>LOẠI</th>
+                        <th>NGÀY TẠO</th>
+                        <th>TRẠNG THÁI</th>
+                        <th style="text-align:center;">THAO TÁC</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model.Rooms)
+                    {
+                        bool isActive = item.IsActive == true;
+                        bool hasName = !string.IsNullOrEmpty(item.RoomName);
+                        <tr id="row-@item.RoomID" class="room-row" data-search="@(item.RoomID + " " + (item.RoomName ?? "") + " " + item.RoomType)">
+                            <td><input type="checkbox" class="adm-check room-checkbox" value="@item.RoomID"></td>
+                            <td><span class="cell-id">#@item.RoomID</span></td>
+                            <td>
+                                <span class="cell-name @(!hasName ? "anon" : "")">
+                                    @(hasName ? item.RoomName : "Phòng ẩn danh")
+                                </span>
+                                <span class="d-md-none cell-date d-block mt-1" style="font-size:10px;">
+                                    @(item.CreatedAt.HasValue ? item.CreatedAt.Value.ToString("dd/MM/yyyy HH:mm") : "")
+                                </span>
+                            </td>
+                            <td>
+                                <span class="adm-badge @GetTypeBadge(item.RoomType)">
+                                    @GetTypeLabel(item.RoomType)
+                                </span>
+                            </td>
+                            <td>
+                                <span class="cell-date">
+                                    @(item.CreatedAt.HasValue ? item.CreatedAt.Value.ToString("dd/MM/yyyy HH:mm") : "---")
+                                </span>
+                            </td>
+                            <td>
+                                @if (isActive)
+                                {
+                                    <span class="adm-badge badge-green">● Hoạt động</span>
+                                }
+                                else
+                                {
+                                    <span class="adm-badge badge-dim">○ Đóng</span>
+                                }
+                            </td>
+                            <td style="text-align:center;">
+                                <div style="display:inline-flex; gap:5px; align-items:center;">
+                                    <button class="btn-adm cyan icon-only" onclick="viewRoomDetail(@item.RoomID)"
+                                            title="Xem chi tiết và tin nhắn phòng #@item.RoomID">
+                                        <i class="bi bi-eye" style="font-size:13px;"></i>
+                                    </button>
+                                    <button class="btn-adm @(isActive ? "amber" : "green") icon-only btn-toggle-status"
+                                            id="btn-status-@item.RoomID"
+                                            onclick="toggleRoomStatus(@item.RoomID, @(isActive ? "true" : "false"), '@Html.Raw(HttpUtility.JavaScriptStringEncode(hasName ? item.RoomName : "Phòng ẩn danh"))', '@item.RoomType')"
+                                            title="@(isActive ? "Khóa/Đóng phòng" : "Mở lại phòng")">
+                                        <i class="bi @(isActive ? "bi-lock" : "bi-unlock")" style="font-size:13px;"></i>
+                                    </button>
+                                    <button class="btn-adm danger icon-only" onclick="confirmDelete(@item.RoomID, '@Html.Raw(HttpUtility.JavaScriptStringEncode(hasName ? item.RoomName : "Phòng ẩn danh"))', '@item.RoomType')"
+                                            title="Xóa phòng #@item.RoomID">
+                                        <i class="bi bi-trash3" style="font-size:13px;"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════
+     TAB 2: QUẢN LÝ TIN NHẮN (MESSAGE MANAGEMENT)
+     ════════════════════════════════════════════════════════════════ -->
+<div id="tab-messages" class="chat-tab-pane" style="display:none;">
+    <div class="admin-card">
+        <div class="admin-card-header">
+            <span class="admin-card-title"><i class="bi bi-chat-text text-info"></i> TÌM KIẾM & KIỂM DUYỆT TIN NHẮN</span>
+            <span class="cell-date">Có thể ẩn hoặc gỡ bỏ tin nhắn vi phạm chuẩn mực</span>
+        </div>
+
+        <!-- Filter Toolbar -->
+        <div style="padding:14px 20px; border-bottom:1px solid var(--chat-card-border); background:rgba(255,255,255,0.015);">
+            <div class="row g-2">
+                <div class="col-md-3">
+                    <input type="text" id="msgFilterKeyword" class="form-dark-ctrl w-100" placeholder="Từ khóa nội dung..." />
+                </div>
+                <div class="col-md-2">
+                    <input type="text" id="msgFilterSender" class="form-dark-ctrl w-100" placeholder="Người gửi (tên/ID)..." />
+                </div>
+                <div class="col-md-2">
+                    <input type="number" id="msgFilterRoomId" class="form-dark-ctrl w-100" placeholder="ID Phòng..." />
+                </div>
+                <div class="col-md-2">
+                    <select id="msgFilterType" class="form-dark-ctrl w-100">
+                        <option value="All">Tất cả loại tin</option>
+                        <option value="Text">Văn bản thuần</option>
+                        <option value="Image">Có ảnh / Đính kèm file</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <select id="msgFilterStatus" class="form-dark-ctrl w-100">
+                        <option value="All">Tất cả trạng thái</option>
+                        <option value="Visible">Đang hiển thị</option>
+                        <option value="Hidden">Đã bị BQT ẩn</option>
+                    </select>
+                </div>
+                <div class="col-md-1">
+                    <button type="button" class="btn btn-sm btn-info w-100 fw-bold" style="height:35px;" onclick="loadMessagesPage(1)">
+                        <i class="bi bi-search"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>THỜI GIAN</th>
+                        <th>NGƯỜI GỬI</th>
+                        <th>PHÒNG</th>
+                        <th>NỘI DUNG / TỆP ĐÍNH KÈM</th>
+                        <th>TRẠNG THÁI</th>
+                        <th style="text-align:center;">THAO TÁC</th>
+                    </tr>
+                </thead>
+                <tbody id="messagesTableBody">
+                    @foreach (var m in Model.RecentMessages)
+                    {
+                        <tr id="msg-row-@m.MessageID">
+                            <td><span class="cell-id">#@m.MessageID</span></td>
+                            <td><span class="cell-date">@m.SentAtFormatted</span></td>
+                            <td>
+                                <div class="d-flex align-items-center gap-2">
+                                    <img src="@m.SenderAvatar" style="width:26px; height:26px; border-radius:50%; object-fit:cover;" onerror="this.onerror=null;this.src=window.DEFAULT_AVATAR_SVG||'/Content/Images/default-avatar.png';" />
+                                    <div>
+                                        <div class="fw-bold text-white" style="font-size:12px;">@m.SenderDisplayName</div>
+                                        <div style="font-size:10px; color:rgba(255,255,255,0.4);">@(m.IsAnonymousMsg ? "[Ẩn danh]" : "@" + m.SenderUsername)</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="adm-badge @GetTypeBadge(m.RoomType)">#@m.RoomID - @m.RoomName</span>
+                            </td>
+                            <td>
+                                <div style="max-width:280px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                                    @if (m.HasAttachments)
+                                    {
+                                        <span class="adm-badge badge-purple me-1" style="font-size:9.5px;"><i class="bi bi-paperclip"></i> @m.AttachmentsCount tệp</span>
+                                    }
+                                    @if (!string.IsNullOrEmpty(m.ImageUrl))
+                                    {
+                                        <span class="adm-badge badge-cyan me-1" style="font-size:9.5px;"><i class="bi bi-image"></i> Ảnh</span>
+                                    }
+                                    <span class="text-white-50">@m.DisplayText</span>
+                                </div>
+                            </td>
+                            <td>
+                                @if (m.IsHidden)
+                                {
+                                    <span class="adm-badge badge-danger" title="Lý do: @m.HiddenReason"><i class="bi bi-eye-slash"></i> Đã ẩn</span>
+                                }
+                                else
+                                {
+                                    <span class="adm-badge badge-green"><i class="bi bi-check-circle"></i> Hiển thị</span>
+                                }
+                            </td>
+                            <td style="text-align:center;">
+                                <div style="display:inline-flex; gap:5px; align-items:center;">
+                                    <button class="btn-adm cyan icon-only" title="Xem chi tiết" onclick="openMessageDetailModal(@m.MessageID)">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                    @if (m.IsHidden)
+                                    {
+                                        <button class="btn-adm green icon-only" title="Bỏ ẩn tin nhắn" onclick="unhideMessage(@m.MessageID)">
+                                            <i class="bi bi-eye-fill"></i>
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        <button class="btn-adm amber icon-only" title="Ẩn tin nhắn vi phạm" onclick="promptHideMessage(@m.MessageID)">
+                                            <i class="bi bi-eye-slash"></i>
+                                        </button>
+                                    }
+                                    <button class="btn-adm danger icon-only" title="Xóa vĩnh viễn tin nhắn" onclick="confirmDeleteMessage(@m.MessageID)">
+                                        <i class="bi bi-trash3"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination Footer -->
+        <div id="messagesPagination" class="d-flex justify-content-between align-items-center p-3" style="border-top:1px solid var(--chat-card-border); font-size:12px; color:rgba(255,255,255,0.5);">
+            <span id="msgPaginationInfo">Hiển thị @Model.RecentMessages.Count tin nhắn</span>
+            <div id="msgPaginationBtns" class="d-flex gap-1"></div>
+        </div>
+    </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════
+     TAB 3: QUẢN LÝ BÁO CÁO VI PHẠM (REPORTS)
+     ════════════════════════════════════════════════════════════════ -->
+<div id="tab-reports" class="chat-tab-pane" style="display:none;">
+    <div class="admin-card">
+        <div class="admin-card-header">
+            <span class="admin-card-title"><i class="bi bi-shield-exclamation text-warning"></i> TIẾP NHẬN & XỬ LÝ BÁO CÁO VI PHẠM</span>
+            <div class="d-flex align-items-center gap-2">
+                <span class="adm-badge badge-amber">@Model.Stats.PendingReports Chờ xử lý</span>
+                <span class="adm-badge badge-cyan">@Model.Stats.ProcessingReports Đang xử lý</span>
+                <span class="adm-badge badge-green">@Model.Stats.ResolvedReports Đã xử lý</span>
+            </div>
+        </div>
+
+        <!-- Report Filter Toolbar -->
+        <div style="padding:14px 20px; border-bottom:1px solid var(--chat-card-border); background:rgba(255,255,255,0.015);">
+            <div class="row g-2">
+                <div class="col-md-3">
+                    <select id="reportFilterStatus" class="form-dark-ctrl w-100" onchange="loadReportsPage(1)">
+                        <option value="All">Tất cả trạng thái</option>
+                        <option value="Pending">Chờ xử lý (Pending)</option>
+                        <option value="Processing">Đang xử lý (Processing)</option>
+                        <option value="Resolved">Đã giải quyết (Resolved)</option>
+                        <option value="Rejected">Đã từ chối (Rejected)</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <input type="text" id="reportFilterKeyword" class="form-dark-ctrl w-100" placeholder="Từ khóa lý do, chi tiết..." />
+                </div>
+                <div class="col-md-3">
+                    <select id="reportFilterDateRange" class="form-dark-ctrl w-100" onchange="loadReportsPage(1)">
+                        <option value="All">Tất cả thời gian</option>
+                        <option value="today">Hôm nay</option>
+                        <option value="7days">7 ngày qua</option>
+                        <option value="30days">30 ngày qua</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <button type="button" class="btn btn-sm btn-info w-100 fw-bold" style="height:35px;" onclick="loadReportsPage(1)">
+                        <i class="bi bi-filter me-1"></i> Lọc báo cáo
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>THỜI GIAN</th>
+                        <th>NGƯỜI BÁO CÁO</th>
+                        <th>ĐỐI TƯỢNG BỊ BÁO CÁO</th>
+                        <th>LÝ DO VI PHẠM</th>
+                        <th>BẰNG CHỨNG TRÍCH XUẤT</th>
+                        <th>TRẠNG THÁI</th>
+                        <th style="text-align:center;">XỬ LÝ</th>
+                    </tr>
+                </thead>
+                <tbody id="reportsTableBody">
+                    @if (!Model.Reports.Any())
+                    {
+                        <tr><td colspan="8" class="text-center py-4 text-white-50">Chưa có báo cáo vi phạm nào trong hệ thống.</td></tr>
+                    }
+                    @foreach (var r in Model.Reports)
+                    {
+                        <tr id="rep-row-@r.ReportID">
+                            <td><span class="cell-id">#@r.ReportID</span></td>
+                            <td><span class="cell-date">@r.CreatedAtFormatted</span></td>
+                            <td>
+                                <div class="d-flex align-items-center gap-2">
+                                    <img src="@r.ReporterAvatar" style="width:24px; height:24px; border-radius:50%;" onerror="this.onerror=null;this.src=window.DEFAULT_AVATAR_SVG||'/Content/Images/default-avatar.png';" />
+                                    <span class="text-white fw-bold" style="font-size:12px;">@r.ReporterDisplayName</span>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center gap-2">
+                                    <img src="@r.ReportedUserAvatar" style="width:28px; height:28px; border-radius:50%;" onerror="this.onerror=null;this.src=window.DEFAULT_AVATAR_SVG||'/Content/Images/default-avatar.png';" />
+                                    <div class="d-flex flex-column">
+                                        @if (r.ReportedUserID.HasValue && r.ReportedUserID > 0)
+                                        {
+                                            <span class="text-danger fw-bold" style="font-size:12px;">@r.ReportedUserRealDisplayName</span>
+                                            <span class="cell-id text-cyan" style="font-size:11px;">ID: #@r.ReportedUserID • @r.ReportedUserRealUsername</span>
+                                            if (!string.IsNullOrEmpty(r.ReportedUserEmail))
+                                            {
+                                                <span class="text-white-50" style="font-size:10px;">@r.ReportedUserEmail</span>
+                                            }
+                                        }
+                                        else
+                                        {
+                                            <span class="text-warning fw-bold" style="font-size:12px;">@r.ReportedUserDisplayName</span>
+                                            <span class="badge bg-warning text-dark" style="font-size:9px; width:fit-content;">@r.IdentityStatus</span>
+                                        }
+                                        if (r.IsReportedUserAnonymous)
+                                        {
+                                            <span class="badge bg-secondary text-white mt-1" style="font-size:9px; width:fit-content;"><i class="bi bi-incognito"></i> Ẩn danh: @r.AnonymousAlias</span>
+                                        }
+                                    </div>
+                                </div>
+                            </td>
+                            <td><span class="adm-badge badge-amber">@r.Reason</span></td>
+                            <td>
+                                <span style="display:inline-block; max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:12px; color:rgba(255,255,255,0.7);">
+                                    @(string.IsNullOrEmpty(r.EvidenceSnippet) ? (r.Details ?? "—") : r.EvidenceSnippet)
+                                </span>
+                            </td>
+                            <td>
+                                <span class="adm-badge @GetReportStatusBadge(r.Status)">@GetReportStatusLabel(r.Status)</span>
+                            </td>
+                            <td style="text-align:center;">
+                                <div style="display:inline-flex; gap:5px; align-items:center;">
+                                    <button class="btn-adm cyan icon-only" title="Xem chi tiết & Xử lý" onclick="openReportDetailModal(@r.ReportID)">
+                                        <i class="bi bi-shield-check"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <div id="reportsPagination" class="d-flex justify-content-between align-items-center p-3" style="border-top:1px solid var(--chat-card-border); font-size:12px; color:rgba(255,255,255,0.5);">
+            <span id="repPaginationInfo">Hiển thị @Model.Reports.Count báo cáo</span>
+            <div id="repPaginationBtns" class="d-flex gap-1"></div>
+        </div>
+    </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════
+     TAB 4: THÀNH VIÊN VÀ HẠN CHẾ / CẤM CHAT (MEMBERS & RESTRICTIONS)
+     ════════════════════════════════════════════════════════════════ -->
+<div id="tab-members" class="chat-tab-pane" style="display:none;">
+    <!-- Active Restrictions Table -->
+    @if (Model.ActiveRestrictions.Any())
+    {
+        <div class="admin-card mb-4" style="border-color:rgba(255,77,77,0.35); background:rgba(255,77,77,0.025);">
+            <div class="admin-card-header" style="background:rgba(255,77,77,0.05);">
+                <span class="admin-card-title text-danger"><i class="bi bi-slash-circle-fill"></i> DANH SÁCH TÀI KHOẢN ĐANG BỊ CẤM / HẠN CHẾ TRÒ CHUYỆN</span>
+                <span class="adm-badge badge-danger">@Model.ActiveRestrictions.Count tài khoản</span>
+            </div>
+            <div class="table-responsive">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>THỜI GIAN PHẠT</th>
+                            <th>NGƯỜI DÙNG</th>
+                            <th>HÌNH THỨC PHẠT</th>
+                            <th>LÝ DO</th>
+                            <th>THỜI HẠN</th>
+                            <th>NGƯỜI XỬ LÝ</th>
+                            <th style="text-align:center;">GỠ CẤM</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var res in Model.ActiveRestrictions)
+                        {
+                            <tr>
+                                <td><span class="cell-date">@res.CreatedAtFormatted</span></td>
+                                <td>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <img src="@res.Avatar" style="width:26px; height:26px; border-radius:50%;" onerror="this.onerror=null;this.src=window.DEFAULT_AVATAR_SVG||'/Content/Images/default-avatar.png';" />
+                                        <div>
+                                            <div class="text-white fw-bold" style="font-size:12px;">@res.DisplayName</div>
+                                            <div class="cell-id">@@@res.Username (#@res.UserID)</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="adm-badge @(res.RestrictionType == "Ban" ? "badge-danger" : "badge-amber")">
+                                        @(res.RestrictionType == "Ban" ? "Cấm chat toàn diện" : "Hạn chế gửi tin")
+                                    </span>
+                                </td>
+                                <td><span style="font-size:12px; color:#fca5a5;">@res.Reason</span></td>
+                                <td><span class="adm-badge badge-dim font-monospace">@res.ExpiresAtFormatted</span></td>
+                                <td><span class="text-white-50" style="font-size:12px;">@res.CreatedByAdminName</span></td>
+                                <td style="text-align:center;">
+                                    <button type="button" class="btn-adm green" style="font-size:11px; padding:4px 10px;" onclick="promptRevokeRestriction(@res.RestrictionID, '@Html.Raw(HttpUtility.JavaScriptStringEncode(res.DisplayName))')">
+                                        <i class="bi bi-unlock me-1"></i> Mở cấm
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+
+    <!-- Members Search Table -->
+    <div class="admin-card">
+        <div class="admin-card-header">
+            <span class="admin-card-title"><i class="bi bi-people text-info"></i> QUẢN TRỊ THÀNH VIÊN HOẠT ĐỘNG TRÒ CHUYỆN</span>
+            <div class="toolbar">
+                <input type="text" id="memberFilterKeyword" class="form-dark-ctrl" style="width:200px;" placeholder="Tìm tên, username, ID..." />
+                <select id="memberFilterStatus" class="form-dark-ctrl" style="width:160px;" onchange="loadMembersPage(1)">
+                    <option value="All">Tất cả trạng thái</option>
+                    <option value="Normal">Bình thường</option>
+                    <option value="Muted">Đang bị hạn chế</option>
+                    <option value="Banned">Đang bị cấm chat</option>
+                </select>
+                <button type="button" class="btn btn-sm btn-info fw-bold" onclick="loadMembersPage(1)">
+                    <i class="bi bi-search"></i>
+                </button>
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>USER ID</th>
+                        <th>THÀNH VIÊN</th>
+                        <th>PHÒNG THAM GIA</th>
+                        <th>TIN ĐÃ GỬI</th>
+                        <th>BỊ TỐ CÁO</th>
+                        <th>TRẠNG THÁI</th>
+                        <th style="text-align:center;">THAO TÁC</th>
+                    </tr>
+                </thead>
+                <tbody id="membersTableBody">
+                    @foreach (var mem in Model.Members)
+                    {
+                        <tr id="mem-row-@mem.UserID">
+                            <td><span class="cell-id">#@mem.UserID</span></td>
+                            <td>
+                                <div class="d-flex align-items-center gap-2">
+                                    <img src="@mem.Avatar" style="width:30px; height:30px; border-radius:50%; object-fit:cover;" onerror="this.onerror=null;this.src=window.DEFAULT_AVATAR_SVG||'/Content/Images/default-avatar.png';" />
+                                    <div>
+                                        <div class="text-white fw-bold" style="font-size:12.5px;">
+                                            @mem.DisplayName
+                                            @if (mem.IsTDMUStudent)
+                                            {
+                                                <span class="adm-badge badge-cyan" style="font-size:9px; padding:1px 4px;">TDMU</span>
+                                            }
+                                        </div>
+                                        <div class="cell-id">@@@mem.Username · @mem.Email</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td><span class="adm-badge badge-dim font-monospace">@mem.TotalRoomsJoined phòng</span></td>
+                            <td><span class="adm-badge badge-dim font-monospace">@mem.TotalMessagesSent tin</span></td>
+                            <td>
+                                @if (mem.TotalReportsReceived > 0)
+                                {
+                                    <span class="adm-badge badge-danger font-monospace">@mem.TotalReportsReceived lần</span>
+                                }
+                                else
+                                {
+                                    <span class="text-white-50">0</span>
+                                }
+                            </td>
+                            <td>
+                                @if (mem.IsBanned)
+                                {
+                                    <span class="adm-badge badge-danger"><i class="bi bi-slash-circle"></i> Đang bị cấm</span>
+                                }
+                                else if (mem.IsMuted)
+                                {
+                                    <span class="adm-badge badge-amber"><i class="bi bi-volume-mute"></i> Đang bị hạn chế</span>
+                                }
+                                else
+                                {
+                                    <span class="adm-badge badge-green"><i class="bi bi-check-circle"></i> Bình thường</span>
+                                }
+                            </td>
+                            <td style="text-align:center;">
+                                <div style="display:inline-flex; gap:5px; align-items:center;">
+                                    <button class="btn-adm cyan icon-only" title="Xem hồ sơ & Lịch sử phòng" onclick="openMemberDetailModal(@mem.UserID)">
+                                        <i class="bi bi-person-lines-fill"></i>
+                                    </button>
+                                    @if (mem.IsBanned || mem.IsMuted)
+                                    {
+                                        <button class="btn-adm green icon-only" title="Gỡ bỏ cấm chat" onclick="promptRevokeRestriction(@(mem.ActiveRestriction?.RestrictionID ?? 0), '@Html.Raw(HttpUtility.JavaScriptStringEncode(mem.DisplayName))')">
+                                            <i class="bi bi-unlock"></i>
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        <button class="btn-adm amber icon-only" title="Hạn chế / Cấm chat" onclick="openApplyRestrictionModal(@mem.UserID, '@Html.Raw(HttpUtility.JavaScriptStringEncode(mem.DisplayName))')">
+                                            <i class="bi bi-slash-circle"></i>
+                                        </button>
+                                    }
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <div id="membersPagination" class="d-flex justify-content-between align-items-center p-3" style="border-top:1px solid var(--chat-card-border); font-size:12px; color:rgba(255,255,255,0.5);">
+            <span id="memPaginationInfo">Hiển thị @Model.Members.Count thành viên</span>
+            <div id="memPaginationBtns" class="d-flex gap-1"></div>
+        </div>
+    </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════
+     MODALS DIALOGS (CYBER DARK GLASS STYLE)
+     ════════════════════════════════════════════════════════════════ -->
+
+<!-- MODAL 1: CHI TIẾT PHÒNG CHAT (BẢO TOÀN TỪ HIỆN CÓ) -->
+<div class="chat-modal-overlay" id="roomDetailOverlay" onclick="if(event.target===this) closeRoomDetail();">
+    <div class="chat-modal-panel">
+        <div class="chat-modal-header">
+            <h5 class="chat-modal-title">
+                <i class="bi bi-door-open text-cyan"></i>
+                <span id="mdlRoomName">Phòng chat #...</span>
+                <span id="mdlRoomBadge" class="adm-badge badge-cyan" style="font-size:10.5px;"></span>
+                <span id="mdlStatusBadge" class="adm-badge badge-green" style="font-size:10.5px;"></span>
+            </h5>
+            <button class="chat-modal-close" onclick="closeRoomDetail()">&times;</button>
+        </div>
+
+        <div class="chat-modal-body">
+            <div class="d-flex gap-2 mb-3">
+                <button type="button" class="btn-adm cyan" id="tabBtnMsg" onclick="switchRoomModalSubTab('messages')">
+                    <i class="bi bi-chat-text-fill"></i> Tin nhắn phòng <span class="chat-tab-badge" id="mdlMsgCount">0</span>
+                </button>
+                <button type="button" class="btn-adm" style="color:#fff;" id="tabBtnPart" onclick="switchRoomModalSubTab('participants')">
+                    <i class="bi bi-people-fill"></i> Thành viên <span class="chat-tab-badge" id="mdlPartCount">0</span>
+                </button>
+            </div>
+
+            <div id="tabContentMessages">
+                <div id="roomMessagesList" class="chat-messages-container"></div>
+            </div>
+
+            <div id="tabContentParticipants" style="display:none;">
+                <div id="roomParticipantsList" class="row g-2"></div>
+            </div>
+        </div>
+
+        <div class="chat-modal-footer">
+            <button type="button" class="btn-adm cyan" id="mdlBtnToggleStatus" onclick="toggleCurrentModalRoom()">
+                <i class="bi bi-lock me-1"></i> Đổi trạng thái phòng
+            </button>
+            <button type="button" class="btn-adm danger" id="mdlBtnDelete" onclick="deleteCurrentModalRoom()">
+                <i class="bi bi-trash3 me-1"></i> Xóa phòng vĩnh viễn
+            </button>
+            <button type="button" class="btn-adm" style="background:rgba(255,255,255,0.06); color:#fff;" onclick="closeRoomDetail()">
+                Đóng
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL 2: CHI TIẾT TIN NHẮN (MESSAGE DETAIL) -->
+<div class="chat-modal-overlay" id="messageDetailOverlay" onclick="if(event.target===this) closeMessageDetail();">
+    <div class="chat-modal-panel" style="max-width: 640px;">
+        <div class="chat-modal-header">
+            <h5 class="chat-modal-title">
+                <i class="bi bi-chat-text text-cyan"></i>
+                <span>Chi tiết Tin nhắn #<span id="mdlMsgId"></span></span>
+            </h5>
+            <button class="chat-modal-close" onclick="closeMessageDetail()">&times;</button>
+        </div>
+        <div class="chat-modal-body">
+            <div class="d-flex align-items-center gap-3 p-3 mb-3" style="background:rgba(255,255,255,0.025); border-radius:12px; border:1px solid var(--chat-card-border);">
+                <img id="mdlMsgSenderAvatar" src="" style="width:44px; height:44px; border-radius:50%; object-fit:cover;" onerror="this.onerror=null;this.src=window.DEFAULT_AVATAR_SVG||'/Content/Images/default-avatar.png';" />
+                <div style="flex:1;">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="fw-bold text-white fs-6" id="mdlMsgSenderName"></span>
+                        <span id="mdlMsgAnonBadge" class="adm-badge badge-dim" style="font-size:10px;"></span>
+                    </div>
+                    <div class="cell-id">Gửi lúc: <span id="mdlMsgTime"></span> · Phòng: <span id="mdlMsgRoom"></span></div>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="cell-id d-block mb-1">NỘI DUNG HIỂN THỊ:</label>
+                <div class="p-3" style="background:#050a14; border-radius:8px; border:1px solid var(--chat-card-border); color:#fff; font-size:13.5px; line-height:1.6;" id="mdlMsgText"></div>
+            </div>
+
+            <div id="mdlMsgHiddenBox" style="display:none;" class="mb-3 p-3" style="background:rgba(255,77,77,0.08); border:1px solid rgba(255,77,77,0.3); border-radius:8px;">
+                <span class="text-danger fw-bold"><i class="bi bi-shield-x me-1"></i> Tin nhắn này đang bị ẩn bởi Quản trị viên:</span>
+                <div id="mdlMsgHiddenReason" style="font-size:12.5px; color:#fca5a5; margin-top:4px;"></div>
+            </div>
+
+            <div id="mdlMsgAttachmentsBox" style="display:none;" class="mb-3">
+                <label class="cell-id d-block mb-1">TỆP ĐÍNH KÈM / ẢNH:</label>
+                <div id="mdlMsgAttachmentsList" class="d-flex flex-column gap-2"></div>
+            </div>
+        </div>
+        <div class="chat-modal-footer">
+            <button type="button" class="btn-adm amber" id="mdlMsgBtnToggleHide" onclick="toggleHideFromModal()">
+                <i class="bi bi-eye-slash me-1"></i> Ẩn tin này
+            </button>
+            <button type="button" class="btn-adm danger" id="mdlMsgBtnDelete" onclick="deleteFromModal()">
+                <i class="bi bi-trash3 me-1"></i> Xóa vĩnh viễn
+            </button>
+            <button type="button" class="btn-adm" style="background:rgba(255,255,255,0.06); color:#fff;" onclick="closeMessageDetail()">
+                Đóng
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL 3: XỬ LÝ BÁO CÁO VI PHẠM (REPORT DETAIL & PROCESS) -->
+<div class="chat-modal-overlay" id="reportDetailOverlay" onclick="if(event.target===this) closeReportDetail();">
+    <div class="chat-modal-panel">
+        <div class="chat-modal-header">
+            <h5 class="chat-modal-title">
+                <i class="bi bi-shield-exclamation text-warning"></i>
+                <span>Báo cáo Vi phạm #<span id="mdlRepId"></span></span>
+                <span id="mdlRepStatusBadge" class="adm-badge"></span>
+            </h5>
+            <button class="chat-modal-close" onclick="closeReportDetail()">&times;</button>
+        </div>
+        <div class="chat-modal-body">
+            <div class="row g-3 mb-3">
+                <div class="col-md-6">
+                    <div class="p-3 h-100" style="background:rgba(255,255,255,0.025); border-radius:10px; border:1px solid var(--chat-card-border);">
+                        <span class="cell-id">NGƯỜI BÁO CÁO:</span>
+                        <div class="d-flex align-items-center gap-2 mt-2">
+                            <img id="mdlRepReporterAvatar" src="" style="width:36px; height:36px; border-radius:50%;" onerror="this.onerror=null;this.src=window.DEFAULT_AVATAR_SVG||'/Content/Images/default-avatar.png';" />
+                            <div>
+                                <div class="text-white fw-bold" id="mdlRepReporterName"></div>
+                                <div class="cell-id">Gửi lúc: <span id="mdlRepCreatedAt"></span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="p-3 h-100" style="background:rgba(255,77,77,0.04); border-radius:10px; border:1px solid rgba(255,77,77,0.25);">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="cell-id text-danger">ĐỐI TƯỢNG BỊ BÁO CÁO:</span>
+                            <span id="mdlRepIdentityBadge" class="adm-badge"></span>
+                        </div>
+                        <div class="d-flex align-items-start gap-2 mt-2">
+                            <img id="mdlRepReportedAvatar" src="" style="width:38px; height:38px; border-radius:50%;" onerror="this.onerror=null;this.src=window.DEFAULT_AVATAR_SVG||'/Content/Images/default-avatar.png';" />
+                            <div class="flex-grow-1">
+                                <div class="text-danger fw-bold" id="mdlRepReportedRealName"></div>
+                                <div class="text-cyan small fw-semibold" id="mdlRepReportedAccountInfo"></div>
+                                <div class="text-white-50 small" id="mdlRepReportedEmail"></div>
+                                <div id="mdlRepAnonInfo" class="mt-1"></div>
+                                <div class="cell-id mt-1">Tại phòng: <span id="mdlRepRoomInfo"></span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="cell-id d-block mb-1">LÝ DO & CHI TIẾT TỐ CÁO:</label>
+                <div class="p-3" style="background:#050a14; border-radius:8px; border:1px solid var(--chat-card-border);">
+                    <div class="fw-bold text-warning mb-1" id="mdlRepReason"></div>
+                    <div class="text-white-50" style="font-size:12.5px;" id="mdlRepDetails"></div>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="cell-id d-block mb-1">BẰNG CHỨNG TRÍCH XUẤT (TIN NHẮN):</label>
+                <div class="code-box text-danger" id="mdlRepEvidence"></div>
+            </div>
+
+            <!-- Action Section -->
+            <div class="p-3" style="background:rgba(0,200,255,0.03); border:1px solid rgba(0,200,255,0.2); border-radius:10px;">
+                <label class="cell-id text-cyan d-block mb-2">QUYẾT ĐỊNH XỬ LÝ VI PHẠM:</label>
+                <div class="row g-2 mb-2">
+                    <div class="col-md-6">
+                        <select id="mdlRepActionType" class="form-dark-ctrl w-100">
+                            <option value="Warn">Cảnh cáo người dùng (Gửi thông báo)</option>
+                            <option value="HideMessage">Ẩn tin nhắn vi phạm này</option>
+                            <option value="DeleteMessage">Xóa vĩnh viễn tin nhắn vi phạm</option>
+                            <option value="MuteUser">Hạn chế gửi tin (Mute tài khoản)</option>
+                            <option value="BanUser">Cấm tham gia trò chuyện (Ban tài khoản)</option>
+                            <option value="None">Đóng báo cáo (Không phạt thêm)</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <select id="mdlRepDuration" class="form-dark-ctrl w-100">
+                            <option value="24">Thời hạn: 24 giờ</option>
+                            <option value="72">Thời hạn: 3 ngày</option>
+                            <option value="168">Thời hạn: 7 ngày</option>
+                            <option value="720">Thời hạn: 30 ngày</option>
+                            <option value="0">Thời hạn: Vĩnh viễn</option>
+                        </select>
+                    </div>
+                </div>
+                <input type="text" id="mdlRepNotes" class="form-dark-ctrl w-100" placeholder="Ghi chú kết luận xử lý..." />
+            </div>
+        </div>
+        <div class="chat-modal-footer">
+            <button type="button" class="btn-adm" style="color:#aaa;" onclick="rejectReportFromModal()">
+                <i class="bi bi-x-circle me-1"></i> Báo cáo không hợp lệ (Từ chối)
+            </button>
+            <button type="button" class="btn-adm cyan" onclick="submitProcessReport()">
+                <i class="bi bi-check2-circle me-1"></i> Xác nhận & Giải quyết
+            </button>
+            <button type="button" class="btn-adm" style="background:rgba(255,255,255,0.06); color:#fff;" onclick="closeReportDetail()">
+                Đóng
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL 4: HỒ SƠ THÀNH VIÊN & LỊCH SỬ CHAT (MEMBER PROFILE) -->
+<div class="chat-modal-overlay" id="memberDetailOverlay" onclick="if(event.target===this) closeMemberDetail();">
+    <div class="chat-modal-panel">
+        <div class="chat-modal-header">
+            <h5 class="chat-modal-title">
+                <i class="bi bi-person-badge text-cyan"></i>
+                <span>Hồ sơ & Hoạt động Chat của &#64;<span id="mdlMemUsername"></span></span>
+            </h5>
+            <button class="chat-modal-close" onclick="closeMemberDetail()">&times;</button>
+        </div>
+        <div class="chat-modal-body">
+            <div class="d-flex align-items-center gap-3 p-3 mb-3" style="background:rgba(255,255,255,0.025); border-radius:12px; border:1px solid var(--chat-card-border);">
+                <img id="mdlMemAvatar" src="" style="width:50px; height:50px; border-radius:50%; object-fit:cover;" onerror="this.onerror=null;this.src=window.DEFAULT_AVATAR_SVG||'/Content/Images/default-avatar.png';" />
+                <div style="flex:1;">
+                    <div class="fw-bold text-white fs-6" id="mdlMemDisplayName"></div>
+                    <div class="cell-id">Email: <span id="mdlMemEmail"></span> · SĐT: <span id="mdlMemPhone"></span></div>
+                    <div class="d-flex gap-2 mt-1">
+                        <span class="adm-badge badge-dim" id="mdlMemRoomsCount"></span>
+                        <span class="adm-badge badge-dim" id="mdlMemMsgsCount"></span>
+                        <span class="adm-badge badge-danger" id="mdlMemRepsCount"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab Sub-sections -->
+            <div class="mb-3">
+                <label class="cell-id d-block mb-1">CÁC PHÒNG CHAT ĐÃ THAM GIA GẦN ĐÂY:</label>
+                <div class="table-responsive" style="max-height:180px; overflow-y:auto;">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th>Phòng</th>
+                                <th>Loại</th>
+                                <th>Ngày vào</th>
+                                <th>Trạng thái</th>
+                            </tr>
+                        </thead>
+                        <tbody id="mdlMemRoomsTable"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="cell-id d-block mb-1">LỊCH SỬ XỬ PHẠT / HẠN CHẾ:</label>
+                <div class="table-responsive" style="max-height:160px; overflow-y:auto;">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th>Hình thức</th>
+                                <th>Lý do</th>
+                                <th>Thời hạn</th>
+                                <th>Người phạt</th>
+                                <th>Trạng thái</th>
+                            </tr>
+                        </thead>
+                        <tbody id="mdlMemRestrictionsTable"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="chat-modal-footer">
+            <button type="button" class="btn-adm amber" onclick="openApplyRestrictionModalFromMember()">
+                <i class="bi bi-slash-circle me-1"></i> Áp dụng Phạt / Cấm Chat
+            </button>
+            <button type="button" class="btn-adm" style="background:rgba(255,255,255,0.06); color:#fff;" onclick="closeMemberDetail()">
+                Đóng
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL 5: ÁP DỤNG LỆNH CẤM / HẠN CHẾ CHAT (APPLY RESTRICTION) -->
+<div class="chat-modal-overlay" id="applyRestrictionOverlay" onclick="if(event.target===this) closeApplyRestriction();">
+    <div class="chat-modal-panel" style="max-width: 500px;">
+        <div class="chat-modal-header">
+            <h5 class="chat-modal-title">
+                <i class="bi bi-slash-circle text-danger"></i>
+                <span>Xử phạt tài khoản <span id="mdlApplyUserName" class="text-white"></span></span>
+            </h5>
+            <button class="chat-modal-close" onclick="closeApplyRestriction()">&times;</button>
+        </div>
+        <form id="applyRestrictionForm" onsubmit="submitApplyRestriction(event)">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="userId" id="mdlApplyUserId" />
+            <div class="chat-modal-body">
+                <div class="mb-3">
+                    <label class="cell-id d-block mb-1">HÌNH THỨC XỬ PHẠT:</label>
+                    <select name="restrictionType" id="mdlApplyType" class="form-dark-ctrl w-100" onchange="onRestrictionTypeChange(this.value)">
+                        <option value="Mute">Hạn chế gửi tin nhắn (Chỉ xem được phòng)</option>
+                        <option value="Ban">Cấm trò chuyện toàn diện (Không gửi, không tạo phòng)</option>
+                        <option value="Warn">Cảnh cáo nhắc nhở (Gửi thông báo vi phạm)</option>
+                    </select>
+                </div>
+
+                <div class="mb-3" id="mdlApplyDurationWrap">
+                    <label class="cell-id d-block mb-1">THỜI HẠN ÁP DỤNG:</label>
+                    <select name="durationHours" class="form-dark-ctrl w-100">
+                        <option value="1">1 giờ</option>
+                        <option value="24">24 giờ (1 ngày)</option>
+                        <option value="72">3 ngày</option>
+                        <option value="168">7 ngày (1 tuần)</option>
+                        <option value="720">30 ngày (1 tháng)</option>
+                        <option value="0">Vĩnh viễn (Chỉ mở lại khi BQT hủy lệnh)</option>
+                    </select>
+                </div>
+
+                <div class="mb-2">
+                    <label class="cell-id d-block mb-1">LÝ DO XỬ PHẠT:</label>
+                    <textarea name="reason" class="form-dark-ctrl w-100" rows="3" placeholder="Nhập lý do vi phạm tiêu chuẩn cộng đồng..." required></textarea>
+                </div>
+            </div>
+            <div class="chat-modal-footer">
+                <button type="button" class="btn-adm" style="color:#aaa;" onclick="closeApplyRestriction()">Hủy</button>
+                <button type="submit" class="btn-adm danger fw-bold">Xác nhận Áp dụng</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- IMAGE LIGHTBOX -->
+<div class="chat-lightbox" id="chatImageLightbox" onclick="closeChatLightbox(event)">
+    <button class="chat-modal-close" style="position:absolute; top:20px; right:25px;" onclick="closeChatLightbox(event)">&times;</button>
+    <img id="chatLightboxImg" class="chat-lightbox-img" src="" alt="Xem ảnh" onclick="event.stopPropagation();" />
+</div>
+
+@section scripts {
+<form id="csrfForm" style="display:none;">@Html.AntiForgeryToken()</form>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+    var currentActiveRoomId = null;
+    var currentViewMessageId = null;
+    var currentViewReportId = null;
+    var currentSelectedMemberId = null;
+
+    function getCsrfToken() {
+        return $('input[name="__RequestVerificationToken"]').first().val() || '';
+    }
+
+    // ── CHUYỂN TAB CHÍNH (5 MỤC) ──
+    function switchMainTab(tabId, btn) {
+        $('.chat-tab-pane').hide();
+        $('#' + tabId).show();
+        $('.chat-nav-btn').removeClass('active');
+        if (btn) $(btn).addClass('active');
+        else $(`.chat-nav-btn[data-tab="${tabId}"]`).addClass('active');
+    }
+
+    // ════════════════════════════════════════════════════════════
+    // 1. QUẢN LÝ PHÒNG CHAT (BẢO TOÀN NGUYÊN BẢN CỦA DỰ ÁN)
+    // ════════════════════════════════════════════════════════════
+
+    // Live search phòng
+    $('#liveSearch').on('keyup', function () {
+        var val = $(this).val().toLowerCase();
+        $('.room-row').each(function () {
+            var searchData = $(this).data('search').toString().toLowerCase();
+            $(this).toggle(searchData.indexOf(val) > -1);
+        });
+    });
+
+    // Checkbox select all & bulk delete
+    $('#selectAll').on('change', function () {
+        $('.room-checkbox').prop('checked', this.checked);
+        updateSelectBar();
+    });
+
+    $(document).on('change', '.room-checkbox', function () {
+        updateSelectBar();
+    });
+
+    function updateSelectBar() {
+        var count = $('.room-checkbox:checked').length;
+        $('#selectCount').text(count);
+        if (count > 0) {
+            $('#selectBar').addClass('show');
+            $('#btnDeleteSelectedBar').prop('disabled', false);
+        } else {
+            $('#selectBar').removeClass('show');
+            $('#btnDeleteSelectedBar').prop('disabled', true);
+        }
+    }
+
+    $('#btnClearSelect').on('click', function () {
+        $('.room-checkbox').prop('checked', false);
+        $('#selectAll').prop('checked', false);
+        updateSelectBar();
+    });
+
+    $('#btnDeleteSelectedBar').on('click', function () {
+        var selectedIds = $('.room-checkbox:checked').map(function () { return parseInt($(this).val()); }).get();
+        if (selectedIds.length === 0) return;
+
+        Swal.fire({
+            title: `Xóa ${selectedIds.length} phòng chat đã chọn?`,
+            text: 'Toàn bộ tin nhắn và lịch sử trò chuyện trong các phòng này sẽ bị xóa.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Xác nhận xóa',
+            cancelButtonText: 'Hủy',
+            confirmButtonColor: '#ff4d4d'
+        }).then(function (res) {
+            if (res.isConfirmed) {
+                $.post('/Admin/AdminChat/DeleteMultipleRooms', { ids: selectedIds, __RequestVerificationToken: getCsrfToken() }, function (response) {
+                    if (response.success) {
+                        Swal.fire({ icon: 'success', title: 'Thành công', text: response.message, timer: 1500, showConfirmButton: false })
+                            .then(() => location.reload());
+                    } else {
+                        Swal.fire('Lỗi', response.message, 'error');
+                    }
+                });
+            }
+        });
+    });
+
+    function confirmDelete(id, name, type) {
+        Swal.fire({
+            title: `Xóa phòng #${id}?`,
+            text: `Bạn có chắc chắn muốn xóa "${name}" (${type})?`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Xóa vĩnh viễn',
+            cancelButtonText: 'Hủy',
+            confirmButtonColor: '#ff4d4d'
+        }).then(function (res) {
+            if (res.isConfirmed) {
+                $.post('/Admin/AdminChat/DeleteRoom', { id: id, __RequestVerificationToken: getCsrfToken() }, function (response) {
+                    if (response.success) {
+                        $('#row-' + id).fadeOut(300, function () { $(this).remove(); });
+                        Swal.fire({ icon: 'success', title: 'Đã xóa', text: response.message, toast: true, position: 'top-end', timer: 2500, showConfirmButton: false });
+                    } else {
+                        Swal.fire('Lỗi', response.message, 'error');
+                    }
+                });
+            }
+        });
+    }
+
+    function toggleRoomStatus(id, currentStatus, name, type) {
+        var action = currentStatus ? "khóa/đóng" : "mở lại";
+        Swal.fire({
+            title: `Xác nhận ${action} phòng #${id}?`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Xác nhận',
+            cancelButtonText: 'Hủy'
+        }).then(function (res) {
+            if (res.isConfirmed) {
+                $.post('/Admin/AdminChat/ToggleRoomStatus', { id: id, __RequestVerificationToken: getCsrfToken() }, function (response) {
+                    if (response.success) {
+                        location.reload();
+                    } else {
+                        Swal.fire('Lỗi', response.message, 'error');
+                    }
+                });
+            }
+        });
+    }
+
+    function viewRoomDetail(id) {
+        currentActiveRoomId = id;
+        $('#mdlRoomName').text(`Phòng #${id} ...`);
+        $('#roomMessagesList').html('<div class="text-center text-white-50 py-4"><i class="bi bi-arrow-repeat spin"></i> Đang tải tin nhắn...</div>');
+        $('#roomDetailOverlay').addClass('show');
+
+        $.get('/Admin/AdminChat/GetRoomDetail', { id: id }, function (res) {
+            if (res.success) {
+                $('#mdlRoomName').text(res.roomName);
+                $('#mdlRoomBadge').text(res.roomType);
+                $('#mdlStatusBadge').text(res.isActive ? '● Đang mở' : '○ Đã đóng')
+                                     .attr('class', 'adm-badge ' + (res.isActive ? 'badge-green' : 'badge-dim'));
+                $('#mdlMsgCount').text(res.totalMessages);
+                $('#mdlPartCount').text(res.totalParticipants);
+
+                // Messages list
+                var mHtml = '';
+                if (!res.messages || res.messages.length === 0) {
+                    mHtml = '<div class="text-center text-white-50 py-4">Phòng này chưa có tin nhắn nào.</div>';
+                } else {
+                    res.messages.forEach(function (m) {
+                        mHtml += `<div class="chat-msg-item ${m.isHidden ? 'hidden-msg' : ''}">
+                            <img src="${m.senderAvatar}" class="chat-msg-avatar" onerror="this.onerror=null;this.src=window.DEFAULT_AVATAR_SVG||'/Content/Images/default-avatar.png';" />
+                            <div style="flex:1;">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span class="chat-msg-sender">${m.senderName}</span>
+                                    <span class="chat-msg-time">${m.sentAt}</span>
+                                </div>
+                                <div class="chat-msg-text">
+                                    ${m.isHidden ? `<span class="adm-badge badge-danger" style="font-size:9.5px;">[BQT đã ẩn: ${m.hiddenReason || 'Vi phạm'}]</span> ` : ''}
+                                    ${m.content}
+                                </div>
+                                ${m.imageUrl ? `<div class="mt-2"><img src="${m.imageUrl}" style="max-height:120px; border-radius:6px; cursor:pointer;" onclick="openChatLightbox('${m.imageUrl}')" /></div>` : ''}
+                            </div>
+                        </div>`;
+                    });
+                }
+                $('#roomMessagesList').html(mHtml);
+
+                // Participants list
+                var pHtml = '';
+                if (!res.participants || res.participants.length === 0) {
+                    pHtml = '<div class="text-center text-white-50 py-4">Chưa có thành viên nào.</div>';
+                } else {
+                    res.participants.forEach(function (p) {
+                        pHtml += `<div class="col-md-6">
+                            <div class="d-flex align-items-center gap-2 p-2" style="background:rgba(255,255,255,0.03); border-radius:8px; border:1px solid rgba(255,255,255,0.05);">
+                                <img src="${p.avatar}" style="width:32px; height:32px; border-radius:50%;" onerror="this.onerror=null;this.src=window.DEFAULT_AVATAR_SVG||'/Content/Images/default-avatar.png';" />
+                                <div style="flex:1;">
+                                    <div class="text-white fw-bold" style="font-size:12px;">${p.displayName}</div>
+                                    <div class="cell-id">@@${p.username} · ${p.isLeft ? 'Đã rời' : 'Đang tham gia'}</div>
+                                </div>
+                            </div>
+                        </div>`;
+                    });
+                }
+                $('#roomParticipantsList').html(pHtml);
+            }
+        });
+    }
+
+    function switchRoomModalSubTab(tab) {
+        if (tab === 'messages') {
+            $('#tabContentMessages').show();
+            $('#tabContentParticipants').hide();
+            $('#tabBtnMsg').addClass('cyan').css('color', '#00c8ff');
+            $('#tabBtnPart').removeClass('cyan').css('color', '#fff');
+        } else {
+            $('#tabContentMessages').hide();
+            $('#tabContentParticipants').show();
+            $('#tabBtnPart').addClass('cyan').css('color', '#00c8ff');
+            $('#tabBtnMsg').removeClass('cyan').css('color', '#fff');
+        }
+    }
+
+    function closeRoomDetail() {
+        $('#roomDetailOverlay').removeClass('show');
+    }
+
+    function toggleCurrentModalRoom() {
+        if (currentActiveRoomId) {
+            toggleRoomStatus(currentActiveRoomId, false, "", "");
+        }
+    }
+
+    function deleteCurrentModalRoom() {
+        if (currentActiveRoomId) {
+            confirmDelete(currentActiveRoomId, "", "");
+        }
+    }
+
+    // ════════════════════════════════════════════════════════════
+    // 2. QUẢN LÝ TIN NHẮN (MESSAGE MANAGEMENT)
+    // ════════════════════════════════════════════════════════════
+
+    function loadMessagesPage(page) {
+        var kw = $('#msgFilterKeyword').val();
+        var snd = $('#msgFilterSender').val();
+        var rId = $('#msgFilterRoomId').val();
+        var type = $('#msgFilterType').val();
+        var status = $('#msgFilterStatus').val();
+
+        $('#messagesTableBody').html('<tr><td colspan="7" class="text-center py-4 text-white-50"><i class="bi bi-arrow-repeat spin"></i> Đang tải dữ liệu...</td></tr>');
+
+        $.get('/Admin/AdminChat/FilterMessages', {
+            keyword: kw, sender: snd, roomId: rId, msgType: type, status: status, page: page
+        }, function (res) {
+            if (res.success) {
+                var html = '';
+                if (!res.messages || res.messages.length === 0) {
+                    html = '<tr><td colspan="7" class="text-center py-4 text-white-50">Không tìm thấy tin nhắn phù hợp.</td></tr>';
+                } else {
+                    res.messages.forEach(function (m) {
+                        html += `<tr id="msg-row-${m.MessageID}">
+                            <td><span class="cell-id">#${m.MessageID}</span></td>
+                            <td><span class="cell-date">${m.SentAtFormatted}</span></td>
+                            <td>
+                                <div class="d-flex align-items-center gap-2">
+                                    <img src="${m.SenderAvatar}" style="width:26px; height:26px; border-radius:50%; object-fit:cover;" onerror="this.onerror=null;this.src=window.DEFAULT_AVATAR_SVG||'/Content/Images/default-avatar.png';" />
+                                    <div>
+                                        <div class="fw-bold text-white" style="font-size:12px;">${m.SenderDisplayName}</div>
+                                        <div style="font-size:10px; color:rgba(255,255,255,0.4);">${m.IsAnonymousMsg ? '[Ẩn danh]' : '@@' + m.SenderUsername}</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td><span class="adm-badge badge-dim">#${m.RoomID} - ${m.RoomName}</span></td>
+                            <td>
+                                <div style="max-width:280px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                                    ${m.HasAttachments ? `<span class="adm-badge badge-purple me-1" style="font-size:9.5px;"><i class="bi bi-paperclip"></i> ${m.AttachmentsCount} tệp</span>` : ''}
+                                    ${m.ImageUrl ? `<span class="adm-badge badge-cyan me-1" style="font-size:9.5px;"><i class="bi bi-image"></i> Ảnh</span>` : ''}
+                                    <span class="text-white-50">${m.DisplayText}</span>
+                                </div>
+                            </td>
+                            <td>
+                                ${m.IsHidden ? `<span class="adm-badge badge-danger" title="Lý do: ${m.HiddenReason || ''}"><i class="bi bi-eye-slash"></i> Đã ẩn</span>` : `<span class="adm-badge badge-green"><i class="bi bi-check-circle"></i> Hiển thị</span>`}
+                            </td>
+                            <td style="text-align:center;">
+                                <div style="display:inline-flex; gap:5px; align-items:center;">
+                                    <button class="btn-adm cyan icon-only" title="Xem chi tiết" onclick="openMessageDetailModal(${m.MessageID})">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                    ${m.IsHidden ? `<button class="btn-adm green icon-only" title="Bỏ ẩn" onclick="unhideMessage(${m.MessageID})"><i class="bi bi-eye-fill"></i></button>` : `<button class="btn-adm amber icon-only" title="Ẩn tin" onclick="promptHideMessage(${m.MessageID})"><i class="bi bi-eye-slash"></i></button>`}
+                                    <button class="btn-adm danger icon-only" title="Xóa vĩnh viễn" onclick="confirmDeleteMessage(${m.MessageID})">
+                                        <i class="bi bi-trash3"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>`;
+                    });
+                }
+                $('#messagesTableBody').html(html);
+                $('#msgPaginationInfo').text(`Trang ${res.page} / ${res.totalPages} (Tổng số: ${res.totalCount} tin nhắn)`);
+
+                // Pagination buttons
+                var btnHtml = '';
+                if (res.page > 1) {
+                    btnHtml += `<button type="button" class="btn-adm" style="padding:2px 8px;" onclick="loadMessagesPage(${res.page - 1})">&laquo; Trước</button>`;
+                }
+                if (res.page < res.totalPages) {
+                    btnHtml += `<button type="button" class="btn-adm" style="padding:2px 8px;" onclick="loadMessagesPage(${res.page + 1})">Sau &raquo;</button>`;
+                }
+                $('#msgPaginationBtns').html(btnHtml);
+            }
+        });
+    }
+
+    function openMessageDetailModal(id) {
+        currentViewMessageId = id;
+        $('#mdlMsgId').text(id);
+        $('#messageDetailOverlay').addClass('show');
+
+        $.get('/Admin/AdminChat/GetMessageDetail', { id: id }, function (res) {
+            if (res.success && res.message) {
+                var m = res.message;
+                $('#mdlMsgSenderAvatar').attr('src', m.SenderAvatar || '/Content/Images/default-avatar.png');
+                $('#mdlMsgSenderName').text(m.SenderDisplayName);
+                $('#mdlMsgAnonBadge').text(m.IsAnonymousMsg ? 'Gửi ẩn danh' : 'Hiện danh tính');
+                $('#mdlMsgTime').text(m.SentAtFormatted);
+                $('#mdlMsgRoom').text(`#${m.RoomID} - ${m.RoomName}`);
+                $('#mdlMsgText').text(m.DisplayText || '(Không có nội dung văn bản)');
+
+                if (m.IsHidden) {
+                    $('#mdlMsgHiddenBox').show();
+                    $('#mdlMsgHiddenReason').text(m.HiddenReason || 'Vi phạm tiêu chuẩn cộng đồng');
+                    $('#mdlMsgBtnToggleHide').html('<i class="bi bi-eye me-1"></i> Bỏ ẩn tin này').attr('class', 'btn-adm green');
+                } else {
+                    $('#mdlMsgHiddenBox').hide();
+                    $('#mdlMsgBtnToggleHide').html('<i class="bi bi-eye-slash me-1"></i> Ẩn tin này').attr('class', 'btn-adm amber');
+                }
+
+                // Attachments
+                var attHtml = '';
+                if (m.ImageUrl) {
+                    attHtml += `<div class="mb-2"><img src="${m.ImageUrl}" style="max-height:180px; border-radius:8px; cursor:pointer;" onclick="openChatLightbox('${m.ImageUrl}')" /></div>`;
+                }
+                if (m.AttachmentItems && m.AttachmentItems.length > 0) {
+                    m.AttachmentItems.forEach(function (att) {
+                        if (att.IsImage && att.Url) {
+                            attHtml += `<div class="mb-2"><img src="${att.Url}" style="max-height:180px; border-radius:8px; cursor:pointer;" onclick="openChatLightbox('${att.Url}')" /></div>`;
+                        } else {
+                            attHtml += `<div class="p-2 d-flex justify-content-between align-items-center" style="background:#050a14; border-radius:6px; border:1px solid var(--chat-card-border);">
+                                <span class="text-white"><i class="bi bi-file-earmark-text me-1 text-info"></i> ${att.FileName} (${att.FormattedSize})</span>
+                                <a href="/Chat/DownloadAttachment?messageId=${m.MessageID}&fileKey=${encodeURIComponent(att.FileKey || '')}" class="btn-adm cyan" style="padding:2px 8px; font-size:11px;">Tải về</a>
+                            </div>`;
+                        }
+                    });
+                }
+                if (attHtml) {
+                    $('#mdlMsgAttachmentsList').html(attHtml);
+                    $('#mdlMsgAttachmentsBox').show();
+                } else {
+                    $('#mdlMsgAttachmentsBox').hide();
+                }
+            }
+        });
+    }
+
+    function closeMessageDetail() {
+        $('#messageDetailOverlay').removeClass('show');
+    }
+
+    function promptHideMessage(id) {
+        Swal.fire({
+            title: `Ẩn tin nhắn #${id}?`,
+            text: 'Tin nhắn sẽ bị che giấu khỏi người xem trong phòng chat.',
+            input: 'text',
+            inputPlaceholder: 'Nhập lý do ẩn vi phạm...',
+            showCancelButton: true,
+            confirmButtonText: 'Ẩn tin nhắn',
+            cancelButtonText: 'Hủy'
+        }).then(function (r) {
+            if (r.isConfirmed) {
+                $.post('/Admin/AdminChat/HideMessage', {
+                    messageId: id, reason: r.value, __RequestVerificationToken: getCsrfToken()
+                }, function (res) {
+                    if (res.success) {
+                        Swal.fire({ icon: 'success', title: 'Thành công', text: res.message, toast: true, position: 'top-end', timer: 2000, showConfirmButton: false });
+                        closeMessageDetail();
+                        loadMessagesPage(1);
+                    } else {
+                        Swal.fire('Lỗi', res.message, 'error');
+                    }
+                });
+            }
+        });
+    }
+
+    function unhideMessage(id) {
+        $.post('/Admin/AdminChat/UnhideMessage', {
+            messageId: id, __RequestVerificationToken: getCsrfToken()
+        }, function (res) {
+            if (res.success) {
+                Swal.fire({ icon: 'success', title: 'Thành công', text: res.message, toast: true, position: 'top-end', timer: 2000, showConfirmButton: false });
+                closeMessageDetail();
+                loadMessagesPage(1);
+            } else {
+                Swal.fire('Lỗi', res.message, 'error');
+            }
+        });
+    }
+
+    function confirmDeleteMessage(id) {
+        Swal.fire({
+            title: `Xóa vĩnh viễn tin nhắn #${id}?`,
+            text: 'Thao tác không thể hoàn tác và sẽ xóa bỏ toàn bộ dữ liệu tin nhắn cùng tệp đính kèm.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Xác nhận xóa',
+            cancelButtonText: 'Hủy',
+            confirmButtonColor: '#ff4d4d'
+        }).then(function (r) {
+            if (r.isConfirmed) {
+                $.post('/Admin/AdminChat/AdminDeleteMessage', {
+                    messageId: id, reason: 'Xóa bởi Admin', __RequestVerificationToken: getCsrfToken()
+                }, function (res) {
+                    if (res.success) {
+                        $('#msg-row-' + id).fadeOut(300, function () { $(this).remove(); });
+                        closeMessageDetail();
+                        Swal.fire({ icon: 'success', title: 'Đã xóa', text: res.message, toast: true, position: 'top-end', timer: 2000, showConfirmButton: false });
+                    } else {
+                        Swal.fire('Lỗi', res.message, 'error');
+                    }
+                });
+            }
+        });
+    }
+
+    function toggleHideFromModal() {
+        if (!currentViewMessageId) return;
+        var isHiddenNow = $('#mdlMsgHiddenBox').is(':visible');
+        if (isHiddenNow) {
+            unhideMessage(currentViewMessageId);
+        } else {
+            promptHideMessage(currentViewMessageId);
+        }
+    }
+
+    function deleteFromModal() {
+        if (currentViewMessageId) {
+            confirmDeleteMessage(currentViewMessageId);
+        }
+    }
+
+    // ════════════════════════════════════════════════════════════
+    // 3. QUẢN LÝ BÁO CÁO VI PHẠM (REPORTS)
+    // ════════════════════════════════════════════════════════════
+
+    function loadReportsPage(page) {
+        var status = $('#reportFilterStatus').val();
+        var kw = $('#reportFilterKeyword').val();
+        var dr = $('#reportFilterDateRange').val();
+
+        $('#reportsTableBody').html('<tr><td colspan="8" class="text-center py-4 text-white-50"><i class="bi bi-arrow-repeat spin"></i> Đang tải danh sách báo cáo...</td></tr>');
+
+        $.get('/Admin/AdminChat/FilterReports', { status: status, keyword: kw, dateRange: dr, page: page }, function (res) {
+            if (res.success) {
+                var html = '';
+                if (!res.reports || res.reports.length === 0) {
+                    html = '<tr><td colspan="8" class="text-center py-4 text-white-50">Không có báo cáo nào phù hợp.</td></tr>';
+                } else {
+                    res.reports.forEach(function (r) {
+                        html += `<tr id="rep-row-${r.ReportID}">
+                            <td><span class="cell-id">#${r.ReportID}</span></td>
+                            <td><span class="cell-date">${r.CreatedAtFormatted}</span></td>
+                            <td>
+                                <div class="d-flex align-items-center gap-2">
+                                    <img src="${r.ReporterAvatar}" style="width:24px; height:24px; border-radius:50%;" onerror="this.onerror=null;this.src=window.DEFAULT_AVATAR_SVG||'/Content/Images/default-avatar.png';" />
+                                    <span class="text-white fw-bold" style="font-size:12px;">${r.ReporterDisplayName}</span>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center gap-2">
+                                    <img src="${r.ReportedUserAvatar || '/Content/Images/default-avatar.png'}" style="width:28px; height:28px; border-radius:50%;" onerror="this.onerror=null;this.src=window.DEFAULT_AVATAR_SVG||'/Content/Images/default-avatar.png';" />
+                                    <div class="d-flex flex-column">
+                                        ${r.ReportedUserID && r.ReportedUserID > 0 ? `
+                                            <span class="text-danger fw-bold" style="font-size:12px;">${r.ReportedUserRealDisplayName || r.ReportedUserDisplayName || ('Người dùng #' + r.ReportedUserID)}</span>
+                                            <span class="cell-id text-cyan" style="font-size:11px;">ID: #${r.ReportedUserID} • ${r.ReportedUserRealUsername || ''}</span>
+                                            ${r.ReportedUserEmail ? `<span class="text-white-50" style="font-size:10px;">${r.ReportedUserEmail}</span>` : ''}
+                                        ` : `
+                                            <span class="text-warning fw-bold" style="font-size:12px;">${r.ReportedUserDisplayName || 'Chưa xác định'}</span>
+                                            <span class="badge bg-warning text-dark" style="font-size:9px; width:fit-content;">${r.IdentityStatus || 'Chưa xác định danh tính'}</span>
+                                        `}
+                                        ${r.IsReportedUserAnonymous ? `<span class="badge bg-secondary text-white mt-1" style="font-size:9px; width:fit-content;"><i class="bi bi-incognito"></i> Ẩn danh: ${r.AnonymousAlias || 'Người ẩn danh'}</span>` : ''}
+                                    </div>
+                                </div>
+                            </td>
+                            <td><span class="adm-badge badge-amber">${r.Reason}</span></td>
+                            <td>
+                                <span style="display:inline-block; max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:12px; color:rgba(255,255,255,0.7);">
+                                    ${r.EvidenceSnippet || r.Details || '—'}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="adm-badge ${r.Status === 'Pending' ? 'badge-amber' : (r.Status === 'Processing' ? 'badge-cyan' : (r.Status === 'Resolved' ? 'badge-green' : 'badge-dim'))}">
+                                    ${r.Status}
+                                </span>
+                            </td>
+                            <td style="text-align:center;">
+                                <button class="btn-adm cyan icon-only" title="Xử lý báo cáo" onclick="openReportDetailModal(${r.ReportID})">
+                                    <i class="bi bi-shield-check"></i>
+                                </button>
+                            </td>
+                        </tr>`;
+                    });
+                }
+                $('#reportsTableBody').html(html);
+                $('#repPaginationInfo').text(`Trang ${res.page} / ${res.totalPages} (Tổng số: ${res.totalCount} báo cáo)`);
+
+                var btnHtml = '';
+                if (res.page > 1) {
+                    btnHtml += `<button type="button" class="btn-adm" style="padding:2px 8px;" onclick="loadReportsPage(${res.page - 1})">&laquo; Trước</button>`;
+                }
+                if (res.page < res.totalPages) {
+                    btnHtml += `<button type="button" class="btn-adm" style="padding:2px 8px;" onclick="loadReportsPage(${res.page + 1})">Sau &raquo;</button>`;
+                }
+                $('#repPaginationBtns').html(btnHtml);
+            }
+        });
+    }
+
+    function openReportDetailModal(id) {
+        currentViewReportId = id;
+        $('#mdlRepId').text(id);
+        $('#reportDetailOverlay').addClass('show');
+
+        $.get('/Admin/AdminChat/GetReportDetail', { id: id }, function (res) {
+            if (res.success && res.report) {
+                var r = res.report;
+                $('#mdlRepReporterAvatar').attr('src', r.ReporterAvatar || '/Content/Images/default-avatar.png');
+                $('#mdlRepReporterName').text(r.ReporterDisplayName);
+                $('#mdlRepCreatedAt').text(r.CreatedAtFormatted);
+                $('#mdlRepReportedAvatar').attr('src', r.ReportedUserAvatar || '/Content/Images/default-avatar.png');
+                if (r.ReportedUserID && r.ReportedUserID > 0) {
+                    $('#mdlRepReportedRealName').text(r.ReportedUserRealDisplayName || r.ReportedUserDisplayName || ('Tài khoản #' + r.ReportedUserID));
+                    $('#mdlRepReportedAccountInfo').text('UserID: #' + r.ReportedUserID + ' | Tài khoản: @@' + (r.ReportedUserRealUsername || ''));
+                    $('#mdlRepReportedEmail').text(r.ReportedUserEmail ? ('Email: ' + r.ReportedUserEmail) : 'Email: (Chưa cập nhật)');
+                    $('#mdlRepIdentityBadge').attr('class', 'adm-badge badge-green').html('<i class="bi bi-shield-check"></i> ' + (r.IdentityStatus || 'Đã xác thực danh tính'));
+                } else {
+                    $('#mdlRepReportedRealName').text(r.ReportedUserDisplayName || 'Chưa xác định');
+                    $('#mdlRepReportedAccountInfo').text('UserID: Không xác định');
+                    $('#mdlRepReportedEmail').text('');
+                    $('#mdlRepIdentityBadge').attr('class', 'adm-badge badge-amber').html('<i class="bi bi-question-diamond"></i> ' + (r.IdentityStatus || 'Chưa xác định danh tính'));
+                }
+
+                if (r.IsReportedUserAnonymous) {
+                    $('#mdlRepAnonInfo').html('<span class="badge bg-secondary text-white"><i class="bi bi-incognito"></i> Gửi ở chế độ: Ẩn danh (' + (r.AnonymousAlias || 'Người ẩn danh') + ')</span>');
+                } else {
+                    $('#mdlRepAnonInfo').html('<span class="badge bg-dark text-white-50"><i class="bi bi-person-check"></i> Gửi ở chế độ: Công khai</span>');
+                }
+
+                $('#mdlRepRoomInfo').text(r.RoomName);
+                $('#mdlRepReason').text(r.Reason);
+                $('#mdlRepDetails').text(r.Details || 'Không có mô tả thêm');
+
+                var evidenceText = r.EvidenceSnippet || '';
+                if (r.MessageContent) {
+                    evidenceText = r.MessageContent;
+                }
+                if (!evidenceText) {
+                    evidenceText = '(Không trích xuất được tin nhắn bằng chứng)';
+                }
+                if (r.MessageSentAtFormatted) {
+                    evidenceText += '\n[Thời gian tin nhắn gửi: ' + r.MessageSentAtFormatted + ']';
+                }
+                $('#mdlRepEvidence').text(evidenceText);
+                $('#mdlRepStatusBadge').text(r.Status).attr('class', 'adm-badge ' + (r.Status === 'Pending' ? 'badge-amber' : (r.Status === 'Processing' ? 'badge-cyan' : 'badge-green')));
+                $('#mdlRepNotes').val(r.HandlingNotes || '');
+            }
+        });
+    }
+
+    function closeReportDetail() {
+        $('#reportDetailOverlay').removeClass('show');
+    }
+
+    function submitProcessReport() {
+        if (!currentViewReportId) return;
+
+        var action = $('#mdlRepActionType').val();
+        var dur = $('#mdlRepDuration').val();
+        var notes = $('#mdlRepNotes').val();
+
+        $.post('/Admin/AdminChat/ProcessReportWithAction', {
+            reportId: currentViewReportId,
+            actionType: action,
+            durationHours: dur,
+            notes: notes,
+            __RequestVerificationToken: getCsrfToken()
+        }, function (res) {
+            if (res.success) {
+                Swal.fire({ icon: 'success', title: 'Thành công', text: res.message, timer: 2000, showConfirmButton: false });
+                closeReportDetail();
+                loadReportsPage(1);
+            } else {
+                Swal.fire('Lỗi', res.message, 'error');
+            }
+        });
+    }
+
+    function rejectReportFromModal() {
+        if (!currentViewReportId) return;
+
+        Swal.fire({
+            title: 'Từ chối báo cáo vi phạm?',
+            text: 'Đánh dấu báo cáo này là không hợp lệ hoặc sai sự thật.',
+            input: 'text',
+            inputPlaceholder: 'Nhập lý do từ chối...',
+            showCancelButton: true,
+            confirmButtonText: 'Xác nhận từ chối',
+            cancelButtonText: 'Đóng'
+        }).then(function (r) {
+            if (r.isConfirmed) {
+                $.post('/Admin/AdminChat/UpdateReportStatus', {
+                    reportId: currentViewReportId,
+                    status: 'Rejected',
+                    handlingNotes: r.value || 'Báo cáo không có căn cứ vi phạm',
+                    __RequestVerificationToken: getCsrfToken()
+                }, function (res) {
+                    if (res.success) {
+                        Swal.fire({ icon: 'success', title: 'Thành công', text: res.message, timer: 1500, showConfirmButton: false });
+                        closeReportDetail();
+                        loadReportsPage(1);
+                    } else {
+                        Swal.fire('Lỗi', res.message, 'error');
+                    }
+                });
+            }
+        });
+    }
+
+    // ════════════════════════════════════════════════════════════
+    // 4. QUẢN LÝ THÀNH VIÊN VÀ HẠN CHẾ / CẤM CHAT
+    // ════════════════════════════════════════════════════════════
+
+    function loadMembersPage(page) {
+        var kw = $('#memberFilterKeyword').val();
+        var status = $('#memberFilterStatus').val();
+
+        $('#membersTableBody').html('<tr><td colspan="7" class="text-center py-4 text-white-50"><i class="bi bi-arrow-repeat spin"></i> Đang tải thành viên...</td></tr>');
+
+        $.get('/Admin/AdminChat/SearchMembers', { keyword: kw, filterStatus: status, page: page }, function (res) {
+            if (res.success) {
+                var html = '';
+                if (!res.members || res.members.length === 0) {
+                    html = '<tr><td colspan="7" class="text-center py-4 text-white-50">Không tìm thấy thành viên nào.</td></tr>';
+                } else {
+                    res.members.forEach(function (mem) {
+                        html += `<tr id="mem-row-${mem.UserID}">
+                            <td><span class="cell-id">#${mem.UserID}</span></td>
+                            <td>
+                                <div class="d-flex align-items-center gap-2">
+                                    <img src="${mem.Avatar}" style="width:30px; height:30px; border-radius:50%; object-fit:cover;" onerror="this.onerror=null;this.src=window.DEFAULT_AVATAR_SVG||'/Content/Images/default-avatar.png';" />
+                                    <div>
+                                        <div class="text-white fw-bold" style="font-size:12.5px;">${mem.DisplayName}</div>
+                                        <div class="cell-id">@@${mem.Username} · ${mem.Email}</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td><span class="adm-badge badge-dim font-monospace">${mem.TotalRoomsJoined} phòng</span></td>
+                            <td><span class="adm-badge badge-dim font-monospace">${mem.TotalMessagesSent} tin</span></td>
+                            <td>${mem.TotalReportsReceived > 0 ? `<span class="adm-badge badge-danger font-monospace">${mem.TotalReportsReceived} lần</span>` : `<span class="text-white-50">0</span>`}</td>
+                            <td>
+                                ${mem.IsBanned ? `<span class="adm-badge badge-danger"><i class="bi bi-slash-circle"></i> Đang bị cấm</span>` : (mem.IsMuted ? `<span class="adm-badge badge-amber"><i class="bi bi-volume-mute"></i> Đang bị hạn chế</span>` : `<span class="adm-badge badge-green"><i class="bi bi-check-circle"></i> Bình thường</span>`)}
+                            </td>
+                            <td style="text-align:center;">
+                                <div style="display:inline-flex; gap:5px; align-items:center;">
+                                    <button class="btn-adm cyan icon-only" title="Hồ sơ & Phòng tham gia" onclick="openMemberDetailModal(${mem.UserID})">
+                                        <i class="bi bi-person-lines-fill"></i>
+                                    </button>
+                                    ${mem.IsBanned || mem.IsMuted ? `<button class="btn-adm green icon-only" title="Gỡ cấm" onclick="promptRevokeRestriction(${mem.ActiveRestriction ? mem.ActiveRestriction.RestrictionID : 0}, '${mem.DisplayName}')"><i class="bi bi-unlock"></i></button>` : `<button class="btn-adm amber icon-only" title="Phạt / Cấm chat" onclick="openApplyRestrictionModal(${mem.UserID}, '${mem.DisplayName}')"><i class="bi bi-slash-circle"></i></button>`}
+                                </div>
+                            </td>
+                        </tr>`;
+                    });
+                }
+                $('#membersTableBody').html(html);
+                $('#memPaginationInfo').text(`Trang ${res.page} / ${res.totalPages} (Tổng số: ${res.totalCount} thành viên)`);
+
+                var btnHtml = '';
+                if (res.page > 1) {
+                    btnHtml += `<button type="button" class="btn-adm" style="padding:2px 8px;" onclick="loadMembersPage(${res.page - 1})">&laquo; Trước</button>`;
+                }
+                if (res.page < res.totalPages) {
+                    btnHtml += `<button type="button" class="btn-adm" style="padding:2px 8px;" onclick="loadMembersPage(${res.page + 1})">Sau &raquo;</button>`;
+                }
+                $('#memPaginationBtns').html(btnHtml);
+            }
+        });
+    }
+
+    function openMemberDetailModal(userId) {
+        currentSelectedMemberId = userId;
+        $('#memberDetailOverlay').addClass('show');
+
+        $.get('/Admin/AdminChat/GetMemberDetail', { userId: userId }, function (res) {
+            if (res.success && res.member) {
+                var m = res.member;
+                $('#mdlMemUsername').text(m.Username);
+                $('#mdlMemDisplayName').text(m.DisplayName);
+                $('#mdlMemEmail').text(m.Email);
+                $('#mdlMemPhone').text(m.PhoneNumber || 'Chưa cập nhật');
+                $('#mdlMemAvatar').attr('src', m.Avatar || '/Content/Images/default-avatar.png');
+                $('#mdlMemRoomsCount').text(`${m.TotalRoomsJoined} phòng`);
+                $('#mdlMemMsgsCount').text(`${m.TotalMessagesSent} tin`);
+                $('#mdlMemRepsCount').text(`${m.TotalReportsReceived} báo cáo vi phạm`);
+
+                // Rooms
+                var rHtml = '';
+                if (!m.JoinedRooms || m.JoinedRooms.length === 0) {
+                    rHtml = '<tr><td colspan="4" class="text-center py-2 text-white-50">Chưa tham gia phòng nào.</td></tr>';
+                } else {
+                    m.JoinedRooms.forEach(function (r) {
+                        rHtml += `<tr>
+                            <td><span class="cell-name">#${r.RoomID} - ${r.RoomName}</span></td>
+                            <td><span class="adm-badge badge-dim">${r.RoomType}</span></td>
+                            <td><span class="cell-date">${r.JoinedAt ? r.JoinedAt : '—'}</span></td>
+                            <td><span class="adm-badge ${r.IsLeft ? 'badge-dim' : 'badge-green'}">${r.IsLeft ? 'Đã rời' : 'Đang ở phòng'}</span></td>
+                        </tr>`;
+                    });
+                }
+                $('#mdlMemRoomsTable').html(rHtml);
+
+                // Restrictions
+                var restHtml = '';
+                if (!m.RestrictionHistory || m.RestrictionHistory.length === 0) {
+                    restHtml = '<tr><td colspan="5" class="text-center py-2 text-white-50">Lịch sử trong sạch, chưa từng bị xử phạt.</td></tr>';
+                } else {
+                    m.RestrictionHistory.forEach(function (rest) {
+                        restHtml += `<tr>
+                            <td><span class="adm-badge ${rest.RestrictionType === 'Ban' ? 'badge-danger' : 'badge-amber'}">${rest.RestrictionType}</span></td>
+                            <td><span style="font-size:12px;">${rest.Reason}</span></td>
+                            <td><span class="cell-date">${rest.ExpiresAtFormatted}</span></td>
+                            <td><span class="text-white-50" style="font-size:11px;">${rest.CreatedByAdminName}</span></td>
+                            <td><span class="adm-badge ${rest.IsActive ? 'badge-danger' : 'badge-dim'}">${rest.IsActive ? 'Đang hiệu lực' : 'Đã kết thúc'}</span></td>
+                        </tr>`;
+                    });
+                }
+                $('#mdlMemRestrictionsTable').html(restHtml);
+            }
+        });
+    }
+
+    function closeMemberDetail() {
+        $('#memberDetailOverlay').removeClass('show');
+    }
+
+    function openApplyRestrictionModal(userId, name) {
+        currentSelectedMemberId = userId;
+        $('#mdlApplyUserId').val(userId);
+        $('#mdlApplyUserName').text(name);
+        $('#applyRestrictionOverlay').addClass('show');
+    }
+
+    function openApplyRestrictionModalFromMember() {
+        closeMemberDetail();
+        openApplyRestrictionModal(currentSelectedMemberId, $('#mdlMemDisplayName').text());
+    }
+
+    function closeApplyRestriction() {
+        $('#applyRestrictionOverlay').removeClass('show');
+    }
+
+    function onRestrictionTypeChange(type) {
+        if (type === 'Warn') {
+            $('#mdlApplyDurationWrap').hide();
+        } else {
+            $('#mdlApplyDurationWrap').show();
+        }
+    }
+
+    function submitApplyRestriction(e) {
+        e.preventDefault();
+        var form = $('#applyRestrictionForm');
+        $.post('/Admin/AdminChat/ApplyRestriction', form.serialize(), function (res) {
+            if (res.success) {
+                Swal.fire({ icon: 'success', title: 'Thành công', text: res.message, timer: 2000, showConfirmButton: false });
+                closeApplyRestriction();
+                loadMembersPage(1);
+            } else {
+                Swal.fire('Lỗi', res.message, 'error');
+            }
+        });
+    }
+
+    function promptRevokeRestriction(restrictionId, name) {
+        Swal.fire({
+            title: `Gỡ bỏ cấm/hạn chế cho ${name}?`,
+            text: 'Người dùng sẽ được khôi phục quyền trò chuyện ngay lập tức.',
+            input: 'text',
+            inputPlaceholder: 'Nhập lý do mở cấm...',
+            showCancelButton: true,
+            confirmButtonText: 'Xác nhận mở cấm',
+            cancelButtonText: 'Đóng'
+        }).then(function (r) {
+            if (r.isConfirmed) {
+                $.post('/Admin/AdminChat/RevokeRestriction', {
+                    restrictionId: restrictionId,
+                    reason: r.value || 'BQT xem xét mở cấm trước thời hạn',
+                    __RequestVerificationToken: getCsrfToken()
+                }, function (res) {
+                    if (res.success) {
+                        Swal.fire({ icon: 'success', title: 'Thành công', text: res.message, timer: 2000, showConfirmButton: false });
+                        loadMembersPage(1);
+                    } else {
+                        Swal.fire('Lỗi', res.message, 'error');
+                    }
+                });
+            }
+        });
+    }
+
+    // ── LIGHTBOX XEM ẢNH PHÓNG TO ──
+    function openChatLightbox(url) {
+        $('#chatLightboxImg').attr('src', url);
+        $('#chatImageLightbox').addClass('show');
+    }
+
+    function closeChatLightbox(e) {
+        $('#chatImageLightbox').removeClass('show');
+    }
+</script>
+}

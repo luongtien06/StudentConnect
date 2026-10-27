@@ -1,0 +1,16 @@
+.vs/
+bin/
+obj/
+packages/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Local database credentials. Copy ConnectionStrings.example.config to this path
+# and fill in the connection string for the current environment.
+Config/ConnectionStrings.config
+
+# Local API keys and secrets. Copy AppSettings.example.config to this path
+# and fill in the secrets for the current environment.
+Config/AppSettings.config

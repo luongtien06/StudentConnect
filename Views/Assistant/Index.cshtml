@@ -1,0 +1,2340 @@
+@{
+    ViewBag.Title = "Trợ lý ảo Mr. T - Sinh viên TDMU";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    string agentName = ViewBag.AgentName as string ?? "Trợ lý ảo Mr. T";
+    bool isLoggedIn = Session["UserID"] != null && (int)(Session["UserID"] ?? 0) > 0;
+}
+
+<style>
+    .ai-chat-page {
+        max-width: 1000px;
+        margin: 0 auto;
+        display: flex;
+        flex-direction: column;
+        height: calc(100vh - 160px);
+        min-height: 580px;
+    }
+
+    .ai-header-card {
+        background: linear-gradient(135deg, rgba(13, 22, 38, 0.95), rgba(20, 32, 55, 0.9));
+        border: 1px solid rgba(0, 200, 255, 0.25);
+        border-radius: 20px 20px 0 0;
+        padding: 16px 24px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        backdrop-filter: blur(12px);
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+
+    .ai-agent-meta {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+    }
+
+    .ai-avatar-wrap {
+        position: relative;
+        width: 48px;
+        height: 48px;
+        border-radius: 14px;
+        background: linear-gradient(135deg, #00c8ff, #7b61ff);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        box-shadow: 0 0 20px rgba(0, 200, 255, 0.4);
+    }
+
+    .ai-status-dot {
+        position: absolute;
+        bottom: -2px;
+        right: -2px;
+        width: 13px;
+        height: 13px;
+        background: #00c850;
+        border: 2px solid #0d1626;
+        border-radius: 50%;
+        animation: pulseStatus 2s infinite;
+    }
+
+    @@keyframes pulseStatus {
+        0%, 100% { box-shadow: 0 0 0 0 rgba(0, 200, 80, 0.6); }
+        50% { box-shadow: 0 0 0 6px rgba(0, 200, 80, 0); }
+    }
+
+    .ai-agent-title {
+        font-size: 18px;
+        font-weight: 700;
+        color: #fff;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 0;
+    }
+
+    .ai-agent-badge {
+        font-size: 10px;
+        font-family: 'JetBrains Mono', monospace;
+        background: rgba(0, 200, 255, 0.15);
+        border: 1px solid rgba(0, 200, 255, 0.35);
+        color: #00c8ff;
+        padding: 2px 8px;
+        border-radius: 20px;
+        letter-spacing: 0.5px;
+    }
+
+    .ai-agent-sub {
+        font-size: 12px;
+        color: rgba(255, 255, 255, 0.5);
+        margin: 2px 0 0 0;
+    }
+
+    .ai-actions-wrap {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .btn-ai-action {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        color: rgba(255, 255, 255, 0.85);
+        border-radius: 10px;
+        padding: 6px 14px;
+        font-size: 12px;
+        transition: all 0.2s;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        text-decoration: none !important;
+    }
+
+    .btn-ai-action:hover {
+        background: rgba(0, 200, 255, 0.15);
+        border-color: rgba(0, 200, 255, 0.4);
+        color: #00c8ff;
+    }
+
+    .btn-ai-action.danger:hover {
+        background: rgba(255, 60, 60, 0.15);
+        border-color: rgba(255, 80, 80, 0.35);
+        color: #ff6b6b;
+    }
+
+    /* Message Box Container */
+    .ai-messages-container {
+        flex: 1;
+        background: rgba(8, 14, 26, 0.85);
+        border-left: 1px solid rgba(0, 200, 255, 0.15);
+        border-right: 1px solid rgba(0, 200, 255, 0.15);
+        overflow-y: auto;
+        padding: 24px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        backdrop-filter: blur(10px);
+    }
+
+    .msg-row {
+        display: flex;
+        gap: 12px;
+        max-width: 88%;
+        animation: msgAppear 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @@keyframes msgAppear {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .msg-row.ai {
+        align-self: flex-start;
+    }
+
+    .msg-row.user {
+        align-self: flex-end;
+        flex-direction: row-reverse;
+    }
+
+    .msg-avatar {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+
+    .msg-row.ai .msg-avatar {
+        background: linear-gradient(135deg, #00c8ff, #7b61ff);
+        color: #fff;
+    }
+
+    .msg-row.user .msg-avatar {
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: #00c8ff;
+    }
+
+    .msg-bubble {
+        padding: 14px 18px;
+        border-radius: 16px;
+        font-size: 14px;
+        line-height: 1.6;
+        word-break: break-word;
+    }
+
+    .msg-row.ai .msg-bubble {
+        background: rgba(18, 28, 48, 0.9);
+        border: 1px solid rgba(0, 200, 255, 0.2);
+        color: rgba(255, 255, 255, 0.9);
+        border-top-left-radius: 4px;
+    }
+
+    .msg-row.user .msg-bubble {
+        background: linear-gradient(135deg, rgba(0, 200, 255, 0.25), rgba(123, 97, 255, 0.25));
+        border: 1px solid rgba(0, 200, 255, 0.4);
+        color: #fff;
+        border-top-right-radius: 4px;
+    }
+
+    .msg-bubble p {
+        margin: 0 0 8px 0;
+    }
+    .msg-bubble p:last-child {
+        margin-bottom: 0;
+    }
+    .msg-bubble ul, .msg-bubble ol {
+        margin: 6px 0 6px 20px;
+        padding: 0;
+    }
+    .msg-bubble li {
+        margin-bottom: 4px;
+    }
+    .msg-bubble strong {
+        color: #00c8ff;
+    }
+
+    /* Confirmation Box */
+    .ai-confirm-box {
+        background: rgba(255, 170, 0, 0.08);
+        border: 1px solid rgba(255, 170, 0, 0.35);
+        border-radius: 12px;
+        padding: 12px 14px;
+        margin-top: 10px;
+    }
+    .ai-confirm-title {
+        color: #ffaa00;
+        font-weight: 600;
+        font-size: 13px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin-bottom: 4px;
+    }
+    .ai-confirm-desc {
+        color: rgba(255, 255, 255, 0.7);
+        font-size: 12px;
+        margin-bottom: 10px;
+    }
+    .ai-confirm-actions {
+        display: flex;
+        gap: 8px;
+    }
+    .btn-confirm-yes {
+        background: #00c850;
+        color: #fff;
+        border: none;
+        border-radius: 6px;
+        padding: 5px 12px;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        transition: transform 0.15s, opacity 0.2s;
+    }
+    .btn-confirm-yes:hover { transform: scale(1.02); }
+    .btn-confirm-no {
+        background: rgba(255, 255, 255, 0.1);
+        color: #ff6b6b;
+        border: 1px solid rgba(255, 80, 80, 0.3);
+        border-radius: 6px;
+        padding: 5px 12px;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        transition: transform 0.15s, opacity 0.2s;
+    }
+    .btn-confirm-no:hover { transform: scale(1.02); background: rgba(255, 60, 60, 0.2); }
+
+    /* Typing Indicator */
+    .typing-indicator {
+        display: none;
+        align-self: flex-start;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 16px;
+        background: rgba(18, 28, 48, 0.9);
+        border: 1px solid rgba(0, 200, 255, 0.2);
+        border-radius: 16px;
+        border-top-left-radius: 4px;
+        color: rgba(255, 255, 255, 0.6);
+        font-size: 13px;
+        max-width: fit-content;
+    }
+
+    .typing-dots {
+        display: flex;
+        gap: 4px;
+    }
+
+    .typing-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: #00c8ff;
+        animation: typingBounce 1.4s infinite ease-in-out both;
+    }
+
+    .typing-dot:nth-child(1) { animation-delay: -0.32s; }
+    .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+
+    @@keyframes typingBounce {
+        0%, 80%, 100% { transform: scale(0); opacity: 0.3; }
+        40% { transform: scale(1); opacity: 1; }
+    }
+
+    /* Suggestions */
+    .ai-suggestions-row {
+        background: rgba(8, 14, 26, 0.95);
+        border-left: 1px solid rgba(0, 200, 255, 0.15);
+        border-right: 1px solid rgba(0, 200, 255, 0.15);
+        padding: 10px 24px;
+        display: flex;
+        gap: 8px;
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+
+    .ai-suggestions-row::-webkit-scrollbar {
+        height: 4px;
+    }
+
+    .ai-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: rgba(0, 200, 255, 0.08);
+        border: 1px solid rgba(0, 200, 255, 0.25);
+        color: rgba(255, 255, 255, 0.85);
+        font-size: 12px;
+        padding: 6px 12px;
+        border-radius: 100px;
+        cursor: pointer;
+        transition: all 0.2s;
+        flex-shrink: 0;
+    }
+
+    .ai-chip:hover {
+        background: rgba(0, 200, 255, 0.2);
+        border-color: #00c8ff;
+        color: #00c8ff;
+        transform: translateY(-1px);
+    }
+
+    /* Footer Input Card */
+    .ai-footer-card {
+        background: linear-gradient(135deg, rgba(13, 22, 38, 0.95), rgba(20, 32, 55, 0.95));
+        border: 1px solid rgba(0, 200, 255, 0.25);
+        border-top: none;
+        border-radius: 0 0 20px 20px;
+        padding: 16px 24px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        backdrop-filter: blur(12px);
+    }
+
+    .ai-input-form {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        background: rgba(5, 10, 20, 0.85);
+        border: 1px solid rgba(0, 200, 255, 0.25);
+        border-radius: 14px;
+        padding: 6px 12px 6px 16px;
+        transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .ai-input-form:focus-within {
+        border-color: #00c8ff;
+        box-shadow: 0 0 15px rgba(0, 200, 255, 0.25);
+    }
+
+    .ai-input-text {
+        flex: 1;
+        background: transparent;
+        border: none;
+        outline: none;
+        color: #fff;
+        font-size: 14px;
+        font-family: inherit;
+        resize: none;
+        height: 24px;
+        max-height: 100px;
+    }
+
+    .ai-input-text::placeholder {
+        color: rgba(255, 255, 255, 0.35);
+    }
+
+    .btn-ai-send {
+        background: linear-gradient(135deg, #00c8ff, #7b61ff);
+        border: none;
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+        cursor: pointer;
+        transition: transform 0.15s, box-shadow 0.2s;
+        flex-shrink: 0;
+    }
+
+    .btn-ai-send:hover {
+        transform: scale(1.05);
+        box-shadow: 0 0 16px rgba(0, 200, 255, 0.5);
+    }
+
+    .btn-ai-send:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+        transform: none !important;
+        box-shadow: none !important;
+    }
+
+    /* Modal styling */
+    .modal-dark .modal-content {
+        background: #0d1626;
+        border: 1px solid rgba(0, 200, 255, 0.3);
+        border-radius: 16px;
+        color: #fff;
+        box-shadow: 0 16px 48px rgba(0, 0, 0, 0.8);
+    }
+    .modal-dark .modal-header {
+        border-bottom: 1px solid rgba(0, 200, 255, 0.2);
+    }
+    .modal-dark .modal-footer {
+        border-top: 1px solid rgba(0, 200, 255, 0.2);
+    }
+    .perm-toggle-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 14px;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 12px;
+        margin-bottom: 10px;
+    }
+    .perm-label-title {
+        font-weight: 600;
+        font-size: 14px;
+        color: #fff;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .perm-label-desc {
+        font-size: 12px;
+        color: rgba(255, 255, 255, 0.55);
+        margin: 2px 0 0 0;
+    }
+
+    /* Switch CSS */
+    .switch {
+        position: relative;
+        display: inline-block;
+        width: 44px;
+        height: 24px;
+        margin-bottom: 0;
+    }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background-color: rgba(255, 255, 255, 0.2);
+        transition: .3s;
+        border-radius: 24px;
+    }
+    .slider:before {
+        position: absolute;
+        content: "";
+        height: 18px; width: 18px;
+        left: 3px; bottom: 3px;
+        background-color: white;
+        transition: .3s;
+        border-radius: 50%;
+    }
+    input:checked + .slider {
+        background-color: #00c8ff;
+    }
+    input:checked + .slider:before {
+        transform: translateX(20px);
+    }
+
+    @@media (max-width: 768px) {
+        .ai-chat-page {
+            height: calc(100vh - 120px);
+            margin: 0;
+        }
+        .ai-header-card, .ai-footer-card {
+            border-radius: 0;
+            padding: 12px 16px;
+        }
+        .ai-messages-container {
+            padding: 16px 12px;
+        }
+        .msg-row {
+            max-width: 95%;
+        }
+    }
+
+    /* Agent Toast Feedback System */
+    #agentToastContainer {
+        position: fixed;
+        bottom: 24px;
+        right: 24px;
+        z-index: 99999;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        pointer-events: none;
+    }
+    .agent-toast {
+        min-width: 280px;
+        max-width: 420px;
+        padding: 12px 18px;
+        border-radius: 10px;
+        font-size: 13px;
+        font-weight: 500;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.45);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        pointer-events: auto;
+        animation: toastFadeIn 0.3s ease;
+        transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+    .agent-toast-success {
+        background: #0d2818;
+        border: 1px solid #198754;
+        color: #75b798;
+    }
+    .agent-toast-error {
+        background: #2b1115;
+        border: 1px solid #dc3545;
+        color: #ea868f;
+    }
+    .agent-toast-info {
+        background: #082238;
+        border: 1px solid #0dcaf0;
+        color: #6edff6;
+    }
+    @@keyframes toastFadeIn {
+        from { opacity: 0; transform: translateY(12px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+</style>
+
+<div class="container py-3">
+    <div class="ai-chat-page">
+        <!-- Header -->
+        <div class="ai-header-card">
+            <div class="ai-agent-meta">
+                <div class="ai-avatar-wrap">
+                    <i class="bi bi-robot"></i>
+                    <div class="ai-status-dot"></div>
+                </div>
+                <div>
+                    <h1 class="ai-agent-title">
+                        @agentName
+                        <span class="ai-agent-badge">AI AGENT</span>
+                    </h1>
+                    <p class="ai-agent-sub">Trợ lý AI thông minh tích hợp công cụ mạng xã hội & tự động hóa theo lịch</p>
+                </div>
+            </div>
+            <div class="ai-actions-wrap">
+                @if (isLoggedIn)
+                {
+                    <button type="button" class="btn-ai-action" id="btnOpenConversations" title="Xem danh sách các phiên làm việc và lịch sử hội thoại trước đây">
+                        <i class="bi bi-clock-history"></i> Phiên hội thoại
+                    </button>
+                    <button type="button" class="btn-ai-action" id="btnOpenPermissions" title="Cài đặt quyền hạn Agent">
+                        <i class="bi bi-shield-lock"></i> Quyền Agent
+                    </button>
+                    <button type="button" class="btn-ai-action" id="btnOpenTasks" title="Quản lý các tác vụ tự động theo lịch">
+                        <i class="bi bi-calendar2-check"></i> Tác vụ lịch
+                    </button>
+                }
+                else
+                {
+                    <a href="@Url.Action("Login", "User", new { returnUrl = Url.Action("Index", "Assistant") })" class="btn-ai-action" title="Đăng nhập để sử dụng tính năng Agent nâng cao">
+                        <i class="bi bi-box-arrow-in-right"></i> Đăng nhập
+                    </a>
+                }
+                <button type="button" class="btn-ai-action success" id="btnNewConversation" title="Bắt đầu phiên hội thoại mới">
+                    <i class="bi bi-plus-circle"></i> Phiên mới
+                </button>
+                <button type="button" class="btn-ai-action danger" id="btnClearChat" title="Xóa màn hình chat hiện tại">
+                    <i class="bi bi-eraser"></i> Xóa màn hình
+                </button>
+            </div>
+        </div>
+
+        <!-- Banner thông tin phiên làm việc hiện tại (Active Conversation Banner) -->
+        <div id="activeSessionBanner" class="alert py-2 px-3 small mb-0 d-flex align-items-center justify-content-between" style="background: rgba(0, 200, 255, 0.08); border-radius: 0; border: none; border-bottom: 1px solid rgba(0, 200, 255, 0.25); color: #00c8ff;">
+            <div class="d-flex align-items-center text-truncate" style="gap: 10px;">
+                <span class="badge badge-info px-2 py-1"><i class="bi bi-chat-dots-fill mr-1"></i> <span id="lblSessionBadge">Phiên hội thoại mới</span></span>
+                <span class="font-weight-bold text-white text-truncate" id="lblSessionTitle" style="max-width: 480px;">Chưa chọn phiên (Tin nhắn đầu tiên sẽ tự tạo phiên)</span>
+                <span class="text-white-50 small d-none d-md-inline" id="lblSessionMeta"></span>
+            </div>
+            <div class="d-flex align-items-center" style="gap: 6px;">
+                <button type="button" id="btnRenameSession" class="btn btn-xs btn-outline-info" style="font-size: 11px; padding: 2px 8px; display: none;" title="Đổi tiêu đề phiên">
+                    <i class="bi bi-pencil"></i> Đổi tên
+                </button>
+                <button type="button" id="btnViewSessionDetails" class="btn btn-xs btn-outline-light" style="font-size: 11px; padding: 2px 8px; display: none;" title="Xem chi tiết phiên & tác vụ liên quan">
+                    <i class="bi bi-info-circle"></i> Chi tiết
+                </button>
+            </div>
+        </div>
+
+        <!-- Messages Area -->
+        <div class="ai-messages-container" id="aiMessagesContainer">
+            <!-- Tin nhắn chào mừng mặc định -->
+            <div class="msg-row ai">
+                <div class="msg-avatar">
+                    <i class="bi bi-robot"></i>
+                </div>
+                <div class="msg-bubble">
+                    <p>Chào bạn! Mình là <strong>@agentName</strong>, Trợ lý AI của Hệ sinh thái Sinh viên Đại học Thủ Dầu Một (TDMU StudentConnect). 🎓✨</p>
+                    @if (isLoggedIn)
+                    {
+                        <p>Hệ thống của mình đã được nâng cấp đầy đủ các nhóm công cụ có kiểm soát an toàn:</p>
+                        <ul>
+                            <li>🔍 <strong>Tra cứu thông tin:</strong> Bài viết, thông báo cá nhân, sản phẩm Chợ sinh viên, tin Kết nối ở ghép.</li>
+                            <li>💬 <strong>Tương tác mạng xã hội:</strong> Thích bài viết, bình luận, theo dõi bạn bè thay bạn khi được cấp quyền.</li>
+                            <li>✍️ <strong>Quản lý nội dung:</strong> Đăng bài chia sẻ mới, sửa bài, hoặc yêu cầu xóa bài có xác nhận.</li>
+                            <li>⏰ <strong>Tác vụ tự động:</strong> Lên lịch chạy ngầm định kỳ (hàng ngày, mỗi giờ...) kể cả khi bạn đóng trình duyệt!</li>
+                        </ul>
+                        <p>Hôm nay bạn cần mình hỗ trợ hoặc lên lịch tác vụ gì nào?</p>
+                    }
+                    else
+                    {
+                        <p>Mình có thể hỗ trợ bạn giải đáp thắc mắc về học tập, lập trình, tra cứu bài viết cộng đồng, tìm tài liệu Chợ sinh viên và phòng trọ gần trường.</p>
+                        <p class="mb-0 text-white-50"><small>💡 <em>Mẹo: Hãy <a href="@Url.Action("Login", "User", new { returnUrl = Url.Action("Index", "Assistant") })" class="text-info font-weight-bold">đăng nhập</a> để mở khóa các tính năng AI Agent nâng cao như tự động đăng bài, tương tác bạn bè và lập lịch chạy ngầm nhé!</em></small></p>
+                    }
+                </div>
+            </div>
+
+            <!-- Typing indicator -->
+            <div class="typing-indicator" id="typingIndicator">
+                <div class="msg-avatar" style="width: 24px; height: 24px; font-size: 12px;">
+                    <i class="bi bi-robot"></i>
+                </div>
+                <span>@agentName đang tra cứu và suy nghĩ...</span>
+                <div class="typing-dots">
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Suggestions -->
+        <div class="ai-suggestions-row">
+            <div class="ai-chip" data-query="Tìm các bài viết mới về lập trình và đồ án môn học">
+                🔍 Tìm bài viết đồ án
+            </div>
+            <div class="ai-chip" data-query="Có ai đang bán giáo trình hoặc sách tài liệu trên Chợ sinh viên không?">
+                🛒 Tìm giáo trình trên Chợ
+            </div>
+            <div class="ai-chip" data-query="Tìm tin ghép trọ, tìm bạn ở ghép quanh khuôn viên trường TDMU">
+                🤝 Tìm phòng trọ / ở ghép
+            </div>
+            <div class="ai-chip" data-query="Chia sẻ phương pháp học đại học hiệu quả để đạt GPA giỏi?">
+                📚 Phương pháp học tập tốt
+            </div>
+            @if (isLoggedIn)
+            {
+                <div class="ai-chip" data-query="Xem thông báo mới nhất của tôi có gì không?">
+                    🔔 Xem thông báo của tôi
+                </div>
+                <div class="ai-chip" data-query="Hãy tạo một tác vụ tự động hàng ngày tổng hợp các tin đăng mới trên Chợ">
+                    ⏰ Lập lịch quét tin Chợ mỗi ngày
+                </div>
+                <div class="ai-chip" data-query="Thống kê hoạt động mạng xã hội của tôi">
+                    📊 Thống kê tài khoản
+                </div>
+            }
+        </div>
+
+        <!-- Input Box -->
+        <div class="ai-footer-card">
+            <form id="aiChatForm" class="ai-input-form" onsubmit="return false;">
+                <input type="text" id="aiInputMessage" class="ai-input-text" placeholder="Hỏi hoặc ra lệnh cho @agentName (bấm Enter để gửi)..." autocomplete="off" />
+                <button type="button" id="btnAiSend" class="btn-ai-send" title="Gửi yêu cầu">
+                    <i class="bi bi-send-fill"></i>
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+@if (isLoggedIn)
+{
+    <!-- MODAL 1: CÀI ĐẶT QUYỀN AGENT -->
+    <div class="modal fade modal-dark" id="modalPermissions" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title font-weight-bold">
+                    <i class="bi bi-shield-lock-fill text-info mr-2"></i> Cài đặt quyền hạn Trợ lý ảo Mr. T
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p class="text-white-50 small mb-3">
+                    Bạn toàn quyền kiểm soát các quyền hạn mà Agent được phép thực hiện trên tài khoản StudentConnect của bạn.
+                </p>
+
+                <div class="perm-toggle-row">
+                    <div>
+                        <div class="perm-label-title"><i class="bi bi-power text-success"></i> Kích hoạt Agent</div>
+                        <div class="perm-label-desc">Bật hoặc tạm tắt hoàn toàn Trợ lý ảo đối với tài khoản của bạn</div>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" id="permIsEnabled">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+
+                <div class="perm-toggle-row">
+                    <div>
+                        <div class="perm-label-title"><i class="bi bi-eye text-primary"></i> Đọc dữ liệu (CanReadData)</div>
+                        <div class="perm-label-desc">Cho phép tra cứu bài viết, thông báo cá nhân, tin chợ và kết nối</div>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" id="permCanReadData">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+
+                <div class="perm-toggle-row">
+                    <div>
+                        <div class="perm-label-title"><i class="bi bi-pencil-square text-warning"></i> Quản lý nội dung (CanManageContent)</div>
+                        <div class="perm-label-desc">Cho phép Agent thay mặt bạn đăng bài viết mới hoặc chỉnh sửa bài viết</div>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" id="permCanManageContent">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+
+                <div class="perm-toggle-row">
+                    <div>
+                        <div class="perm-label-title"><i class="bi bi-heart text-danger"></i> Tương tác mạng xã hội (CanInteract)</div>
+                        <div class="perm-label-desc">Cho phép Agent thích bài, gửi bình luận và theo dõi bạn bè</div>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" id="permCanInteract">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+
+                <div class="perm-toggle-row">
+                    <div>
+                        <div class="perm-label-title"><i class="bi bi-cpu text-info"></i> Tác vụ tự động (CanAutomation)</div>
+                        <div class="perm-label-desc">Cho phép Agent chạy các tác vụ nền theo lịch trình kể cả khi tắt trình duyệt</div>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" id="permCanAutomation">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Đóng</button>
+                <button type="button" class="btn btn-info font-weight-bold" id="btnSavePermissions">
+                    <i class="bi bi-check-circle"></i> Lưu cài đặt
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL 2: QUẢN LÝ TÁC VỤ TỰ ĐỘNG (TASKS) -->
+<div class="modal fade modal-dark" id="modalTasks" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-xl" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title font-weight-bold">
+                    <i class="bi bi-clock-history text-info mr-2"></i> Quản lý Tác vụ Lịch Agent
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <!-- Thanh trạng thái Worker Heartbeat -->
+                <div id="workerStatusBar" class="alert py-2 px-3 small mb-3 d-flex align-items-center justify-content-between" style="background: rgba(0, 200, 255, 0.1); border-color: rgba(0, 200, 255, 0.3); color: #00c8ff;">
+                    <div class="d-flex align-items-center">
+                        <span id="workerStatusIndicator" class="spinner-grow spinner-grow-sm text-info mr-2" role="status" style="width: 12px; height: 12px;"></span>
+                        <span id="workerStatusText">Đang kiểm tra nhịp tim Worker nền...</span>
+                    </div>
+                    <button type="button" id="btnRefreshWorkerStatus" class="btn btn-xs btn-outline-info" style="font-size: 11px; padding: 2px 8px;" title="Kiểm tra lại">
+                        <i class="bi bi-arrow-clockwise"></i> Kiểm tra lại
+                    </button>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-dark table-sm table-hover mb-0" style="background: transparent; font-size: 13px;">
+                        <thead>
+                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.15); color: #00c8ff;">
+                                <th style="width: 32%;">Tác vụ & Yêu cầu</th>
+                                <th style="width: 12%;">Chu kỳ</th>
+                                <th style="width: 12%;">Trạng thái</th>
+                                <th style="width: 14%;">Lần chạy cuối</th>
+                                <th style="width: 14%;">Chạy tiếp theo</th>
+                                <th style="width: 16%;" class="text-right">5 Nhóm thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tblTasksBody">
+                            <tr>
+                                <td colspan="6" class="text-center text-white-50 py-3">Đang tải danh sách tác vụ...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer d-flex justify-content-between align-items-center">
+                <span class="text-white-50 small">5 Thao tác chuẩn: <strong>1. Chạy ngay | 2. Chạy/Dừng | 3. Sửa | 4. Xem lịch chạy | 5. Xóa</strong></span>
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Đóng</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL 3: CHỈNH SỬA TÁC VỤ (EDIT TASK) -->
+<div class="modal fade modal-dark" id="modalEditTask" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title font-weight-bold">
+                    <i class="bi bi-pencil-square text-info mr-2"></i> Chỉnh sửa Tác vụ Tự động
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="editTaskId" />
+                <div class="form-group mb-3">
+                    <label class="text-white-50 small mb-1">Tên tác vụ</label>
+                    <input type="text" class="form-control bg-dark text-white border-secondary" id="editTaskName" />
+                </div>
+                <div class="form-group mb-3">
+                    <label class="text-white-50 small mb-1">Yêu cầu / Prompt cho Agent</label>
+                    <textarea class="form-control bg-dark text-white border-secondary" id="editUserPrompt" rows="3"></textarea>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 form-group mb-3">
+                        <label class="text-white-50 small mb-1">Chu kỳ thực hiện</label>
+                        <select class="form-control bg-dark text-white border-secondary" id="editScheduleType">
+                            <option value="once">Chạy 1 lần (Once)</option>
+                            <option value="hourly">Mỗi giờ (Hourly)</option>
+                            <option value="daily">Hàng ngày (Daily)</option>
+                            <option value="weekly">Hàng tuần (Weekly)</option>
+                            <option value="interval">Lặp lại định kỳ phút (Interval)</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6 form-group mb-3" id="groupEditScheduleConfig" style="display:none;">
+                        <label class="text-white-50 small mb-1">Số phút lặp lại</label>
+                        <input type="number" class="form-control bg-dark text-white border-secondary" id="editScheduleConfig" min="5" value="30" />
+                    </div>
+                </div>
+                <div class="form-group mb-2">
+                    <label class="text-white-50 small mb-1">Thời gian chạy kế tiếp cụ thể (Tùy chọn)</label>
+                    <input type="datetime-local" class="form-control bg-dark text-white border-secondary" id="editSpecificRunTime" />
+                    <small class="text-white-50">Để trống nếu muốn hệ thống tự động tính theo chu kỳ.</small>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Hủy</button>
+                <button type="button" class="btn btn-info font-weight-bold" id="btnSaveTaskChanges">
+                    <i class="bi bi-save"></i> Lưu thay đổi
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL 4: LỊCH SỬ LƯỢT CHẠY & CHI TIẾT (RUN HISTORY & DETAILS) -->
+<div class="modal fade modal-dark" id="modalTaskRuns" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title font-weight-bold">
+                    <i class="bi bi-clock-history text-info mr-2"></i> Lịch sử Lượt chạy: <span id="lblTaskRunTitle" class="text-info"></span>
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body" style="max-height: 520px; overflow-y: auto;">
+                <div id="taskRunDetailsContainer" style="display:none;" class="mb-3 p-3 rounded" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(0,200,255,0.25);">
+                    <!-- Chi tiết lượt chạy đơn lẻ -->
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-dark table-sm table-hover mb-0" style="background: transparent; font-size: 13px;">
+                        <thead>
+                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.15); color: #00c8ff;">
+                                <th>Lượt chạy</th>
+                                <th>Bắt đầu</th>
+                                <th>Kết thúc</th>
+                                <th>Trạng thái</th>
+                                <th>Kết quả / Lỗi</th>
+                                <th class="text-right">Chi tiết</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tblTaskRunsBody">
+                            <tr>
+                                <td colspan="6" class="text-center text-white-50 py-3">Đang tải lịch sử...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Đóng</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- MODAL 9: HỘP THOẠI XÁC NHẬN CHẠY NGAY TÁC VỤ -->
+<div class="modal fade modal-dark" id="modalConfirmRunNow" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content border-primary">
+            <div class="modal-header border-primary">
+                <h5 class="modal-title font-weight-bold text-info">
+                    <i class="bi bi-lightning-charge-fill mr-2"></i> Xác nhận chạy tác vụ ngay
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="runNowTaskId" />
+                <p class="mb-2">
+                    Bạn sắp yêu cầu tác vụ <strong class="text-info" id="lblRunNowTaskName"></strong> (ID #<span id="lblRunNowTaskId"></span>) thực thi ngay lập tức thay vì đợi đến lịch.
+                </p>
+                <div class="alert alert-info py-2 px-3 small mb-0" style="background: rgba(0,200,255,0.1); border-color: rgba(0,200,255,0.3); color: #00c8ff;">
+                    <i class="bi bi-exclamation-circle-fill"></i> Tác vụ có thể tạo bài viết thật lên bảng tin hoặc tương tác mạng xã hội theo nội dung prompt đã cấu hình. Bạn có muốn tiếp tục không?
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Hủy</button>
+                <button type="button" class="btn btn-primary font-weight-bold" id="btnConfirmRunNow">
+                    <i class="bi bi-lightning-charge-fill"></i> Chạy ngay
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL 10: HỘP THOẠI XÁC NHẬN DỪNG TÁC VỤ -->
+<div class="modal fade modal-dark" id="modalConfirmStopTask" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content border-warning">
+            <div class="modal-header border-warning">
+                <h5 class="modal-title font-weight-bold text-warning">
+                    <i class="bi bi-pause-circle-fill mr-2"></i> Xác nhận dừng tác vụ
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="stopTaskId" />
+                <p class="mb-2">
+                    Bạn sắp dừng tác vụ <strong class="text-warning" id="lblStopTaskName"></strong> (ID #<span id="lblStopTaskId"></span>).
+                </p>
+                <div class="alert alert-warning py-2 px-3 small mb-0" style="background: rgba(255,193,7,0.1); border-color: rgba(255,193,7,0.3); color: #ffc107;">
+                    <i class="bi bi-exclamation-triangle-fill"></i> Những lần chạy tự động tiếp theo sẽ bị tạm ngừng. Lần chạy hiện tại, nếu có, sẽ được xử lý theo trạng thái thực tế của worker.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Tiếp tục giữ tác vụ</button>
+                <button type="button" class="btn btn-warning font-weight-bold" id="btnConfirmStopTask">
+                    <i class="bi bi-pause-fill"></i> Dừng tác vụ
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL 11: HỘP THOẠI XÁC NHẬN XÓA TÁC VỤ -->
+<div class="modal fade modal-dark" id="modalConfirmDeleteTask" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content border-danger">
+            <div class="modal-header border-danger">
+                <h5 class="modal-title font-weight-bold text-danger">
+                    <i class="bi bi-trash-fill mr-2"></i> Xác nhận xóa tác vụ
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="deleteTaskId" />
+                <p class="mb-2">
+                    Bạn có chắc chắn muốn xóa tác vụ <strong class="text-danger" id="lblDeleteTaskName"></strong> (ID #<span id="lblDeleteTaskId"></span>)?
+                </p>
+                <div class="alert alert-danger py-2 px-3 small mb-0" style="background: rgba(255,60,60,0.1); border-color: rgba(255,80,80,0.3); color: #ff6b6b;">
+                    <i class="bi bi-exclamation-triangle-fill"></i> Các lần chạy trong tương lai sẽ bị ngăn chặn hoàn toàn. Toàn bộ lịch sử chạy và nhật ký liên quan sẽ được xử lý theo chính sách lưu trữ của hệ thống.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Hủy</button>
+                <button type="button" class="btn btn-danger font-weight-bold" id="btnConfirmDeleteTask">
+                    <i class="bi bi-trash-fill"></i> Xóa tác vụ
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL 12: DANH SÁCH CÁC PHIÊN HỘI THOẠI (AGENT CONVERSATIONS) -->
+<div class="modal fade modal-dark" id="modalConversations" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-xl" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title font-weight-bold">
+                    <i class="bi bi-clock-history text-info mr-2"></i> Lịch sử các Phiên làm việc với Agent
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body" style="max-height: 600px; overflow-y: auto;">
+                <!-- Thanh công cụ tìm kiếm và lọc phiên -->
+                <div class="row g-2 mb-3 align-items-center">
+                    <div class="col-md-5">
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-text bg-dark text-white-50 border-secondary"><i class="bi bi-search"></i></span>
+                            <input type="text" id="filterConvKeyword" class="form-control bg-dark text-white border-secondary" placeholder="Tìm kiếm theo tiêu đề hoặc nội dung tóm tắt..." />
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <select id="filterConvStatus" class="form-control form-control-sm bg-dark text-white border-secondary">
+                            <option value="All">-- Tất cả trạng thái --</option>
+                            <option value="Active">Active (Đang hoạt động)</option>
+                            <option value="Completed">Completed (Đã hoàn thành)</option>
+                            <option value="Paused">Paused (Tạm dừng)</option>
+                            <option value="Failed">Failed (Có lỗi)</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4 text-right">
+                        <button type="button" id="btnFilterConvs" class="btn btn-sm btn-info mr-1">
+                            <i class="bi bi-funnel"></i> Lọc
+                        </button>
+                        <button type="button" id="btnResetFilterConvs" class="btn btn-sm btn-outline-secondary mr-1">
+                            <i class="bi bi-arrow-counterclockwise"></i> Làm mới
+                        </button>
+                        <button type="button" id="btnModalNewConv" class="btn btn-sm btn-success">
+                            <i class="bi bi-plus-lg"></i> Tạo phiên mới
+                        </button>
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-dark table-sm table-hover mb-0" style="background: transparent; font-size: 13px;">
+                        <thead>
+                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.15); color: #00c8ff;">
+                                <th style="width: 32%;">Tiêu đề phiên & Yêu cầu</th>
+                                <th style="width: 14%;">Thời gian bắt đầu</th>
+                                <th style="width: 14%;">Tương tác gần nhất</th>
+                                <th style="width: 10%;">Tin nhắn</th>
+                                <th style="width: 10%;">Trạng thái</th>
+                                <th style="width: 20%;" class="text-right">Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tblConversationsBody">
+                            <tr>
+                                <td colspan="6" class="text-center text-white-50 py-3">Đang tải danh sách phiên...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Phân trang -->
+                <div class="d-flex justify-content-between align-items-center mt-3 pt-2" style="border-top: 1px solid rgba(255,255,255,0.1);">
+                    <div class="text-white-50 small" id="lblConvPaginationInfo">Hiển thị 0 phiên</div>
+                    <div>
+                        <button type="button" class="btn btn-xs btn-outline-secondary mr-1" id="btnConvPrevPage" disabled><i class="bi bi-chevron-left"></i> Trang trước</button>
+                        <span class="text-info small mx-2" id="lblConvCurrentPage">Trang 1 / 1</span>
+                        <button type="button" class="btn btn-xs btn-outline-secondary ml-1" id="btnConvNextPage" disabled>Trang sau <i class="bi bi-chevron-right"></i></button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer d-flex justify-content-between">
+                <span class="text-white-50 small">💡 <strong>Mẹo:</strong> Bấm nút <strong>"Mở lại & Tiếp tục"</strong> để nạp toàn bộ lịch sử trao đổi và tiếp tục trò chuyện giữ nguyên ngữ cảnh.</span>
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Đóng</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL 13: XEM CHI TIẾT PHIÊN & TÁC VỤ LIÊN KẾT (SESSION DETAILS) -->
+<div class="modal fade modal-dark" id="modalConversationDetail" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title font-weight-bold">
+                    <i class="bi bi-info-circle text-info mr-2"></i> Chi tiết Phiên hội thoại #<span id="detailConvId"></span>
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body" style="max-height: 540px; overflow-y: auto;">
+                <div class="mb-3">
+                    <h5 class="text-white font-weight-bold mb-1" id="detailConvTitle">...</h5>
+                    <div class="text-white-50 small" id="detailConvMeta">...</div>
+                </div>
+
+                <!-- Khối tác vụ lịch liên kết nếu có -->
+                <div id="groupLinkedTask" class="p-3 rounded mb-3" style="display: none; background: rgba(0, 200, 255, 0.08); border: 1px solid rgba(0, 200, 255, 0.3);">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <strong class="text-info"><i class="bi bi-calendar2-check mr-1"></i> Tác vụ lịch liên kết</strong>
+                        <span class="badge badge-info" id="detailLinkedTaskStatus">Active</span>
+                    </div>
+                    <div class="text-white small mb-1" id="detailLinkedTaskName">...</div>
+                    <div class="text-white-50 small mb-1" id="detailLinkedTaskPrompt">...</div>
+                    <div class="d-flex justify-content-between align-items-center small text-white-50 mt-2">
+                        <span>Chu kỳ: <strong class="text-white" id="detailLinkedTaskSchedule">...</strong></span>
+                        <span>Chạy tiếp theo: <strong class="text-info" id="detailLinkedTaskNextRun">...</strong></span>
+                    </div>
+                </div>
+
+                <!-- Khối các hành động Agent đã thực thi trong phiên -->
+                <div id="groupLinkedLogs" class="mb-3" style="display: none;">
+                    <label class="text-white-50 small font-weight-bold mb-1">Các hành động Agent đã gọi trong phiên này:</label>
+                    <div class="table-responsive">
+                        <table class="table table-dark table-sm mb-0" style="font-size: 12px; background: rgba(255,255,255,0.03);">
+                            <thead>
+                                <tr style="color: #00c8ff;">
+                                    <th>Thời gian</th>
+                                    <th>Hành động</th>
+                                    <th>Trạng thái</th>
+                                    <th>Kết quả</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tblLinkedLogsBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Khối xem trước tin nhắn trong phiên -->
+                <div>
+                    <label class="text-white-50 small font-weight-bold mb-1">Các tin nhắn trong phiên (<span id="detailConvMsgCount">0</span> tin):</label>
+                    <div id="detailConvMessagesPreview" class="p-2 rounded bg-dark border border-secondary" style="max-height: 220px; overflow-y: auto;">
+                        <div class="text-center text-white-50 py-2 small">Đang nạp tin nhắn...</div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Đóng</button>
+                <button type="button" class="btn btn-info font-weight-bold" id="btnResumeFromDetail">
+                    <i class="bi bi-box-arrow-in-right"></i> Mở lại & Tiếp tục trò chuyện
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL 14: SỬA PHIÊN HỘI THOẠI (RENAME / EDIT) -->
+<div class="modal fade modal-dark" id="modalRenameConversation" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title font-weight-bold">
+                    <i class="bi bi-pencil-square text-info mr-2"></i> Sửa phiên hội thoại #<span id="lblRenameConvId"></span>
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="renameConvId" />
+                <div class="form-group mb-2">
+                    <label class="text-white-50 small mb-1 font-weight-bold">Tiêu đề phiên hội thoại:</label>
+                    <input type="text" class="form-control bg-dark text-white border-secondary" id="txtRenameConvTitle" placeholder="Nhập tiêu đề gợi nhớ cho phiên..." maxlength="150" />
+                    <div id="errRenameConvTitle" class="text-danger small mt-1" style="display: none;"></div>
+                    <small class="text-white-50 mt-1 d-block">💡 Đặt tiêu đề rõ ràng để bạn dễ dàng tìm kiếm và mở lại phiên làm việc sau này.</small>
+                </div>
+            </div>
+            <div class="modal-footer d-flex justify-content-between">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Hủy</button>
+                <button type="button" class="btn btn-info font-weight-bold" id="btnConfirmRenameConv">
+                    <i class="bi bi-check-lg"></i> Lưu thay đổi
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL 15: HỘP THOẠI XÁC NHẬN XÓA PHIÊN HỘI THOẠI -->
+<div class="modal fade modal-dark" id="modalConfirmDeleteConversation" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content border-danger">
+            <div class="modal-header border-danger">
+                <h5 class="modal-title font-weight-bold text-danger">
+                    <i class="bi bi-exclamation-triangle-fill mr-2"></i> Xác nhận xóa phiên hội thoại
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="deleteConvId" />
+                <p class="mb-2">Bạn có chắc chắn muốn xóa phiên hội thoại này không?</p>
+                <div class="p-3 rounded mb-3" style="background: rgba(255, 60, 60, 0.1); border: 1px solid rgba(255, 80, 80, 0.3);">
+                    <div><strong>Mã phiên:</strong> #<span id="lblDeleteConvId"></span></div>
+                    <div><strong>Tiêu đề:</strong> <span class="text-white font-weight-bold" id="lblDeleteConvTitle"></span></div>
+                    <div><strong>Số tin nhắn:</strong> <span id="lblDeleteConvMsgCount" class="text-info font-weight-bold"></span></div>
+                </div>
+                <div class="alert alert-danger py-2 px-3 small mb-0" style="background: rgba(255, 60, 60, 0.15); border-color: rgba(255, 80, 80, 0.4); color: #ff8585;">
+                    <i class="bi bi-shield-exclamation mr-1"></i> <strong>Lưu ý:</strong> Toàn bộ lịch sử tin nhắn trong phiên này sẽ bị xóa khỏi hệ thống. Nếu có tác vụ lịch độc lập được tạo trước đó, tác vụ vẫn tiếp tục hoạt động an toàn.
+                </div>
+            </div>
+            <div class="modal-footer d-flex justify-content-between">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Hủy</button>
+                <button type="button" class="btn btn-danger font-weight-bold" id="btnConfirmDeleteConv">
+                    <i class="bi bi-trash-fill"></i> Xác nhận xóa
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+}
+
+@section scripts {
+    <script>
+        $(function () {
+            var $container = $('#aiMessagesContainer');
+            var $input = $('#aiInputMessage');
+            var $btnSend = $('#btnAiSend');
+            var $typing = $('#typingIndicator');
+            var agentName = '@agentName';
+
+            function scrollToBottom() {
+                $container.stop().animate({ scrollTop: $container.prop("scrollHeight") }, 250);
+            }
+
+            function showAgentToast(type, message) {
+                var $box = $('#agentToastContainer');
+                if ($box.length === 0) {
+                    $box = $('<div id="agentToastContainer"></div>').appendTo('body');
+                }
+                var icon = type === 'success' ? 'bi-check-circle-fill' : (type === 'error' ? 'bi-exclamation-triangle-fill' : 'bi-info-circle-fill');
+                var $toast = $('<div class="agent-toast agent-toast-' + type + '">' +
+                    '<i class="bi ' + icon + '"></i>' +
+                    '<span>' + $('<div>').text(message).html() + '</span>' +
+                    '</div>').appendTo($box);
+
+                setTimeout(function () {
+                    $toast.css('opacity', 0).css('transform', 'translateY(12px)');
+                    setTimeout(function () { $toast.remove(); }, 350);
+                }, 3500);
+            }
+
+            function formatAiText(text) {
+                if (!text) return '';
+                var formatted = $('<div>').text(text).html();
+                formatted = formatted.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                formatted = formatted.replace(/\*(.*?)\*/g, '<em>$1</em>');
+                var lines = formatted.split('\n');
+                var inList = false;
+                var resLines = [];
+
+                for (var i = 0; i < lines.length; i++) {
+                    var line = lines[i].trim();
+                    if (line.indexOf('* ') === 0 || line.indexOf('- ') === 0) {
+                        if (!inList) {
+                            resLines.push('<ul>');
+                            inList = true;
+                        }
+                        resLines.push('<li>' + line.substring(2) + '</li>');
+                    } else {
+                        if (inList) {
+                            resLines.push('</ul>');
+                            inList = false;
+                        }
+                        if (line.length > 0) {
+                            resLines.push('<p>' + line + '</p>');
+                        }
+                    }
+                }
+                if (inList) resLines.push('</ul>');
+                return resLines.join('');
+            }
+
+            function appendUserMessage(text) {
+                var safeText = $('<div>').text(text).html();
+                var html = '<div class="msg-row user">' +
+                    '<div class="msg-avatar"><i class="bi bi-person-fill"></i></div>' +
+                    '<div class="msg-bubble"><p>' + safeText + '</p></div>' +
+                    '</div>';
+                $typing.before(html);
+                scrollToBottom();
+            }
+
+            function appendAiMessage(text, confirmationData) {
+                var formatted = formatAiText(text);
+                var confirmHtml = '';
+
+                if (confirmationData && confirmationData.requires) {
+                    confirmHtml =
+                        '<div class="ai-confirm-box" id="confirm-box-' + confirmationData.id + '">' +
+                            '<div class="ai-confirm-title"><i class="bi bi-exclamation-triangle-fill"></i> Xác nhận hành động nhạy cảm</div>' +
+                            '<div class="ai-confirm-desc">' + (confirmationData.actionName || 'Thao tác') + ': ' + (confirmationData.actionDetails || 'Cần bạn bấm xác nhận để Agent tiến hành thực thi.') + '</div>' +
+                            '<div class="ai-confirm-actions">' +
+                                '<button type="button" class="btn-confirm-yes btn-handle-confirm" data-id="' + confirmationData.id + '" data-approve="true"><i class="bi bi-check-lg"></i> Xác nhận thực hiện</button>' +
+                                '<button type="button" class="btn-confirm-no btn-handle-confirm" data-id="' + confirmationData.id + '" data-approve="false"><i class="bi bi-x-lg"></i> Hủy bỏ</button>' +
+                            '</div>' +
+                        '</div>';
+                }
+
+                var html = '<div class="msg-row ai">' +
+                    '<div class="msg-avatar"><i class="bi bi-robot"></i></div>' +
+                    '<div class="msg-bubble">' + formatted + confirmHtml + '</div>' +
+                    '</div>';
+                $typing.before(html);
+                scrollToBottom();
+            }
+
+            var currentConversationId = @(ViewBag.InitialConversationId != null ? (long)ViewBag.InitialConversationId : 0);
+
+            function updateSessionBanner(conv) {
+                if (conv && conv.ConversationID) {
+                    currentConversationId = conv.ConversationID;
+                    $('#lblSessionBadge').html('<i class="bi bi-chat-dots-fill mr-1"></i> Phiên #' + conv.ConversationID);
+                    $('#lblSessionTitle').text(conv.Title || ('Phiên #' + conv.ConversationID));
+                    $('#lblSessionMeta').text('(' + (conv.MessageCount || 0) + ' tin nhắn · ' + (conv.LastMessageAt || '') + ')');
+                    $('#btnRenameSession').show();
+                    $('#btnViewSessionDetails').show();
+                } else {
+                    currentConversationId = 0;
+                    $('#lblSessionBadge').html('<i class="bi bi-plus-circle mr-1"></i> Phiên mới');
+                    $('#lblSessionTitle').text('Chưa chọn phiên (Tin nhắn đầu tiên sẽ tự tạo phiên)');
+                    $('#lblSessionMeta').text('');
+                    $('#btnRenameSession').hide();
+                    $('#btnViewSessionDetails').hide();
+                }
+            }
+
+            function sendMessage() {
+                var msg = $input.val().trim();
+                if (!msg) return;
+
+                $input.val('');
+                appendUserMessage(msg);
+
+                $typing.css('display', 'flex');
+                scrollToBottom();
+                $btnSend.prop('disabled', true);
+                $input.prop('disabled', true);
+
+                var payload = {
+                    message: msg,
+                    conversationId: currentConversationId > 0 ? currentConversationId : null
+                };
+
+                $.ajax({
+                    url: '@Url.Action("Ask", "Assistant")',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(payload),
+                    success: function (res) {
+                        $typing.hide();
+                        $btnSend.prop('disabled', false);
+                        $input.prop('disabled', false).focus();
+
+                        if (res && res.Success) {
+                            if (res.ConversationId && currentConversationId !== res.ConversationId) {
+                                currentConversationId = res.ConversationId;
+                                $('#lblSessionBadge').html('<i class="bi bi-chat-dots-fill mr-1"></i> Phiên #' + res.ConversationId);
+                                $('#lblSessionTitle').text(msg.length > 60 ? msg.substring(0, 60) + '...' : msg);
+                                $('#btnRenameSession').show();
+                                $('#btnViewSessionDetails').show();
+                            }
+
+                            var confData = null;
+                            if (res.RequiresConfirmation && res.ConfirmationId) {
+                                confData = {
+                                    requires: true,
+                                    id: res.ConfirmationId,
+                                    actionName: res.ActionName,
+                                    actionDetails: res.ActionDetails
+                                };
+                            }
+                            appendAiMessage(res.Reply || 'Đã nhận yêu cầu.', confData);
+                        } else {
+                            var errMsg = (res && res.Error) ? res.Error : 'Có lỗi xảy ra khi trò chuyện với trợ lý.';
+                            appendAiMessage('⚠️ ' + errMsg);
+                        }
+                    },
+                    error: function (xhr) {
+                        $typing.hide();
+                        $btnSend.prop('disabled', false);
+                        $input.prop('disabled', false).focus();
+
+                        var errMsg = 'Không thể kết nối đến máy chủ trợ lý AI.';
+                        try {
+                            var j = JSON.parse(xhr.responseText);
+                            if (j && j.Error) errMsg = j.Error;
+                        } catch (e) { }
+                        appendAiMessage('⚠️ ' + errMsg);
+                    }
+                });
+            }
+
+            // Xử lý nút Duyệt / Hủy xác nhận trong tin nhắn chat
+            $(document).on('click', '.btn-handle-confirm', function () {
+                var $btn = $(this);
+                var confId = $btn.data('id');
+                var isApprove = $btn.data('approve') === true || $btn.data('approve') === 'true';
+                var $box = $('#confirm-box-' + confId);
+
+                $box.find('button').prop('disabled', true);
+
+                $.ajax({
+                    url: '@Url.Action("ConfirmAction", "Assistant")',
+                    type: 'POST',
+                    data: { confirmationId: confId, approve: isApprove },
+                    success: function (res) {
+                        if (res && res.success) {
+                            var badgeClass = isApprove ? 'text-success' : 'text-danger';
+                            var icon = isApprove ? 'bi-check-circle-fill' : 'bi-x-circle-fill';
+                            $box.html('<div class="' + badgeClass + ' font-weight-bold"><i class="bi ' + icon + '"></i> ' + (res.message || (isApprove ? 'Đã duyệt thực hiện.' : 'Đã hủy bỏ.')) + '</div>');
+                        } else {
+                            if (window.AppDialog) AppDialog.warning(res ? res.message : 'Lỗi khi xử lý xác nhận.', 'Xác nhận');
+                            else alert(res ? res.message : 'Lỗi khi xử lý xác nhận.');
+                            $box.find('button').prop('disabled', false);
+                        }
+                    },
+                    error: function (xhr) {
+                        if (window.AppDialog) AppDialog.handleAjaxError(xhr, 'Không thể kết nối tới máy chủ.');
+                        else alert('Không thể kết nối tới máy chủ.');
+                        $box.find('button').prop('disabled', false);
+                    }
+                });
+            });
+
+            $btnSend.on('click', sendMessage);
+
+            $input.on('keypress', function (e) {
+                if (e.which === 13) {
+                    e.preventDefault();
+                    sendMessage();
+                }
+            });
+
+            $('.ai-chip').on('click', function () {
+                var q = $(this).data('query');
+                if (q) {
+                    $input.val(q);
+                    sendMessage();
+                }
+            });
+
+            $('#btnClearChat').on('click', function () {
+                $container.find('.msg-row:not(:first)').remove();
+                $input.val('').focus();
+            });
+
+            $('#btnNewConversation').on('click', function () {
+                updateSessionBanner(null);
+                $container.find('.msg-row:not(:first)').remove();
+                $input.val('').focus();
+                appendAiMessage('✨ Đã bắt đầu phiên hội thoại mới. Mời bạn nhập yêu cầu hoặc câu hỏi cho Mr. T nhé!');
+            });
+
+            // ==========================================
+            // MODAL 1: PERMISSIONS MANAGEMENT
+            // ==========================================
+            $('#btnOpenPermissions').on('click', function () {
+                $.get('@Url.Action("GetPermissions", "Assistant")', function (res) {
+                    if (res && res.success && res.data) {
+                        var d = res.data;
+                        $('#permIsEnabled').prop('checked', d.IsEnabled);
+                        $('#permCanReadData').prop('checked', d.CanReadData);
+                        $('#permCanManageContent').prop('checked', d.CanManageContent);
+                        $('#permCanInteract').prop('checked', d.CanInteract);
+                        $('#permCanAutomation').prop('checked', d.CanAutomation);
+                        $('#modalPermissions').modal('show');
+                    } else {
+                        if (window.AppDialog) {
+                            if (res && res.requireLogin) AppDialog.requireLogin({ message: res.message || 'Vui lòng đăng nhập để thiết lập quyền Agent.' });
+                            else AppDialog.warning(res ? res.message : 'Vui lòng đăng nhập để thiết lập quyền Agent.', 'Thông báo');
+                        } else alert(res ? res.message : 'Vui lòng đăng nhập để thiết lập quyền Agent.');
+                    }
+                });
+            });
+
+            $('#btnSavePermissions').on('click', function () {
+                var payload = {
+                    isEnabled: $('#permIsEnabled').is(':checked'),
+                    canRead: $('#permCanReadData').is(':checked'),
+                    canManage: $('#permCanManageContent').is(':checked'),
+                    canInteract: $('#permCanInteract').is(':checked'),
+                    canAutomation: $('#permCanAutomation').is(':checked')
+                };
+
+                $.post('@Url.Action("SavePermissions", "Assistant")', payload, function (res) {
+                    if (res && res.success) {
+                        $('#modalPermissions').modal('hide');
+                        appendAiMessage('🛡️ ' + res.message);
+                    } else {
+                        if (window.AppDialog) AppDialog.error(res ? res.message : 'Lỗi khi lưu quyền.', 'Lỗi');
+                        else alert(res ? res.message : 'Lỗi khi lưu quyền.');
+                    }
+                });
+            });
+
+            // ==========================================
+            // MODAL 2: SCHEDULED TASKS MANAGEMENT (5 NHÓM THAO TÁC CHUẨN)
+            // ==========================================
+            var currentTasksCache = [];
+
+            $('#btnOpenTasks').on('click', function () {
+                $('#modalTasks').modal('show');
+                checkWorkerStatus();
+                loadTasks();
+            });
+
+            $('#btnRefreshWorkerStatus').on('click', function () {
+                checkWorkerStatus();
+            });
+
+            function checkWorkerStatus() {
+                var $text = $('#workerStatusText');
+                var $ind = $('#workerStatusIndicator');
+                $text.text('Đang kiểm tra nhịp tim Worker nền...');
+                $ind.removeClass('bg-success bg-danger bg-warning').addClass('spinner-grow text-info');
+
+                $.get('@Url.Action("GetWorkerStatus", "Assistant")', function (res) {
+                    $ind.removeClass('spinner-grow text-info');
+                    if (res && res.isOnline) {
+                        $ind.addClass('d-inline-block rounded-circle bg-success').css({ width: '10px', height: '10px' });
+                        $text.html('🟢 <strong>' + res.workerType + '</strong>: Đang chạy nền (' + res.machineName + ' lúc ' + res.lastHeartbeat + ') — <em>' + res.message + '</em>');
+                    } else {
+                        $ind.addClass('d-inline-block rounded-circle bg-warning').css({ width: '10px', height: '10px' });
+                        $text.html('🟡 <strong>Worker chưa bật hoặc đang ngủ</strong>: ' + (res ? res.message : 'Chưa có thông tin'));
+                    }
+                }).fail(function () {
+                    $ind.removeClass('spinner-grow text-info').addClass('d-inline-block rounded-circle bg-danger').css({ width: '10px', height: '10px' });
+                    $text.html('🔴 Không thể kết nối kiểm tra Worker.');
+                });
+            }
+
+            function loadTasks() {
+                var $tbody = $('#tblTasksBody');
+                $tbody.html('<tr><td colspan="6" class="text-center text-white-50 py-3"><div class="spinner-border spinner-border-sm text-info mr-2"></div> Đang tải danh sách tác vụ...</td></tr>');
+
+                $.get('@Url.Action("GetTasks", "Assistant")', function (res) {
+                    if (res && res.success && res.data) {
+                        currentTasksCache = res.data;
+                        if (res.data.length === 0) {
+                            $tbody.html('<tr><td colspan="6" class="text-center text-white-50 py-3">Bạn chưa có tác vụ tự động nào. Hãy thử yêu cầu Mr. T trong khung chat ví dụ: <i>"Lập lịch mỗi ngày đăng một bài chia sẻ mẹo học tập"</i>.</td></tr>');
+                            return;
+                        }
+
+                        var rows = '';
+                        res.data.forEach(function (t) {
+                            var statusBadge;
+                            if (t.Status === 'Active') {
+                                statusBadge = '<span class="badge badge-success"><i class="bi bi-play-fill"></i> Đang chạy</span>';
+                            } else if (t.Status === 'Paused') {
+                                statusBadge = '<span class="badge badge-warning"><i class="bi bi-pause-fill"></i> Tạm dừng</span>';
+                            } else if (t.Status === 'Completed') {
+                                statusBadge = '<span class="badge badge-info"><i class="bi bi-check-all"></i> Hoàn thành</span>';
+                            } else {
+                                statusBadge = '<span class="badge badge-secondary">' + t.Status + '</span>';
+                            }
+
+                            // Nút Chạy/Dừng tác vụ (Thao tác 2)
+                            var toggleBtn = t.Status === 'Active'
+                                ? '<button class="btn btn-xs btn-outline-warning btn-task-toggle-state" data-id="' + t.TaskID + '" data-status="Active" data-name="' + $('<div>').text(t.TaskName).html() + '" title="2. Tạm dừng tác vụ"><i class="bi bi-pause-fill"></i></button>'
+                                : '<button class="btn btn-xs btn-outline-success btn-task-toggle-state" data-id="' + t.TaskID + '" data-status="Paused" data-name="' + $('<div>').text(t.TaskName).html() + '" title="2. Kích hoạt lại tác vụ"><i class="bi bi-play-fill"></i></button>';
+
+                            rows += '<tr>' +
+                                '<td>' +
+                                    '<div class="font-weight-bold text-white">' + $('<div>').text(t.TaskName).html() + '</div>' +
+                                    '<div class="small text-white-50 text-truncate" style="max-width: 280px;" title="' + $('<div>').text(t.UserPrompt).html() + '">' + $('<div>').text(t.UserPrompt).html() + '</div>' +
+                                '</td>' +
+                                '<td><span class="badge badge-info">' + t.ScheduleType + '</span></td>' +
+                                '<td>' + statusBadge + '</td>' +
+                                '<td class="small text-white-50">' + (t.LastRunAt || 'Chưa chạy') + '</td>' +
+                                '<td class="small text-info font-weight-bold">' + (t.NextRunAt || '—') + '</td>' +
+                                '<td class="text-right" style="white-space: nowrap;">' +
+                                    '<div class="btn-group btn-group-sm" role="group">' +
+                                        '<!-- 1. Chạy ngay -->' +
+                                        '<button class="btn btn-xs btn-outline-primary btn-task-run-now" data-id="' + t.TaskID + '" data-name="' + $('<div>').text(t.TaskName).html() + '" title="1. Chạy ngay lập tức"><i class="bi bi-lightning-charge-fill"></i></button>' +
+                                        '<!-- 2. Chạy / Dừng -->' +
+                                        toggleBtn +
+                                        '<!-- 3. Sửa tác vụ -->' +
+                                        '<button class="btn btn-xs btn-outline-info btn-task-edit" data-id="' + t.TaskID + '" title="3. Sửa nội dung & lịch"><i class="bi bi-pencil"></i></button>' +
+                                        '<!-- 4. Xem lịch chạy -->' +
+                                        '<button class="btn btn-xs btn-outline-secondary btn-task-runs" data-id="' + t.TaskID + '" data-name="' + $('<div>').text(t.TaskName).html() + '" title="4. Xem lịch sử chạy"><i class="bi bi-clock-history"></i></button>' +
+                                        '<!-- 5. Xóa tác vụ -->' +
+                                        '<button class="btn btn-xs btn-outline-danger btn-task-delete" data-id="' + t.TaskID + '" data-name="' + $('<div>').text(t.TaskName).html() + '" title="5. Xóa tác vụ"><i class="bi bi-trash"></i></button>' +
+                                    '</div>' +
+                                '</td>' +
+                            '</tr>';
+                        });
+                        $tbody.html(rows);
+                    } else {
+                        $tbody.html('<tr><td colspan="6" class="text-center text-danger py-3">' + (res.message || 'Lỗi khi tải danh sách tác vụ.') + '</td></tr>');
+                    }
+                });
+            }
+
+            // ==========================================
+            // THAO TÁC 1: CHẠY NGAY LẬP TỨC (RUN NOW CÓ XÁC NHẬN)
+            // ==========================================
+            $(document).on('click', '.btn-task-run-now', function () {
+                var taskId = $(this).data('id');
+                var taskName = $(this).data('name') || ('#' + taskId);
+
+                $('#runNowTaskId').val(taskId);
+                $('#lblRunNowTaskId').text(taskId);
+                $('#lblRunNowTaskName').text(taskName);
+
+                var $btnConfirm = $('#btnConfirmRunNow');
+                $btnConfirm.prop('disabled', false).html('<i class="bi bi-lightning-charge-fill"></i> Chạy ngay');
+                $('#modalConfirmRunNow').modal('show');
+            });
+
+            $('#btnConfirmRunNow').on('click', function () {
+                var taskId = $('#runNowTaskId').val();
+                var $btn = $(this);
+                $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm mr-1"></span> Đang thực thi...');
+
+                $.post('@Url.Action("RunNow", "Assistant")', { taskId: taskId, isDryRun: false }, function (res) {
+                    $btn.prop('disabled', false).html('<i class="bi bi-lightning-charge-fill"></i> Chạy ngay');
+                    $('#modalConfirmRunNow').modal('hide');
+
+                    if (res && res.success) {
+                        if (window.AppDialog) AppDialog.success((res.message || 'Đã thực thi thành công!') + (res.summary ? '<br><small>' + res.summary + '</small>' : ''), 'Thành công');
+                        else alert('✅ ' + (res.message || 'Đã thực thi thành công!') + '\n\nKết quả: ' + (res.summary || '—'));
+                        loadTasks();
+                    } else {
+                        if (window.AppDialog) AppDialog.error(res ? res.message : 'Lỗi khi thực thi tác vụ.', 'Lỗi thực thi');
+                        else alert('❌ ' + (res.message || 'Lỗi khi thực thi tác vụ.'));
+                    }
+                }).fail(function (xhr) {
+                    $btn.prop('disabled', false).html('<i class="bi bi-lightning-charge-fill"></i> Chạy ngay');
+                    if (window.AppDialog) AppDialog.handleAjaxError(xhr, 'Lỗi kết nối máy chủ khi chạy tác vụ.');
+                    else alert('Lỗi kết nối máy chủ khi chạy tác vụ.');
+                });
+            });
+
+            // ==========================================
+            // THAO TÁC 2: CHẠY / DỪNG TÁC VỤ (CÓ HỘP THOẠI XÁC NHẬN DỪNG)
+            // ==========================================
+            $(document).on('click', '.btn-task-toggle-state', function () {
+                var $btn = $(this);
+                var taskId = $btn.data('id');
+                var taskName = $btn.data('name') || ('#' + taskId);
+                var currentStatus = $btn.data('status');
+
+                if (currentStatus === 'Active') {
+                    // Dừng tác vụ -> hiển thị modalConfirmStopTask
+                    $('#stopTaskId').val(taskId);
+                    $('#lblStopTaskId').text(taskId);
+                    $('#lblStopTaskName').text(taskName);
+
+                    var $btnConfirm = $('#btnConfirmStopTask');
+                    $btnConfirm.prop('disabled', false).html('<i class="bi bi-pause-fill"></i> Dừng tác vụ');
+                    $('#modalConfirmStopTask').modal('show');
+                } else {
+                    // Kích hoạt lại -> gọi trực tiếp ResumeTask
+                    $btn.prop('disabled', true);
+                    $.post('@Url.Action("ResumeTask", "Assistant")', { taskId: taskId }, function (res) {
+                        if (res && res.success) {
+                            if (window.AppDialog) AppDialog.toastSuccess('Đã kích hoạt lại tác vụ.');
+                            loadTasks();
+                        } else {
+                            if (window.AppDialog) AppDialog.error(res ? res.message : 'Không thể kích hoạt lại tác vụ.', 'Lỗi');
+                            else alert(res ? res.message : 'Không thể kích hoạt lại tác vụ.');
+                            $btn.prop('disabled', false);
+                        }
+                    }).fail(function (xhr) {
+                        if (window.AppDialog) AppDialog.handleAjaxError(xhr, 'Lỗi kết nối máy chủ.');
+                        else alert('Lỗi kết nối máy chủ.');
+                        $btn.prop('disabled', false);
+                    });
+                }
+            });
+
+            $('#btnConfirmStopTask').on('click', function () {
+                var taskId = $('#stopTaskId').val();
+                var $btn = $(this);
+                $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm mr-1"></span> Đang dừng...');
+
+                $.post('@Url.Action("PauseTask", "Assistant")', { taskId: taskId }, function (res) {
+                    $btn.prop('disabled', false).html('<i class="bi bi-pause-fill"></i> Dừng tác vụ');
+                    $('#modalConfirmStopTask').modal('hide');
+
+                    if (res && res.success) {
+                        if (window.AppDialog) AppDialog.toastSuccess('Đã tạm dừng tác vụ.');
+                        loadTasks();
+                    } else {
+                        if (window.AppDialog) AppDialog.error(res ? res.message : 'Không thể tạm dừng tác vụ.', 'Lỗi');
+                        else alert(res ? res.message : 'Không thể tạm dừng tác vụ.');
+                    }
+                }).fail(function (xhr) {
+                    $btn.prop('disabled', false).html('<i class="bi bi-pause-fill"></i> Dừng tác vụ');
+                    if (window.AppDialog) AppDialog.handleAjaxError(xhr, 'Lỗi kết nối máy chủ.');
+                    else alert('Lỗi kết nối máy chủ.');
+                });
+            });
+
+            // ==========================================
+            // THAO TÁC 3: SỬA TÁC VỤ (MODAL EDIT TASK)
+            // ==========================================
+            $(document).on('click', '.btn-task-edit', function () {
+                var taskId = $(this).data('id');
+                var task = currentTasksCache.find(function (t) { return t.TaskID === taskId; });
+                if (!task) return;
+
+                $('#editTaskId').val(task.TaskID);
+                $('#editTaskName').val(task.TaskName);
+                $('#editUserPrompt').val(task.UserPrompt);
+                $('#editScheduleType').val(task.ScheduleType);
+                $('#editSpecificRunTime').val('');
+
+                if (task.ScheduleType === 'interval') {
+                    $('#groupEditScheduleConfig').show();
+                    $('#editScheduleConfig').val(task.ScheduleConfig || '30');
+                } else {
+                    $('#groupEditScheduleConfig').hide();
+                }
+
+                var $btnSave = $('#btnSaveTaskChanges');
+                $btnSave.prop('disabled', false).html('<i class="bi bi-save"></i> Lưu thay đổi');
+                $('#modalEditTask').modal('show');
+            });
+
+            $('#editScheduleType').on('change', function () {
+                if ($(this).val() === 'interval') {
+                    $('#groupEditScheduleConfig').show();
+                } else {
+                    $('#groupEditScheduleConfig').hide();
+                }
+            });
+
+            $('#btnSaveTaskChanges').on('click', function () {
+                var taskName = $('#editTaskName').val().trim();
+                var userPrompt = $('#editUserPrompt').val().trim();
+
+                if (!taskName) {
+                    if (window.AppDialog) AppDialog.warning('Vui lòng nhập tên tác vụ.', 'Thông tin bắt buộc');
+                    else alert('Vui lòng nhập tên tác vụ.');
+                    $('#editTaskName').focus();
+                    return;
+                }
+                if (!userPrompt) {
+                    if (window.AppDialog) AppDialog.warning('Vui lòng nhập yêu cầu / prompt cho Agent.', 'Thông tin bắt buộc');
+                    else alert('Vui lòng nhập yêu cầu / prompt cho Agent.');
+                    $('#editUserPrompt').focus();
+                    return;
+                }
+
+                var payload = {
+                    taskId: $('#editTaskId').val(),
+                    taskName: taskName,
+                    userPrompt: userPrompt,
+                    scheduleType: $('#editScheduleType').val(),
+                    scheduleConfig: $('#editScheduleConfig').val(),
+                    specificRunTime: $('#editSpecificRunTime').val()
+                };
+
+                var $btn = $(this);
+                $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm mr-1"></span> Đang lưu...');
+
+                $.post('@Url.Action("UpdateTask", "Assistant")', payload, function (res) {
+                    $btn.prop('disabled', false).html('<i class="bi bi-save"></i> Lưu thay đổi');
+                    if (res && res.success) {
+                        if (window.AppDialog) AppDialog.toastSuccess('Đã lưu thay đổi tác vụ.');
+                        $('#modalEditTask').modal('hide');
+                        loadTasks();
+                    } else {
+                        if (window.AppDialog) AppDialog.error(res ? res.message : 'Lỗi khi lưu thay đổi tác vụ.', 'Lỗi');
+                        else alert(res ? res.message : 'Lỗi khi lưu thay đổi tác vụ.');
+                    }
+                }).fail(function (xhr) {
+                    $btn.prop('disabled', false).html('<i class="bi bi-save"></i> Lưu thay đổi');
+                    if (window.AppDialog) AppDialog.handleAjaxError(xhr, 'Lỗi kết nối máy chủ.');
+                    else alert('Lỗi kết nối máy chủ.');
+                });
+            });
+
+            // ==========================================
+            // THAO TÁC 4: XEM LỊCH CHẠY (RUN HISTORY & DETAILS)
+            // ==========================================
+            $(document).on('click', '.btn-task-runs', function () {
+                var taskId = $(this).data('id');
+                var taskName = $(this).data('name') || ('#' + taskId);
+
+                $('#lblTaskRunTitle').text(taskName);
+                $('#taskRunDetailsContainer').hide();
+                $('#tblTaskRunsBody').html('<tr><td colspan="6" class="text-center text-white-50 py-3"><div class="spinner-border spinner-border-sm text-info mr-2"></div> Đang tải lịch sử...</td></tr>');
+                $('#modalTaskRuns').modal('show');
+
+                $.get('@Url.Action("GetTaskRuns", "Assistant")', { taskId: taskId }, function (res) {
+                    if (res && res.success && res.data) {
+                        if (res.data.length === 0) {
+                            $('#tblTaskRunsBody').html('<tr><td colspan="6" class="text-center text-white-50 py-3">Tác vụ này chưa có lượt chạy nào.</td></tr>');
+                            return;
+                        }
+
+                        var rows = '';
+                        res.data.forEach(function (r) {
+                            var statusColor = r.Status === 'Succeeded' ? 'text-success' : (r.Status === 'Running' ? 'text-info' : 'text-danger');
+                            rows += '<tr>' +
+                                '<td><code>#' + r.RunID + '</code></td>' +
+                                '<td class="small text-white-50">' + (r.StartedAt || '—') + '</td>' +
+                                '<td class="small text-white-50">' + (r.FinishedAt || '—') + '</td>' +
+                                '<td><span class="' + statusColor + ' font-weight-bold">' + r.Status + '</span></td>' +
+                                '<td class="small text-white-50 text-truncate" style="max-width: 220px;" title="' + $('<div>').text(r.ResultSummary || r.ErrorMessage || '').html() + '">' + $('<div>').text(r.ResultSummary || r.ErrorMessage || '—').html() + '</td>' +
+                                '<td class="text-right"><button class="btn btn-xs btn-outline-info btn-run-detail" data-id="' + r.RunID + '">Chi tiết</button></td>' +
+                            '</tr>';
+                        });
+                        $('#tblTaskRunsBody').html(rows);
+                    } else {
+                        $('#tblTaskRunsBody').html('<tr><td colspan="6" class="text-center text-danger py-3">' + (res.message || 'Lỗi khi tải lịch sử.') + '</td></tr>');
+                    }
+                });
+            });
+
+            // Xem chi tiết 1 lượt chạy cụ thể (kèm Action Logs)
+            $(document).on('click', '.btn-run-detail', function () {
+                var runId = $(this).data('id');
+                var $c = $('#taskRunDetailsContainer');
+                $c.show().html('<div class="text-center text-white-50 py-2"><div class="spinner-border spinner-border-sm text-info mr-2"></div> Đang tải chi tiết lượt chạy #' + runId + '...</div>');
+
+                $.get('@Url.Action("GetRunDetails", "Assistant")', { runId: runId }, function (res) {
+                    if (res && res.success && res.data) {
+                        var d = res.data;
+                        var logHtml = '';
+                        if (d.Logs && d.Logs.length > 0) {
+                            logHtml += '<div class="mt-2"><strong class="small text-info">Nhật ký hành động đã gọi:</strong><ul class="mb-0 pl-3 small text-white-50">';
+                            d.Logs.forEach(function (l) {
+                                logHtml += '<li><code>' + l.ActionName + '</code> - Mục tiêu: ' + l.TargetType + (l.TargetID ? ' #' + l.TargetID : '') + ' - <span class="' + (l.Status === 'Succeeded' ? 'text-success' : 'text-danger') + '">' + l.Status + '</span> (' + (l.ResultSummary || l.ErrorMessage || '') + ')</li>';
+                            });
+                            logHtml += '</ul></div>';
+                        }
+
+                        $c.html(
+                            '<div class="d-flex justify-content-between align-items-center mb-2">' +
+                                '<strong class="text-info">Chi tiết lượt chạy #' + d.RunID + '</strong>' +
+                                '<button type="button" class="close text-white" onclick="$(\'#taskRunDetailsContainer\').hide();"><span>&times;</span></button>' +
+                            '</div>' +
+                            '<div class="small text-white-50 mb-1">Thời gian: ' + d.StartedAt + ' &rarr; ' + (d.FinishedAt || 'Đang chạy') + '</div>' +
+                            '<div class="small mb-1">Trạng thái: <span class="font-weight-bold ' + (d.Status === 'Succeeded' ? 'text-success' : 'text-danger') + '">' + d.Status + '</span></div>' +
+                            '<div class="small text-white-50 mb-1">Tóm tắt kết quả: <span class="text-white">' + $('<div>').text(d.ResultSummary || '—').html() + '</span></div>' +
+                            (d.ErrorMessage ? '<div class="small text-danger mb-1">Lỗi: ' + $('<div>').text(d.ErrorMessage).html() + '</div>' : '') +
+                            logHtml
+                        );
+                    } else {
+                        $c.html('<div class="text-danger small">' + (res.message || 'Không thể tải chi tiết.') + '</div>');
+                    }
+                });
+            });
+
+            // ==========================================
+            // THAO TÁC 5: XÓA TÁC VỤ (CÓ HỘP THOẠI XÁC NHẬN)
+            // ==========================================
+            $(document).on('click', '.btn-task-delete', function () {
+                var taskId = $(this).data('id');
+                var taskName = $(this).data('name') || ('#' + taskId);
+
+                $('#deleteTaskId').val(taskId);
+                $('#lblDeleteTaskId').text(taskId);
+                $('#lblDeleteTaskName').text(taskName);
+
+                var $btnConfirm = $('#btnConfirmDeleteTask');
+                $btnConfirm.prop('disabled', false).html('<i class="bi bi-trash-fill"></i> Xóa tác vụ');
+                $('#modalConfirmDeleteTask').modal('show');
+            });
+
+            $('#btnConfirmDeleteTask').on('click', function () {
+                var taskId = $('#deleteTaskId').val();
+                var $btn = $(this);
+                $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm mr-1"></span> Đang xóa...');
+
+                $.post('@Url.Action("DeleteTask", "Assistant")', { taskId: taskId }, function (res) {
+                    $btn.prop('disabled', false).html('<i class="bi bi-trash-fill"></i> Xóa tác vụ');
+                    $('#modalConfirmDeleteTask').modal('hide');
+
+                    if (res && res.success) {
+                        if (window.AppDialog) AppDialog.toastSuccess('Đã xóa tác vụ thành công.');
+                        loadTasks();
+                    } else {
+                        if (window.AppDialog) AppDialog.error(res ? res.message : 'Không thể xóa tác vụ.', 'Lỗi');
+                        else alert(res ? res.message : 'Không thể xóa tác vụ.');
+                    }
+                }).fail(function (xhr) {
+                    $btn.prop('disabled', false).html('<i class="bi bi-trash-fill"></i> Xóa tác vụ');
+                    if (window.AppDialog) AppDialog.handleAjaxError(xhr, 'Lỗi kết nối máy chủ.');
+                    else alert('Lỗi kết nối máy chủ.');
+                });
+            });
+
+            // ==========================================
+            // AGENT CONVERSATIONS MANAGEMENT (QUẢN LÝ PHIÊN HỘI THOẠI)
+            // ==========================================
+            var convCurrentPage = 1;
+            var convTotalPages = 1;
+
+            $('#btnOpenConversations').on('click', function () {
+                $('#modalConversations').modal('show');
+                convCurrentPage = 1;
+                loadConversations();
+            });
+
+            $('#btnModalNewConv').on('click', function () {
+                $('#modalConversations').modal('hide');
+                updateSessionBanner(null);
+                window.history.replaceState(null, null, window.location.pathname);
+                $container.find('.msg-row:not(:first)').remove();
+                $input.val('').prop('disabled', false).focus();
+                $btnSend.prop('disabled', false);
+                appendAiMessage('✨ Đã bắt đầu phiên hội thoại mới. Mời bạn nhập yêu cầu cho Mr. T nhé!');
+                showAgentToast('info', 'Đã chuyển sang phiên hội thoại mới.');
+            });
+
+            function loadConversations() {
+                var keyword = ($('#filterConvKeyword').val() || '').trim();
+                var status = $('#filterConvStatus').val();
+                var $tbody = $('#tblConversationsBody');
+                $tbody.html('<tr><td colspan="6" class="text-center text-white-50 py-3"><div class="spinner-border spinner-border-sm text-info mr-2"></div> Đang tải danh sách phiên...</td></tr>');
+
+                $.get('@Url.Action("GetConversations", "Assistant")', { page: convCurrentPage, pageSize: 10, keyword: keyword, status: status }, function (res) {
+                    if (res && res.success && res.data) {
+                        convTotalPages = res.totalPages || 1;
+                        $('#lblConvPaginationInfo').text('Hiển thị ' + res.data.length + ' / tổng số ' + res.total + ' phiên');
+                        $('#lblConvCurrentPage').text('Trang ' + res.page + ' / ' + (res.totalPages || 1));
+                        $('#btnConvPrevPage').prop('disabled', res.page <= 1);
+                        $('#btnConvNextPage').prop('disabled', res.page >= res.totalPages);
+
+                        if (res.data.length === 0) {
+                            $tbody.html('<tr><td colspan="6" class="text-center text-white-50 py-3">Chưa có phiên hội thoại nào phù hợp với điều kiện tìm kiếm.</td></tr>');
+                            return;
+                        }
+
+                        var rows = '';
+                        res.data.forEach(function (c) {
+                            var statusBadge;
+                            if (c.Status === 'Active') {
+                                statusBadge = '<span class="badge badge-success">Active</span>';
+                            } else if (c.Status === 'Completed') {
+                                statusBadge = '<span class="badge badge-info">Completed</span>';
+                            } else if (c.Status === 'Paused') {
+                                statusBadge = '<span class="badge badge-warning">Paused</span>';
+                            } else {
+                                statusBadge = '<span class="badge badge-danger">' + c.Status + '</span>';
+                            }
+
+                            var taskBadge = c.TaskID ? ' <span class="badge badge-secondary ml-1" title="Liên kết tác vụ #' + c.TaskID + '"><i class="bi bi-calendar2-check"></i> Task #' + c.TaskID + '</span>' : '';
+
+                            rows += '<tr>' +
+                                '<td>' +
+                                    '<div class="font-weight-bold text-white text-truncate" style="max-width: 320px;" title="' + $('<div>').text(c.Title).html() + '">' +
+                                        $('<div>').text(c.Title).html() + taskBadge +
+                                    '</div>' +
+                                    '<div class="small text-white-50">Mã phiên: <code>#' + c.ConversationID + '</code></div>' +
+                                '</td>' +
+                                '<td class="small text-white-50">' + c.CreatedAt + '</td>' +
+                                '<td class="small text-info font-weight-bold">' + c.LastMessageAt + '</td>' +
+                                '<td><span class="badge badge-dark text-white border border-secondary">' + c.MessageCount + ' tin</span></td>' +
+                                '<td>' + statusBadge + '</td>' +
+                                '<td class="text-right" style="white-space: nowrap;">' +
+                                    '<div class="btn-group btn-group-sm" role="group">' +
+                                        '<button class="btn btn-xs btn-outline-primary btn-resume-conv" data-id="' + c.ConversationID + '" title="Mở lại và tiếp tục trò chuyện"><i class="bi bi-box-arrow-in-right"></i> Tiếp tục</button>' +
+                                        '<button class="btn btn-xs btn-outline-info btn-detail-conv" data-id="' + c.ConversationID + '" title="Xem chi tiết phiên & hành động Agent"><i class="bi bi-eye"></i></button>' +
+                                        '<button class="btn btn-xs btn-outline-secondary btn-rename-conv-modal" data-id="' + c.ConversationID + '" data-title="' + $('<div>').text(c.Title).html() + '" title="Sửa tiêu đề phiên"><i class="bi bi-pencil"></i></button>' +
+                                        '<button class="btn btn-xs btn-outline-danger btn-delete-conv-modal" data-id="' + c.ConversationID + '" data-title="' + $('<div>').text(c.Title).html() + '" data-count="' + c.MessageCount + '" title="Xóa phiên"><i class="bi bi-trash"></i></button>' +
+                                    '</div>' +
+                                '</td>' +
+                            '</tr>';
+                        });
+                        $tbody.html(rows);
+                    } else {
+                        $tbody.html('<tr><td colspan="6" class="text-center text-danger py-3">' + (res.message || 'Lỗi khi tải danh sách phiên.') + '</td></tr>');
+                        showAgentToast('error', res.message || 'Lỗi khi tải danh sách phiên.');
+                    }
+                }).fail(function () {
+                    $tbody.html('<tr><td colspan="6" class="text-center text-danger py-3">Lỗi kết nối máy chủ.</td></tr>');
+                    showAgentToast('error', 'Lỗi kết nối máy chủ khi nạp danh sách phiên.');
+                });
+            }
+
+            $('#btnFilterConvs').on('click', function () {
+                convCurrentPage = 1;
+                loadConversations();
+            });
+
+            $('#filterConvKeyword').on('keypress', function (e) {
+                if (e.which === 13) {
+                    e.preventDefault();
+                    convCurrentPage = 1;
+                    loadConversations();
+                }
+            });
+
+            $('#filterConvStatus').on('change', function () {
+                convCurrentPage = 1;
+                loadConversations();
+            });
+
+            $('#btnResetFilterConvs').on('click', function () {
+                $('#filterConvKeyword').val('');
+                $('#filterConvStatus').val('All');
+                convCurrentPage = 1;
+                loadConversations();
+            });
+
+            $('#btnConvPrevPage').on('click', function () {
+                if (convCurrentPage > 1) {
+                    convCurrentPage--;
+                    loadConversations();
+                }
+            });
+
+            $('#btnConvNextPage').on('click', function () {
+                if (convCurrentPage < convTotalPages) {
+                    convCurrentPage++;
+                    loadConversations();
+                }
+            });
+
+            // Mở lại phiên hội thoại (Resume Conversation) và nạp toàn bộ tin nhắn vào giao diện
+            function resumeConversation(convId) {
+                $container.find('.msg-row:not(:first)').remove();
+                appendAiMessage('⏳ Đang nạp lịch sử phiên hội thoại #' + convId + '...');
+
+                $.get('@Url.Action("GetConversationDetail", "Assistant")', { conversationId: convId }, function (res) {
+                    if (res && res.success && res.data) {
+                        var d = res.data;
+                        updateSessionBanner(d);
+                        window.history.replaceState(null, null, '?conversationId=' + d.ConversationID);
+
+                        // Xóa tin nhắn tạm
+                        $container.find('.msg-row:not(:first)').remove();
+
+                        // Nạp lại từng tin nhắn theo đúng thứ tự
+                        if (d.Messages && d.Messages.length > 0) {
+                            d.Messages.forEach(function (m) {
+                                var sender = (m.SenderType || '').toLowerCase();
+                                if (sender === 'user') {
+                                    appendUserMessage(m.Content);
+                                } else {
+                                    var extraInfo = '';
+                                    if (m.ToolCallDetails) {
+                                        extraInfo += '<div class="mt-2 p-2 rounded" style="background: rgba(0,200,255,0.06); border: 1px solid rgba(0,200,255,0.2); font-size: 11px;">' +
+                                            '<strong class="text-info"><i class="bi bi-gear-fill"></i> Công cụ đã dùng:</strong> ' + $('<div>').text(m.ToolCallDetails).html() +
+                                            '</div>';
+                                    }
+                                    if (m.ErrorMessage) {
+                                        extraInfo += '<div class="mt-1 text-danger small font-italic"><i class="bi bi-exclamation-triangle"></i> ' + $('<div>').text(m.ErrorMessage).html() + '</div>';
+                                    }
+
+                                    var formatted = formatAiText(m.Content) + extraInfo;
+                                    var html = '<div class="msg-row ai">' +
+                                        '<div class="msg-avatar"><i class="bi bi-robot"></i></div>' +
+                                        '<div class="msg-bubble">' + formatted + '</div>' +
+                                        '</div>';
+                                    $typing.before(html);
+                                }
+                            });
+                        } else {
+                            appendAiMessage('Phiên hội thoại này chưa có tin nhắn nào.');
+                        }
+
+                        // Nếu có tác vụ lịch liên kết, hiển thị thông báo trạng thái
+                        if (d.LinkedTask) {
+                            var lt = d.LinkedTask;
+                            appendAiMessage('📌 <strong>Tác vụ lịch liên kết với phiên này:</strong> ' + $('<div>').text(lt.TaskName).html() +
+                                ' (ID #' + lt.TaskID + ') — Trạng thái: <strong>' + lt.Status + '</strong>' +
+                                (lt.NextRunAt ? ' · Lần chạy tiếp: ' + lt.NextRunAt : '') +
+                                '. Bạn có thể trò chuyện với mình để kiểm tra hoặc cập nhật tác vụ này!');
+                        }
+
+                        scrollToBottom();
+                        $input.prop('disabled', false).focus();
+                        $btnSend.prop('disabled', false);
+                        showAgentToast('info', 'Đã mở lại phiên #' + d.ConversationID + ' thành công.');
+                    } else {
+                        showAgentToast('error', res.message || 'Không thể tải phiên hội thoại.');
+                    }
+                }).fail(function () {
+                    showAgentToast('error', 'Lỗi kết nối máy chủ khi nạp phiên hội thoại.');
+                });
+            }
+
+            $(document).on('click', '.btn-resume-conv', function () {
+                var convId = $(this).data('id');
+                $('#modalConversations').modal('hide');
+                resumeConversation(convId);
+            });
+
+            // Xem chi tiết phiên & các hành động Agent trong phiên
+            $(document).on('click', '.btn-detail-conv', function () {
+                var convId = $(this).data('id');
+                openConversationDetail(convId);
+            });
+
+            $('#btnViewSessionDetails').on('click', function () {
+                if (currentConversationId > 0) {
+                    openConversationDetail(currentConversationId);
+                }
+            });
+
+            function openConversationDetail(convId) {
+                $('#detailConvId').text(convId);
+                $('#detailConvTitle').text('Đang tải...');
+                $('#detailConvMeta').text('...');
+                $('#groupLinkedTask').hide();
+                $('#groupLinkedLogs').hide();
+                $('#detailConvMessagesPreview').html('<div class="text-center text-white-50 py-2 small">Đang nạp dữ liệu...</div>');
+                $('#btnResumeFromDetail').data('id', convId);
+
+                $('#modalConversationDetail').modal('show');
+
+                $.get('@Url.Action("GetConversationDetail", "Assistant")', { conversationId: convId }, function (res) {
+                    if (res && res.success && res.data) {
+                        var d = res.data;
+                        $('#detailConvTitle').text(d.Title);
+                        $('#detailConvMeta').html('Tạo lúc: ' + d.CreatedAt + ' · Tương tác cuối: ' + d.LastMessageAt + ' · Trạng thái: <strong class="text-info">' + d.Status + '</strong>');
+                        $('#detailConvMsgCount').text(d.MessageCount);
+
+                        // Tác vụ lịch liên kết
+                        if (d.LinkedTask) {
+                            var t = d.LinkedTask;
+                            $('#groupLinkedTask').show();
+                            $('#detailLinkedTaskName').text(t.TaskName + ' (ID #' + t.TaskID + ')');
+                            $('#detailLinkedTaskPrompt').text('Yêu cầu: ' + t.UserPrompt);
+                            $('#detailLinkedTaskStatus').text(t.Status);
+                            $('#detailLinkedTaskSchedule').text(t.ScheduleType + (t.ScheduleConfig ? ' (' + t.ScheduleConfig + ')' : ''));
+                            $('#detailLinkedTaskNextRun').text(t.NextRunAt || '—');
+                        } else {
+                            $('#groupLinkedTask').hide();
+                        }
+
+                        // Nhật ký hành động Agent đã gọi trong phiên
+                        if (d.LinkedLogs && d.LinkedLogs.length > 0) {
+                            var logRows = '';
+                            d.LinkedLogs.forEach(function (l) {
+                                var sColor = l.Status === 'Succeeded' ? 'text-success' : 'text-danger';
+                                logRows += '<tr>' +
+                                    '<td class="text-white-50">' + l.CreatedAt + '</td>' +
+                                    '<td><code>' + l.ActionName + '</code></td>' +
+                                    '<td><span class="' + sColor + '">' + l.Status + '</span></td>' +
+                                    '<td class="text-truncate text-white-50" style="max-width: 250px;">' + $('<div>').text(l.ResultSummary || l.ErrorMessage || '—').html() + '</td>' +
+                                '</tr>';
+                            });
+                            $('#tblLinkedLogsBody').html(logRows);
+                            $('#groupLinkedLogs').show();
+                        } else {
+                            $('#groupLinkedLogs').hide();
+                        }
+
+                        // Preview tin nhắn
+                        if (d.Messages && d.Messages.length > 0) {
+                            var msgHtml = '';
+                            d.Messages.forEach(function (m) {
+                                var isUser = (m.SenderType || '').toLowerCase() === 'user';
+                                var badge = isUser ? '<span class="badge badge-primary mr-1">Bạn</span>' : '<span class="badge badge-info mr-1">Mr. T</span>';
+                                msgHtml += '<div class="mb-2 pb-2" style="border-bottom: 1px solid rgba(255,255,255,0.05);">' +
+                                    '<div class="d-flex justify-content-between align-items-center mb-1">' +
+                                        '<div>' + badge + ' <span class="small text-white-50">' + m.CreatedAt + '</span></div>' +
+                                    '</div>' +
+                                    '<div class="small text-white">' + $('<div>').text(m.Content).html() + '</div>' +
+                                    '</div>';
+                            });
+                            $('#detailConvMessagesPreview').html(msgHtml);
+                        } else {
+                            $('#detailConvMessagesPreview').html('<div class="text-white-50 small p-2">Chưa có tin nhắn trong phiên này.</div>');
+                        }
+                    } else {
+                        showAgentToast('error', res.message || 'Không thể tải chi tiết phiên.');
+                    }
+                }).fail(function () {
+                    showAgentToast('error', 'Lỗi kết nối máy chủ khi nạp chi tiết phiên.');
+                });
+            }
+
+            $('#btnResumeFromDetail').on('click', function () {
+                var convId = $(this).data('id');
+                $('#modalConversationDetail').modal('hide');
+                $('#modalConversations').modal('hide');
+                resumeConversation(convId);
+            });
+
+            // Sửa tiêu đề phiên hội thoại
+            $(document).on('click', '.btn-rename-conv-modal', function () {
+                var convId = $(this).data('id');
+                var currentTitle = $(this).data('title');
+                openRenameModal(convId, currentTitle);
+            });
+
+            $('#btnRenameSession').on('click', function () {
+                if (currentConversationId > 0) {
+                    var currentTitle = $('#lblSessionTitle').text();
+                    openRenameModal(currentConversationId, currentTitle);
+                }
+            });
+
+            function openRenameModal(convId, title) {
+                $('#lblRenameConvId').text(convId);
+                $('#renameConvId').val(convId);
+                $('#txtRenameConvTitle').val(title);
+                $('#errRenameConvTitle').hide().text('');
+                $('#btnConfirmRenameConv').prop('disabled', false).html('<i class="bi bi-check-lg"></i> Lưu thay đổi');
+                $('#modalRenameConversation').modal('show');
+                setTimeout(function () {
+                    $('#txtRenameConvTitle').focus().select();
+                }, 400);
+            }
+
+            $('#txtRenameConvTitle').on('input', function () {
+                $('#errRenameConvTitle').hide().text('');
+            });
+
+            $('#txtRenameConvTitle').on('keypress', function (e) {
+                if (e.which === 13) {
+                    e.preventDefault();
+                    $('#btnConfirmRenameConv').click();
+                }
+            });
+
+            $('#btnConfirmRenameConv').on('click', function () {
+                var convId = $('#renameConvId').val();
+                var newTitle = ($('#txtRenameConvTitle').val() || '').trim();
+                var $err = $('#errRenameConvTitle');
+
+                if (!newTitle) {
+                    $err.text('Vui lòng nhập tiêu đề cho phiên hội thoại.').show();
+                    $('#txtRenameConvTitle').focus();
+                    return;
+                }
+                if (newTitle.length > 200) {
+                    $err.text('Tiêu đề phiên không được vượt quá 200 ký tự.').show();
+                    $('#txtRenameConvTitle').focus();
+                    return;
+                }
+
+                var $btn = $(this);
+                $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm mr-1"></span> Đang lưu...');
+
+                $.post('@Url.Action("UpdateConversationTitle", "Assistant")', { conversationId: convId, title: newTitle }, function (res) {
+                    $btn.prop('disabled', false).html('<i class="bi bi-check-lg"></i> Lưu thay đổi');
+                    if (res && res.success) {
+                        $('#modalRenameConversation').modal('hide');
+                        if (currentConversationId == convId) {
+                            $('#lblSessionTitle').text(newTitle);
+                        }
+                        showAgentToast('success', 'Đã cập nhật tiêu đề phiên #' + convId + ' thành công.');
+                        loadConversations();
+                    } else {
+                        $err.text(res.message || 'Lỗi khi cập nhật tiêu đề.').show();
+                    }
+                }).fail(function () {
+                    $btn.prop('disabled', false).html('<i class="bi bi-check-lg"></i> Lưu thay đổi');
+                    $err.text('Lỗi kết nối máy chủ. Vui lòng thử lại sau.').show();
+                });
+            });
+
+            // Xóa phiên hội thoại (Có hộp thoại xác nhận)
+            $(document).on('click', '.btn-delete-conv-modal', function () {
+                var convId = $(this).data('id');
+                var title = $(this).data('title');
+                var count = $(this).data('count');
+
+                $('#deleteConvId').val(convId);
+                $('#lblDeleteConvId').text(convId);
+                $('#lblDeleteConvTitle').text(title);
+                $('#lblDeleteConvMsgCount').text(count + ' tin nhắn');
+
+                var $btnConfirm = $('#btnConfirmDeleteConv');
+                $btnConfirm.prop('disabled', false).html('<i class="bi bi-trash-fill"></i> Xác nhận xóa');
+                $('#modalConfirmDeleteConversation').modal('show');
+            });
+
+            $('#btnConfirmDeleteConv').on('click', function () {
+                var convId = $('#deleteConvId').val();
+                var $btn = $(this);
+                $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm mr-1"></span> Đang xóa...');
+
+                $.post('@Url.Action("DeleteConversation", "Assistant")', { conversationId: convId }, function (res) {
+                    $btn.prop('disabled', false).html('<i class="bi bi-trash-fill"></i> Xác nhận xóa');
+                    $('#modalConfirmDeleteConversation').modal('hide');
+
+                    if (res && res.success) {
+                        showAgentToast('success', 'Đã xóa phiên hội thoại #' + convId + ' thành công.');
+                        if (currentConversationId == convId) {
+                            updateSessionBanner(null);
+                            window.history.replaceState(null, null, window.location.pathname);
+                            $container.find('.msg-row:not(:first)').remove();
+                            appendAiMessage('✨ Phiên hội thoại đã được xóa thành công. Bạn đang ở phiên hội thoại mới.');
+                        }
+                        loadConversations();
+                    } else {
+                        showAgentToast('error', res.message || 'Lỗi khi xóa phiên hội thoại.');
+                    }
+                }).fail(function () {
+                    $btn.prop('disabled', false).html('<i class="bi bi-trash-fill"></i> Xác nhận xóa');
+                    showAgentToast('error', 'Lỗi kết nối máy chủ khi xóa phiên.');
+                });
+            });
+
+            // Tự động mở lại phiên nếu có InitialConversationId trên URL (?conversationId=...)
+            if (currentConversationId > 0) {
+                resumeConversation(currentConversationId);
+            }
+        });
+    </script>
+}

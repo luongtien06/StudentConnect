@@ -1,0 +1,26 @@
+[
+  {
+    "HighlightID": "e1b2516710",
+    "UserID": 1002,
+    "Title": "Cừu sừng",
+    "CoverUrl": "/Content/Uploads/Stories/story_1002_639268304602826727_84fde58d.mp4",
+    "CreatedAt": "2026-10-05T20:55:30.003295+07:00",
+    "StoryIDs": [
+      6
+    ],
+    "StoryCount": 1,
+    "Stories": []
+  },
+  {
+    "HighlightID": "8faf8bf6bb",
+    "UserID": 1002,
+    "Title": "mlem",
+    "CoverUrl": "/Content/Uploads/Stories/story_1002_639263643750404524_30c1a334.jpg",
+    "CreatedAt": "2026-10-05T19:53:46.3068307+07:00",
+    "StoryIDs": [
+      1
+    ],
+    "StoryCount": 1,
+    "Stories": []
+  }
+]
