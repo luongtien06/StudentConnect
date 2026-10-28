@@ -138,7 +138,7 @@ namespace StudentConnect.Controllers
 
                     Privacy = validPrivacy,
 
-                    CreatedAt = DateTime.Now
+                    CreatedAt = DateTimeHelper.VietnamNow
 
                 };
 
@@ -638,7 +638,7 @@ namespace StudentConnect.Controllers
 
                     existingLike.LikeType = validLikeType;
 
-                    existingLike.CreatedAt = DateTime.Now;
+                    existingLike.CreatedAt = DateTimeHelper.VietnamNow;
 
                     userReaction = validLikeType;
 
@@ -662,7 +662,7 @@ namespace StudentConnect.Controllers
 
                     LikeType = validLikeType,
 
-                    CreatedAt = DateTime.Now
+                    CreatedAt = DateTimeHelper.VietnamNow
 
                 };
 
@@ -860,7 +860,7 @@ namespace StudentConnect.Controllers
 
                 ParentID = parentComment?.CommentID,
 
-                CreatedAt = DateTime.Now
+                CreatedAt = DateTimeHelper.VietnamNow
 
             };
 
@@ -1350,7 +1350,7 @@ namespace StudentConnect.Controllers
 
                     Content = cleanContent,
 
-                    CreatedAt = DateTime.Now
+                    CreatedAt = DateTimeHelper.VietnamNow
 
                 };
 

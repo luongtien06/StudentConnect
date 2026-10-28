@@ -237,7 +237,7 @@ namespace StudentConnect.Controllers
                     UserID = userId,
                     RatingStar = rating,
                     Comment = comment,
-                    CreatedAt = DateTime.Now
+                    CreatedAt = DateTimeHelper.VietnamNow
                 };
                 db.Reviews.Add(review);
                 db.SaveChanges();
@@ -286,7 +286,7 @@ namespace StudentConnect.Controllers
                 UserID = userId,
                 RatingStar = rating,
                 Comment = comment.Trim(),
-                CreatedAt = DateTime.Now
+                CreatedAt = DateTimeHelper.VietnamNow
             };
             db.Reviews.Add(review);
             db.SaveChanges();
@@ -366,7 +366,7 @@ namespace StudentConnect.Controllers
                 var newRoom = new ChatRoom
                 {
                     RoomType = "1vs1",
-                    CreatedAt = DateTime.Now,
+                    CreatedAt = DateTimeHelper.VietnamNow,
                     IsActive = true
                 };
                 db.ChatRooms.Add(newRoom);
@@ -437,7 +437,7 @@ namespace StudentConnect.Controllers
                 post.MainImage = ConnectImageHelper.JoinPaths(SaveConnectImageFiles(imageFiles));
 
                 post.UserID = (int)Session["UserID"];
-                post.CreatedAt = DateTime.Now;
+                post.CreatedAt = DateTimeHelper.VietnamNow;
                 db.ConnectPosts.Add(post);
                 db.SaveChanges();
                 return RedirectToAction("Index");

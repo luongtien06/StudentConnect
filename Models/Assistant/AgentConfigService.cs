@@ -76,6 +76,32 @@ namespace StudentConnect.Models.Assistant
         {
             if (c == null) return;
 
+            // Đảm bảo Model hợp lệ theo danh sách chính thức của Google Gemini API
+            if (string.IsNullOrWhiteSpace(c.PrimaryModel) || !Array.Exists(AgentConfigModel.SupportedModels, m => string.Equals(m, c.PrimaryModel, StringComparison.OrdinalIgnoreCase)))
+            {
+                c.PrimaryModel = "gemini-3.5-flash-lite";
+            }
+
+            if (c.FallbackModels == null || c.FallbackModels.Count == 0)
+            {
+                c.FallbackModels = new List<string> { "gemini-flash-lite-latest", "gemini-3.5-flash", "gemini-3.1-flash-lite" };
+            }
+            else
+            {
+                var cleanFallbacks = new List<string>();
+                foreach (var fb in c.FallbackModels)
+                {
+                    if (!string.IsNullOrWhiteSpace(fb) &&
+                        Array.Exists(AgentConfigModel.SupportedModels, m => string.Equals(m, fb.Trim(), StringComparison.OrdinalIgnoreCase)) &&
+                        !cleanFallbacks.Contains(fb.Trim()) &&
+                        !string.Equals(fb.Trim(), c.PrimaryModel, StringComparison.OrdinalIgnoreCase))
+                    {
+                        cleanFallbacks.Add(fb.Trim());
+                    }
+                }
+                c.FallbackModels = cleanFallbacks.Count > 0 ? cleanFallbacks : new List<string> { "gemini-flash-lite-latest", "gemini-3.5-flash", "gemini-3.1-flash-lite" };
+            }
+
             // Đảm bảo trạng thái Agent hợp lệ
             if (c.AgentStatus != "Active" && c.AgentStatus != "Maintenance" && c.AgentStatus != "Disabled")
             {

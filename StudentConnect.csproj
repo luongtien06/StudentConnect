@@ -85,9 +85,7 @@
     <Reference Include="System" />
     <Reference Include="System.Data" />
     <Reference Include="System.Drawing" />
-
     <Reference Include="System.IO.Compression" />
-
     <Reference Include="System.IO.Compression.FileSystem" />
     <Reference Include="System.Runtime.Serialization" />
     <Reference Include="System.Security" />
@@ -182,10 +180,10 @@
     <Compile Include="Helpers\EmailService.cs" />
     <Compile Include="Helpers\OtpHelper.cs" />
     <Compile Include="Helpers\StudentEmailValidator.cs" />
+    <Compile Include="Helpers\DateTimeHelper.cs" />
     <Compile Include="Helpers\SocialHelper.cs" />
     <Compile Include="Helpers\StoryHelper.cs" />
     <Compile Include="Helpers\DefaultImagePlaceholders.cs" />
-
     <Compile Include="Helpers\ChatFileModerationHelper.cs" />
     <Compile Include="Models\AgentActionLog.cs">
       <DependentUpon>TDMUEcoSystemModel.tt</DependentUpon>
@@ -218,7 +216,6 @@
     <Compile Include="Models\Assistant\ChatResponse.cs" />
     <Compile Include="Models\Assistant\SocialTools.cs" />
     <Compile Include="Models\Assistant\AgentGuardService.cs" />
-
     <Compile Include="Models\SocialConstants.cs" />
     <Compile Include="Models\SocialModelExtensions.cs" />
     <Compile Include="Models\SocialViewModels.cs" />
@@ -353,7 +350,6 @@
     <Content Include="Content\Images\default-market.jpg" />
     <Content Include="Content\Images\639086891642723396_eren-yeager.jpg" />
     <Content Include="Content\Images\639087398699938676_eren-yeager-attack.jpg" />
-
     <EntityDeploy Include="Models\TDMUEcoSystemModel.edmx">
       <Generator>EntityModelCodeGenerator</Generator>
       <LastGenOutput>TDMUEcoSystemModel.Designer.cs</LastGenOutput>
@@ -451,11 +447,8 @@
   <ItemGroup>
     <Folder Include="App_Data\" />
     <Folder Include="Areas\Admin\Data\" />
-    <Folder Include="Areas\Admin\Views\AdminBase\" />
-    <Folder Include="Content\Images\" />
     <Folder Include="Content\Uploads\Chat\" />
     <Folder Include="Content\Uploads\Market\" />
-    <Folder Include="Views\Base\" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="Content\bootstrap.rtl.min.css.map" />

@@ -15,14 +15,19 @@ namespace StudentConnect.Models.Assistant
 
     public class AgentConfigModel
     {
+        public static readonly string[] SupportedModels = new[]
+        {
+            "gemini-3.5-flash-lite",
+            "gemini-flash-lite-latest",
+            "gemini-3.5-flash"
+        };
+
         public string AgentName { get; set; } = "Trợ lý ảo Mr. T";
         public string PrimaryModel { get; set; } = "gemini-3.5-flash-lite";
         public List<string> FallbackModels { get; set; } = new List<string>
         {
             "gemini-flash-lite-latest",
-            "gemini-3.1-flash-lite",
-            "gemini-3.5-flash",
-            "gemini-3.8-flash"
+            "gemini-3.5-flash"
         };
 
         public double Temperature { get; set; } = 0.7;

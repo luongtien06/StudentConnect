@@ -1,3 +1,4 @@
+using StudentConnect.Helpers;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Data.Entity;
@@ -16,7 +17,7 @@ namespace StudentConnect.Models.Assistant
         {
             if (string.IsNullOrWhiteSpace(timeRange)) return null;
             string tr = timeRange.Trim().ToLowerInvariant();
-            var now = DateTime.UtcNow;
+            var now = DateTimeHelper.VietnamNow;
             if (tr == "today" || tr == "homnay") return now.Date;
             if (tr == "yesterday" || tr == "homqua") return now.Date.AddDays(-1);
             if (tr == "week" || tr == "tuannay") return now.AddDays(-7);
@@ -205,7 +206,7 @@ namespace StudentConnect.Models.Assistant
         {
             keyword = (keyword ?? "").Trim();
             limit = Math.Max(1, Math.Min(limit, 10));
-            var now = DateTime.UtcNow;
+            var now = DateTimeHelper.VietnamNow;
 
             var query = db.Stories
                 .AsNoTracking()
@@ -625,7 +626,7 @@ namespace StudentConnect.Models.Assistant
                     PostID = postId,
                     UserID = currentUserId,
                     LikeType = reactionType ?? "Like",
-                    CreatedAt = DateTime.UtcNow
+                    CreatedAt = DateTimeHelper.VietnamNow
                 };
                 db.PostLikes.Add(newLike);
                 actionTaken = "liked";
@@ -643,7 +644,7 @@ namespace StudentConnect.Models.Assistant
                         Message = senderName + " đã thích bài viết của bạn.",
                         Url = "/Post/Detail/" + postId,
                         IsRead = false,
-                        CreatedAt = DateTime.UtcNow,
+                        CreatedAt = DateTimeHelper.VietnamNow,
                         RefID = postId,
                         RefType = "post"
                     });
@@ -694,7 +695,7 @@ namespace StudentConnect.Models.Assistant
                 PostID = postId,
                 UserID = currentUserId,
                 Content = cleanContent,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTimeHelper.VietnamNow
             };
 
             db.PostComments.Add(comment);
@@ -713,7 +714,7 @@ namespace StudentConnect.Models.Assistant
                               (cleanContent.Length > 40 ? cleanContent.Substring(0, 40) + "..." : cleanContent) + "\"",
                     Url = "/Post/Detail/" + postId,
                     IsRead = false,
-                    CreatedAt = DateTime.UtcNow,
+                    CreatedAt = DateTimeHelper.VietnamNow,
                     RefID = postId,
                     RefType = "post"
                 });
@@ -771,7 +772,7 @@ namespace StudentConnect.Models.Assistant
                 {
                     FollowerID = currentUserId,
                     FollowingID = targetUserId,
-                    CreatedAt = DateTime.UtcNow
+                    CreatedAt = DateTimeHelper.VietnamNow
                 });
                 actionTaken = "followed";
 
@@ -786,7 +787,7 @@ namespace StudentConnect.Models.Assistant
                     Message = senderName + " đã bắt đầu theo dõi bạn.",
                     Url = "/User/Profile/" + currentUserId,
                     IsRead = false,
-                    CreatedAt = DateTime.UtcNow,
+                    CreatedAt = DateTimeHelper.VietnamNow,
                     RefID = currentUserId,
                     RefType = "user"
                 });
@@ -844,8 +845,8 @@ namespace StudentConnect.Models.Assistant
                     UserID = currentUserId,
                     Content = cleanContent,
                     Privacy = validPrivacy,
-                    CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow
+                    CreatedAt = DateTimeHelper.VietnamNow,
+                    UpdatedAt = DateTimeHelper.VietnamNow
                 };
 
                 db.Posts.Add(post);
@@ -896,7 +897,7 @@ namespace StudentConnect.Models.Assistant
                 else if (string.Equals(newPrivacy, "OnlyMe", StringComparison.OrdinalIgnoreCase)) post.Privacy = "OnlyMe";
             }
 
-            post.UpdatedAt = DateTime.UtcNow;
+            post.UpdatedAt = DateTimeHelper.VietnamNow;
             await db.SaveChangesAsync();
 
             return new JObject
@@ -949,7 +950,7 @@ namespace StudentConnect.Models.Assistant
                 Status = 1, // Đang bán
                 IsHide = false,
                 ViewCount = 0,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTimeHelper.VietnamNow
             };
 
             db.MarketPosts.Add(marketItem);
@@ -997,7 +998,8 @@ namespace StudentConnect.Models.Assistant
                 CategoryID = targetCatId,
                 Title = cleanTitle,
                 Description = (description ?? "").Trim(),
-                CreatedAt = DateTime.UtcNow
+                MainImage = StudentConnect.Helpers.DefaultImagePlaceholders.CoverPath,
+                CreatedAt = DateTimeHelper.VietnamNow
             };
 
             db.ConnectPosts.Add(connectItem);

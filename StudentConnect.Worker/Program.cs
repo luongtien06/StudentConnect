@@ -1,11 +1,14 @@
 using StudentConnect.Models.Assistant;
 using System;
+using System.Collections.Specialized;
 using System.Configuration;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Xml;
 
 namespace StudentConnect.Worker
 {
@@ -18,6 +21,9 @@ namespace StudentConnect.Worker
         {
             // Thiết lập TLS 1.2+
             ServicePointManager.SecurityProtocol |= SecurityProtocolType.Tls12;
+
+            // Tự động nạp cấu hình bí mật từ Config/AppSettings.config & Config/ConnectionStrings.config nếu chạy local/test
+            LoadConfigurationFallbacks();
 
             // Xử lý cờ lệnh dòng lệnh
             bool runOnce = args.Any(a => a.Equals("--once", StringComparison.OrdinalIgnoreCase));
@@ -156,6 +162,108 @@ namespace StudentConnect.Worker
                 }
             }
             return Path.Combine(appData, "worker.log");
+        }
+
+        private static void LoadConfigurationFallbacks()
+        {
+            string baseDir = AppDomain.CurrentDomain.BaseDirectory;
+            string configDir = FindConfigDirectory(baseDir);
+            if (string.IsNullOrEmpty(configDir)) return;
+
+            // 1. AppSettings fallback (GEMINI_API_KEY & Model)
+            string appSettingsPath = Path.Combine(configDir, "AppSettings.config");
+            if (File.Exists(appSettingsPath))
+            {
+                try
+                {
+                    var doc = new XmlDocument();
+                    doc.Load(appSettingsPath);
+                    var keyNode = doc.SelectSingleNode("//add[@key='GeminiApiKey']");
+                    string keyVal = keyNode?.Attributes?["value"]?.Value;
+                    if (!string.IsNullOrWhiteSpace(keyVal) && string.IsNullOrWhiteSpace(ConfigurationManager.AppSettings["GeminiApiKey"]))
+                    {
+                        Environment.SetEnvironmentVariable("GEMINI_API_KEY", keyVal);
+                        
+                        try
+                        {
+                            var appSettings = ConfigurationManager.AppSettings;
+                            var readOnlyField = typeof(NameObjectCollectionBase).GetField("_readOnly", BindingFlags.Instance | BindingFlags.NonPublic);
+                            readOnlyField?.SetValue(appSettings, false);
+                            appSettings["GeminiApiKey"] = keyVal;
+                            readOnlyField?.SetValue(appSettings, true);
+                        }
+                        catch { }
+                    }
+
+                    var modelNode = doc.SelectSingleNode("//add[@key='GeminiModel']");
+                    string modelVal = modelNode?.Attributes?["value"]?.Value;
+                    if (!string.IsNullOrWhiteSpace(modelVal))
+                    {
+                        try
+                        {
+                            var appSettings = ConfigurationManager.AppSettings;
+                            var readOnlyField = typeof(NameObjectCollectionBase).GetField("_readOnly", BindingFlags.Instance | BindingFlags.NonPublic);
+                            readOnlyField?.SetValue(appSettings, false);
+                            appSettings["GeminiModel"] = modelVal;
+                            readOnlyField?.SetValue(appSettings, true);
+                        }
+                        catch { }
+                    }
+                }
+                catch { }
+            }
+
+            // 2. ConnectionStrings fallback
+            string connStringsPath = Path.Combine(configDir, "ConnectionStrings.config");
+            if (File.Exists(connStringsPath))
+            {
+                try
+                {
+                    var doc = new XmlDocument();
+                    doc.Load(connStringsPath);
+                    var connNode = doc.SelectSingleNode("//add[@name='TDMUEcoSystemEntities']");
+                    string connStr = connNode?.Attributes?["connectionString"]?.Value;
+                    if (!string.IsNullOrWhiteSpace(connStr))
+                    {
+                        var currentConn = ConfigurationManager.ConnectionStrings["TDMUEcoSystemEntities"];
+                        if (currentConn == null || string.IsNullOrWhiteSpace(currentConn.ConnectionString) || currentConn.ConnectionString.Contains("YOUR_SERVER"))
+                        {
+                            var coll = ConfigurationManager.ConnectionStrings;
+                            var fColl = typeof(ConfigurationElementCollection).GetField("bReadOnly", BindingFlags.Instance | BindingFlags.NonPublic);
+                            fColl?.SetValue(coll, false);
+
+                            if (currentConn == null)
+                            {
+                                coll.Add(new ConnectionStringSettings("TDMUEcoSystemEntities", connStr, "System.Data.EntityClient"));
+                            }
+                            else
+                            {
+                                var fElem = typeof(ConfigurationElement).GetField("_bReadOnly", BindingFlags.Instance | BindingFlags.NonPublic);
+                                fElem?.SetValue(currentConn, false);
+                                currentConn.ConnectionString = connStr;
+                                fElem?.SetValue(currentConn, true);
+                            }
+                            fColl?.SetValue(coll, true);
+                        }
+                    }
+                }
+                catch { }
+            }
+        }
+
+        private static string FindConfigDirectory(string startDir)
+        {
+            var dir = new DirectoryInfo(startDir);
+            for (int i = 0; i < 5 && dir != null; i++)
+            {
+                string candidate = Path.Combine(dir.FullName, "Config");
+                if (Directory.Exists(candidate) && File.Exists(Path.Combine(candidate, "ConnectionStrings.config")))
+                {
+                    return candidate;
+                }
+                dir = dir.Parent;
+            }
+            return null;
         }
     }
 }

@@ -1,3 +1,4 @@
+using StudentConnect.Helpers;
 using PagedList;
 using StudentConnect.Models;
 using System;
@@ -157,7 +158,7 @@ namespace StudentConnect.Controllers
             if (ModelState.IsValid)
             {
                 baiDangMoi.UserID = (int)Session["UserID"];
-                baiDangMoi.CreatedAt = DateTime.Now;
+                baiDangMoi.CreatedAt = DateTimeHelper.VietnamNow;
                 baiDangMoi.Status = 1;
 
                 var savedImagePaths = new List<string>();
@@ -242,7 +243,7 @@ namespace StudentConnect.Controllers
                     PostID = PostID,
                     UserID = currentUserId,
                     Comment = Content,
-                    CreatedAt = DateTime.Now,
+                    CreatedAt = DateTimeHelper.VietnamNow,
                     PostType = "Market",
                     RatingStar = 5
                 };
@@ -293,7 +294,7 @@ namespace StudentConnect.Controllers
                 PostID = postId,
                 UserID = currentUserId,
                 Comment = content.Trim(),
-                CreatedAt = DateTime.Now,
+                CreatedAt = DateTimeHelper.VietnamNow,
                 PostType = "Market",
                 RatingStar = 5
             };
@@ -524,7 +525,7 @@ namespace StudentConnect.Controllers
                     PostID = postId,
                     BuyerID = myId,
                     SellerID = sellerId,
-                    CreatedAt = DateTime.Now
+                    CreatedAt = DateTimeHelper.VietnamNow
                 };
                 db.MarketChatRooms.Add(marketRoom);
                 db.SaveChanges();
@@ -555,7 +556,7 @@ namespace StudentConnect.Controllers
                 var newRoom = new ChatRoom
                 {
                     RoomType = "1vs1",
-                    CreatedAt = DateTime.Now,
+                    CreatedAt = DateTimeHelper.VietnamNow,
                     IsActive = true
                 };
                 db.ChatRooms.Add(newRoom);

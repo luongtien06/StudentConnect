@@ -1,3 +1,4 @@
+using StudentConnect.Helpers;
 using Newtonsoft.Json;
 using StudentConnect.Models;
 using StudentConnect.Models.Assistant;
@@ -75,7 +76,8 @@ namespace StudentConnect.Areas.Admin.Controllers
             ViewBag.CanManageContent = perm.CanManageContent;
             ViewBag.CanInteract = perm.CanInteract;
             ViewBag.CanReadData = perm.CanReadData;
-            ViewBag.CanDeleteLogs = false; // Chỉ Admin tối cao mới được quyền xóa nhật ký
+            ViewBag.CanDeleteLogs = string.Equals(currentRole, "AdminAiAgent", StringComparison.OrdinalIgnoreCase) || 
+                                    (perm.CanManageContent && perm.CanAutomation);
         }
 
         private void DenyAccess(ActionExecutingContext filterContext, string message)
@@ -133,6 +135,14 @@ namespace StudentConnect.Areas.Admin.Controllers
                     break;
                 case "ReadData":
                     if (!perm.CanReadData) { errorMsg = "Bạn không có quyền xem dữ liệu và nhật ký."; return false; }
+                    break;
+                case "DeleteLogs":
+                    if (!string.Equals(currentRole, "AdminAiAgent", StringComparison.OrdinalIgnoreCase) && 
+                        (!perm.CanManageContent || !perm.CanAutomation))
+                    {
+                        errorMsg = "Bạn không có quyền dọn dẹp hoặc xóa nhật ký kiểm toán AI Agent.";
+                        return false;
+                    }
                     break;
                 case "SuperAdminOnly":
                     errorMsg = "Chức năng này chỉ dành riêng cho Admin tối cao (SuperAdmin).";
@@ -429,22 +439,23 @@ namespace StudentConnect.Areas.Admin.Controllers
             if (!CheckPermission("ReadData", out string err))
                 return Json(new { success = false, message = err }, JsonRequestBehavior.AllowGet);
 
-            var runs = await db.AgentTaskRuns
+            var rawRuns = await db.AgentTaskRuns
                 .Where(r => r.TaskID == taskId)
                 .OrderByDescending(r => r.StartedAt)
                 .Take(50)
-                .Select(r => new
-                {
-                    r.RunID,
-                    r.TaskID,
-                    r.Status,
-                    StartedAt = r.StartedAt.ToString("dd/MM/yyyy HH:mm:ss"),
-                    FinishedAt = r.FinishedAt.HasValue ? r.FinishedAt.Value.ToString("dd/MM/yyyy HH:mm:ss") : "—",
-                    r.AttemptCount,
-                    r.ResultSummary,
-                    r.ErrorMessage
-                })
                 .ToListAsync();
+
+            var runs = rawRuns.Select(r => new
+            {
+                r.RunID,
+                r.TaskID,
+                r.Status,
+                StartedAt = r.StartedAt.ToString("dd/MM/yyyy HH:mm:ss"),
+                FinishedAt = r.FinishedAt.HasValue ? r.FinishedAt.Value.ToString("dd/MM/yyyy HH:mm:ss") : "—",
+                r.AttemptCount,
+                r.ResultSummary,
+                r.ErrorMessage
+            }).ToList();
 
             return Json(new { success = true, runs }, JsonRequestBehavior.AllowGet);
         }
@@ -488,7 +499,15 @@ namespace StudentConnect.Areas.Admin.Controllers
 
             if (!string.IsNullOrWhiteSpace(status) && status != "All")
             {
-                query = query.Where(l => l.Status == status);
+                if (string.Equals(status, "Success", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(status, "Succeeded", StringComparison.OrdinalIgnoreCase))
+                {
+                    query = query.Where(l => l.Status == "Succeeded" || l.Status == "Success");
+                }
+                else
+                {
+                    query = query.Where(l => l.Status == status);
+                }
             }
 
             if (!string.IsNullOrWhiteSpace(actionName) && actionName != "All")
@@ -498,25 +517,26 @@ namespace StudentConnect.Areas.Admin.Controllers
 
             if (!string.IsNullOrWhiteSpace(dateRange))
             {
-                DateTime nowUtc = DateTime.UtcNow;
                 if (dateRange == "today")
                 {
-                    DateTime today = nowUtc.Date;
-                    query = query.Where(l => l.CreatedAt >= today);
+                    DateTime todayStartUtc = DateTimeHelper.VietnamToUtc(DateTimeHelper.VietnamNow.Date);
+                    query = query.Where(l => l.CreatedAt >= todayStartUtc);
                 }
                 else if (dateRange == "7days")
                 {
-                    DateTime sevenDaysAgo = nowUtc.AddDays(-7);
+                    DateTime sevenDaysAgo = DateTime.UtcNow.AddDays(-7);
                     query = query.Where(l => l.CreatedAt >= sevenDaysAgo);
                 }
                 else if (dateRange == "30days")
                 {
-                    DateTime thirtyDaysAgo = nowUtc.AddDays(-30);
+                    DateTime thirtyDaysAgo = DateTime.UtcNow.AddDays(-30);
                     query = query.Where(l => l.CreatedAt >= thirtyDaysAgo);
                 }
             }
 
-            var logs = await query.OrderByDescending(l => l.CreatedAt).Take(200).Select(l => new
+            var rawLogs = await query.OrderByDescending(l => l.CreatedAt).Take(200).ToListAsync();
+
+            var logs = rawLogs.Select(l => new
             {
                 l.LogID,
                 UserName = l.User != null ? (l.User.DisplayName ?? l.User.Username) : ("User #" + l.UserID),
@@ -528,7 +548,7 @@ namespace StudentConnect.Areas.Admin.Controllers
                 ResultSnippet = l.ResultSummary != null && l.ResultSummary.Length > 80 ? l.ResultSummary.Substring(0, 80) + "..." : l.ResultSummary,
                 l.ErrorMessage,
                 CreatedAtFormatted = l.CreatedAt.ToString("dd/MM/yyyy HH:mm:ss")
-            }).ToListAsync();
+            }).ToList();
 
             return Json(new { success = true, logs }, JsonRequestBehavior.AllowGet);
         }
@@ -566,24 +586,305 @@ namespace StudentConnect.Areas.Admin.Controllers
             }, JsonRequestBehavior.AllowGet);
         }
 
+        /// <summary>
+        /// Xem trước số lượng bản ghi thỏa mãn điều kiện dọn dẹp nhật ký (Read-only Preview)
+        /// </summary>
+        [HttpGet]
+        public async Task<JsonResult> CountLogsToDelete(string scope = "today", int days = 1, string status = "All")
+        {
+            if (!CheckPermission("ReadData", out string err))
+                return Json(new { success = false, message = err }, JsonRequestBehavior.AllowGet);
+
+            try
+            {
+                var (count, desc) = await BuildLogsDeleteQueryCriteria(scope, days, status);
+                return Json(new { success = true, count = count, criteriaDesc = desc }, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message }, JsonRequestBehavior.AllowGet);
+            }
+        }
+
+        private async Task<(int count, string desc)> BuildLogsDeleteQueryCriteria(string scope, int days, string status)
+        {
+            IQueryable<AgentActionLog> query = db.AgentActionLogs;
+
+            // 1. Ánh xạ trạng thái linh hoạt
+            string statusDesc = "tất cả trạng thái";
+            if (string.Equals(status, "Success", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(status, "Succeeded", StringComparison.OrdinalIgnoreCase))
+            {
+                query = query.Where(l => l.Status == "Succeeded" || l.Status == "Success");
+                statusDesc = "trạng thái Thành công (Succeeded)";
+            }
+            else if (string.Equals(status, "Failed", StringComparison.OrdinalIgnoreCase))
+            {
+                query = query.Where(l => l.Status == "Failed");
+                statusDesc = "trạng thái Thất bại (Failed)";
+            }
+            else if (string.Equals(status, "Pending", StringComparison.OrdinalIgnoreCase))
+            {
+                query = query.Where(l => l.Status == "Pending");
+                statusDesc = "trạng thái Chờ xác nhận (Pending)";
+            }
+            else if (!string.IsNullOrWhiteSpace(status) && !string.Equals(status, "All", StringComparison.OrdinalIgnoreCase))
+            {
+                query = query.Where(l => l.Status == status);
+                statusDesc = $"trạng thái '{status}'";
+            }
+
+            // 2. Ánh xạ mốc thời gian chuẩn hóa
+            string timeDesc = "";
+            if (string.Equals(scope, "all", StringComparison.OrdinalIgnoreCase))
+            {
+                timeDesc = "toàn bộ thời gian";
+            }
+            else if (string.Equals(scope, "today", StringComparison.OrdinalIgnoreCase) || scope == "1" || (scope == "range" && days == 1))
+            {
+                DateTime todayStartUtc = DateTimeHelper.VietnamToUtc(DateTimeHelper.VietnamNow.Date);
+                query = query.Where(l => l.CreatedAt < todayStartUtc);
+                timeDesc = $"cũ hơn hôm nay (trước {DateTimeHelper.VietnamNow.Date:dd/MM/yyyy})";
+            }
+            else
+            {
+                int safeDays = days > 0 ? days : 7;
+                DateTime cutoffUtc = DateTime.UtcNow.AddDays(-safeDays);
+                query = query.Where(l => l.CreatedAt < cutoffUtc);
+                timeDesc = $"cũ hơn {safeDays} ngày (trước {cutoffUtc.ToLocalTime():dd/MM/yyyy HH:mm})";
+            }
+
+            int count = await query.CountAsync();
+            return (count, $"{timeDesc}, {statusDesc}");
+        }
+
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<JsonResult> DeleteOldLogs(int days)
+        public async Task<JsonResult> DeleteOldLogs(string scope = "today", int days = 1, string status = "All")
         {
-            if (!CheckPermission("SuperAdminOnly", out string err))
+            if (!CheckPermission("DeleteLogs", out string err))
                 return Json(new { success = false, message = err });
 
-            if (days < 1) days = 30;
-            DateTime cutoff = DateTime.UtcNow.AddDays(-days);
+            // Rào chắn bảo vệ an toàn: Ngăn chặn xóa nhầm toàn bộ nếu days <= 0 mà không chọn rõ ràng 'all'
+            if (!string.Equals(scope, "all", StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(scope, "today", StringComparison.OrdinalIgnoreCase) &&
+                scope != "1" && days <= 0)
+            {
+                return Json(new { success = false, message = "Vui lòng chọn phạm vi thời gian hoặc nhập số ngày hợp lệ (tối thiểu 1 ngày)." });
+            }
 
-            int deleted = await db.Database.ExecuteSqlCommandAsync(
-                "DELETE FROM dbo.AgentActionLogs WHERE CreatedAt < @p0", cutoff);
+            try
+            {
+                bool isAll = string.Equals(scope, "all", StringComparison.OrdinalIgnoreCase);
+                bool isBeforeToday = string.Equals(scope, "today", StringComparison.OrdinalIgnoreCase) || scope == "1" || (scope == "range" && days == 1);
 
-            LogAdminAction("delete_old_logs", "AgentActionLog", null, "Success",
-                JsonConvert.SerializeObject(new { days, cutoff }),
-                $"Đã dọn dẹp và xóa {deleted} bản ghi nhật ký cũ hơn {days} ngày.");
+                bool isSuccessStatus = string.Equals(status, "Success", StringComparison.OrdinalIgnoreCase) ||
+                                       string.Equals(status, "Succeeded", StringComparison.OrdinalIgnoreCase);
+                bool isSpecificStatus = !string.IsNullOrWhiteSpace(status) && !string.Equals(status, "All", StringComparison.OrdinalIgnoreCase);
 
-            return Json(new { success = true, message = $"Đã xóa thành công {deleted} bản ghi nhật ký cũ hơn {days} ngày!", deletedCount = deleted });
+                DateTime? cutoffUtc = null;
+                string criteriaDesc = "";
+
+                if (isAll)
+                {
+                    criteriaDesc = "toàn bộ nhật ký";
+                }
+                else if (isBeforeToday)
+                {
+                    cutoffUtc = DateTimeHelper.VietnamToUtc(DateTimeHelper.VietnamNow.Date);
+                    criteriaDesc = $"nhật ký cũ hơn hôm nay (trước {DateTimeHelper.VietnamNow.Date:dd/MM/yyyy})";
+                }
+                else
+                {
+                    int safeDays = days > 0 ? days : 7;
+                    cutoffUtc = DateTime.UtcNow.AddDays(-safeDays);
+                    criteriaDesc = $"nhật ký cũ hơn {safeDays} ngày (trước {cutoffUtc.Value.ToLocalTime():dd/MM/yyyy HH:mm})";
+                }
+
+                if (isSuccessStatus)
+                {
+                    criteriaDesc += " [trạng thái Thành công]";
+                }
+                else if (isSpecificStatus)
+                {
+                    criteriaDesc += $" [trạng thái '{status}']";
+                }
+
+                int deleted = 0;
+                using (var trans = db.Database.BeginTransaction())
+                {
+                    if (isAll)
+                    {
+                        if (!isSpecificStatus)
+                        {
+                            deleted = await db.Database.ExecuteSqlCommandAsync("DELETE FROM dbo.AgentActionLogs");
+                        }
+                        else if (isSuccessStatus)
+                        {
+                            deleted = await db.Database.ExecuteSqlCommandAsync("DELETE FROM dbo.AgentActionLogs WHERE Status IN ('Success', 'Succeeded')");
+                        }
+                        else
+                        {
+                            deleted = await db.Database.ExecuteSqlCommandAsync("DELETE FROM dbo.AgentActionLogs WHERE Status = @p0", status);
+                        }
+                    }
+                    else
+                    {
+                        if (!isSpecificStatus)
+                        {
+                            deleted = await db.Database.ExecuteSqlCommandAsync("DELETE FROM dbo.AgentActionLogs WHERE CreatedAt < @p0", cutoffUtc.Value);
+                        }
+                        else if (isSuccessStatus)
+                        {
+                            deleted = await db.Database.ExecuteSqlCommandAsync("DELETE FROM dbo.AgentActionLogs WHERE CreatedAt < @p0 AND Status IN ('Success', 'Succeeded')", cutoffUtc.Value);
+                        }
+                        else
+                        {
+                            deleted = await db.Database.ExecuteSqlCommandAsync("DELETE FROM dbo.AgentActionLogs WHERE CreatedAt < @p0 AND Status = @p1", cutoffUtc.Value, status);
+                        }
+                    }
+                    trans.Commit();
+                }
+
+                int remainingCount = await db.AgentActionLogs.CountAsync();
+
+                LogAdminAction("delete_old_logs", "AgentActionLog", null, "Success",
+                    JsonConvert.SerializeObject(new { scope, days, status, deletedCount = deleted }),
+                    $"Đã dọn dẹp và xóa {deleted} bản ghi ({criteriaDesc}). Còn lại: {remainingCount} bản ghi.");
+
+                if (deleted == 0)
+                {
+                    return Json(new
+                    {
+                        success = true,
+                        deletedCount = 0,
+                        remainingCount = remainingCount,
+                        message = $"Không có bản ghi nhật ký nào thỏa mãn điều kiện ({criteriaDesc}) để dọn dẹp."
+                    });
+                }
+
+                return Json(new
+                {
+                    success = true,
+                    deletedCount = deleted,
+                    remainingCount = remainingCount,
+                    message = $"Đã dọn dẹp thành công {deleted} bản ghi ({criteriaDesc})! (Còn lại {remainingCount} bản ghi)"
+                });
+            }
+            catch (Exception ex)
+            {
+                return Json(new
+                {
+                    success = false,
+                    message = "Đã xảy ra lỗi khi dọn dẹp nhật ký: " + ex.Message
+                });
+            }
+        }
+
+        /// <summary>
+        /// Xóa hàng loạt các bản ghi nhật ký được chọn trực tiếp qua checkbox
+        /// </summary>
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<JsonResult> DeleteSelectedLogs(long[] logIds)
+        {
+            if (!CheckPermission("DeleteLogs", out string err))
+                return Json(new { success = false, message = err });
+
+            if (logIds == null || logIds.Length == 0)
+            {
+                var rawIds = Request.Form.GetValues("logIds[]") ?? Request.Form.GetValues("logIds");
+                if (rawIds != null && rawIds.Length > 0)
+                {
+                    logIds = rawIds.Select(s => long.TryParse(s, out var v) ? v : 0).Where(v => v > 0).ToArray();
+                }
+            }
+
+            if (logIds == null || logIds.Length == 0)
+                return Json(new { success = false, message = "Vui lòng chọn ít nhất một bản ghi nhật ký để xóa." });
+
+            if (logIds.Length > 200)
+                return Json(new { success = false, message = "Mỗi lần chỉ được chọn xóa tối đa 200 bản ghi." });
+
+            var validIds = logIds.Where(id => id > 0).Distinct().ToList();
+            if (validIds.Count == 0)
+                return Json(new { success = false, message = "Danh sách mã bản ghi không hợp lệ." });
+
+            try
+            {
+                int deleted = 0;
+                using (var trans = db.Database.BeginTransaction())
+                {
+                    string idList = string.Join(",", validIds);
+                    deleted = await db.Database.ExecuteSqlCommandAsync($"DELETE FROM dbo.AgentActionLogs WHERE LogID IN ({idList})");
+                    trans.Commit();
+                }
+
+                int remainingCount = await db.AgentActionLogs.CountAsync();
+
+                LogAdminAction("delete_selected_logs", "AgentActionLog", null, "Success",
+                    JsonConvert.SerializeObject(new { count = validIds.Count, deletedCount = deleted }),
+                    $"Đã xóa thủ công {deleted} bản ghi nhật ký được chọn. Còn lại: {remainingCount} bản ghi.");
+
+                return Json(new
+                {
+                    success = true,
+                    deletedCount = deleted,
+                    remainingCount = remainingCount,
+                    message = $"Đã xóa thành công {deleted} bản ghi nhật ký được chọn!"
+                });
+            }
+            catch (Exception ex)
+            {
+                return Json(new
+                {
+                    success = false,
+                    message = "Lỗi khi xóa các bản ghi được chọn: " + ex.Message
+                });
+            }
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<JsonResult> DeleteSingleLog(long logId)
+        {
+            if (!CheckPermission("DeleteLogs", out string err))
+                return Json(new { success = false, message = err });
+
+            if (logId <= 0)
+                return Json(new { success = false, message = "Mã bản ghi nhật ký không hợp lệ." });
+
+            try
+            {
+                var log = await db.AgentActionLogs.FindAsync(logId);
+                if (log == null)
+                    return Json(new { success = false, message = "Không tìm thấy bản ghi nhật ký cần xóa." });
+
+                db.AgentActionLogs.Remove(log);
+                await db.SaveChangesAsync();
+
+                int remainingCount = await db.AgentActionLogs.CountAsync();
+
+                LogAdminAction("delete_single_log", "AgentActionLog", logId, "Success",
+                    JsonConvert.SerializeObject(new { logId }),
+                    $"Đã xóa bản ghi nhật ký #{logId}. Còn lại: {remainingCount} bản ghi.");
+
+                return Json(new
+                {
+                    success = true,
+                    deletedCount = 1,
+                    remainingCount = remainingCount,
+                    message = $"Đã xóa thành công bản ghi nhật ký #{logId}!"
+                });
+            }
+            catch (Exception ex)
+            {
+                return Json(new
+                {
+                    success = false,
+                    message = "Lỗi khi xóa bản ghi: " + ex.Message
+                });
+            }
         }
 
         // ══════════════════════════════════════════════════════
@@ -602,7 +903,12 @@ namespace StudentConnect.Areas.Admin.Controllers
             var currentConfig = AgentConfigService.GetConfig();
 
             currentConfig.AgentName = string.IsNullOrWhiteSpace(model.AgentName) ? "Trợ lý ảo Mr. T" : model.AgentName.Trim();
-            currentConfig.PrimaryModel = string.IsNullOrWhiteSpace(model.PrimaryModel) ? "gemini-3.5-flash-lite" : model.PrimaryModel.Trim();
+            string selectedModel = model.PrimaryModel?.Trim();
+            if (string.IsNullOrWhiteSpace(selectedModel) || !Array.Exists(AgentConfigModel.SupportedModels, m => string.Equals(m, selectedModel, StringComparison.OrdinalIgnoreCase)))
+            {
+                selectedModel = "gemini-1.5-flash";
+            }
+            currentConfig.PrimaryModel = selectedModel;
             currentConfig.Temperature = Math.Max(0.0, Math.Min(1.0, model.Temperature));
             currentConfig.MaxOutputTokens = Math.Max(256, Math.Min(8192, model.MaxOutputTokens));
             currentConfig.TopP = Math.Max(0.0, Math.Min(1.0, model.TopP));
@@ -798,25 +1104,54 @@ namespace StudentConnect.Areas.Admin.Controllers
         {
             try
             {
-                string email = Session["AdminEmail"] as string ?? "";
-                var user = db.Users.FirstOrDefault(u => u.Email == email);
-                int userId = user?.UserID ?? 1002;
-
-                var log = new AgentActionLog
+                using (var logDb = new Models.TDMUEcoSystemEntities())
                 {
-                    UserID = userId,
-                    ActionName = "[ADMIN] " + actionName,
-                    TargetType = targetType,
-                    TargetID = targetId,
-                    Status = status,
-                    InputSummary = inputSummary,
-                    ResultSummary = resultSummary,
-                    ErrorMessage = error,
-                    CreatedAt = DateTime.UtcNow
-                };
+                    string email = Session["AdminEmail"] as string ?? "";
+                    var user = !string.IsNullOrEmpty(email) ? logDb.Users.FirstOrDefault(u => u.Email == email) : null;
+                    int? userId = user?.UserID ?? Session["AdminID"] as int? ?? Session["UserID"] as int?;
+                    if (!userId.HasValue)
+                    {
+                        var anyAdmin = logDb.Users.FirstOrDefault(u => u.IsAdmin);
+                        userId = anyAdmin?.UserID;
+                    }
+                    if (!userId.HasValue) return;
 
-                db.AgentActionLogs.Add(log);
-                db.SaveChanges();
+                    // Chuẩn hóa status theo CHECK constraint CK_AgentActionLogs_Status:
+                    // ('Cancelled', 'Pending', 'Blocked', 'Failed', 'Succeeded')
+                    string safeStatus = "Succeeded";
+                    if (string.Equals(status, "Failed", StringComparison.OrdinalIgnoreCase))
+                    {
+                        safeStatus = "Failed";
+                    }
+                    else if (string.Equals(status, "Pending", StringComparison.OrdinalIgnoreCase))
+                    {
+                        safeStatus = "Pending";
+                    }
+                    else if (string.Equals(status, "Cancelled", StringComparison.OrdinalIgnoreCase))
+                    {
+                        safeStatus = "Cancelled";
+                    }
+                    else if (string.Equals(status, "Blocked", StringComparison.OrdinalIgnoreCase))
+                    {
+                        safeStatus = "Blocked";
+                    }
+
+                    var log = new AgentActionLog
+                    {
+                        UserID = userId.Value,
+                        ActionName = "[ADMIN] " + (actionName != null && actionName.Length > 90 ? actionName.Substring(0, 90) : actionName),
+                        TargetType = targetType,
+                        TargetID = targetId,
+                        Status = safeStatus,
+                        InputSummary = inputSummary,
+                        ResultSummary = resultSummary,
+                        ErrorMessage = error,
+                        CreatedAt = DateTime.UtcNow
+                    };
+
+                    logDb.AgentActionLogs.Add(log);
+                    logDb.SaveChanges();
+                }
             }
             catch { }
         }

@@ -1348,9 +1348,9 @@ namespace StudentConnect.Helpers
                     "Chưa cấu hình Gemini API Key. Đang áp dụng lớp bảo vệ an toàn kỹ thuật cục bộ.");
             }
 
-            string model = ConfigurationManager.AppSettings["GeminiModel"] ?? "gemini-3.5-flash-lite";
+            string model = ConfigurationManager.AppSettings["GeminiModel"] ?? "gemini-1.5-flash";
             model = (model ?? "").Trim();
-            if (string.IsNullOrWhiteSpace(model)) model = "gemini-3.5-flash-lite";
+            if (string.IsNullOrWhiteSpace(model)) model = "gemini-1.5-flash";
 
             // 4. Chuẩn bị ảnh nén/tối ưu kích thước (max 1024x1024, JPEG 75%)
             byte[] imageBytes = PrepareOptimizedImageBytes(imagePath);
@@ -1541,9 +1541,9 @@ namespace StudentConnect.Helpers
                 return (ModerationStatuses.AiApproved, true, "Tệp văn bản rỗng hoặc chỉ chứa khoảng trắng.");
             }
 
-            string model = ConfigurationManager.AppSettings["GeminiModel"] ?? "gemini-3.5-flash-lite";
+            string model = ConfigurationManager.AppSettings["GeminiModel"] ?? "gemini-1.5-flash";
             model = (model ?? "").Trim();
-            if (string.IsNullOrWhiteSpace(model)) model = "gemini-3.5-flash-lite";
+            if (string.IsNullOrWhiteSpace(model)) model = "gemini-1.5-flash";
 
             string escapedText = textContent.Replace("\\", "\\\\").Replace("\"", "\\\"").Replace("\r", " ").Replace("\n", " ");
             string prompt = "Analyze this user text attachment for chat safety (hate speech, sexual harassment, violent threats, illegal). Return JSON strictly: {\"isSafe\": true/false, \"violationCategory\": \"NONE\" or category, \"reason\": \"Vietnamese explanation\"}\nText to analyze:\n\"" + escapedText + "\"";

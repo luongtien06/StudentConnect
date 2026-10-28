@@ -641,9 +641,9 @@ namespace StudentConnect.Models.Assistant
 
             var config = AgentConfigService.GetConfig();
             if (config.AgentStatus == "Disabled")
-                return "Hệ thống AI Agent hiện đang bị tạm tắt bởi Quản trị viên.";
+                throw new InvalidOperationException("Hệ thống AI Agent hiện đang bị tạm tắt bởi Quản trị viên.");
             if (config.AgentStatus == "Maintenance")
-                return "Hệ thống AI Agent hiện đang trong chế độ bảo trì: " + config.StatusReason;
+                throw new InvalidOperationException("Hệ thống AI Agent hiện đang trong chế độ bảo trì: " + config.StatusReason);
 
             var systemInstruction = GetSystemInstruction(userId);
             var tools = GetGeminiTools();
@@ -784,6 +784,11 @@ namespace StudentConnect.Models.Assistant
                         finalSummary = "Đã tự động đăng bài viết mới #" + newPostId + ": " + lastTextResponse;
                     }
                 }
+            }
+
+            if (actionsExecutedCount == 0 && string.IsNullOrWhiteSpace(lastTextResponse) && finalSummary == "Đã thực hiện tác vụ tự động.")
+            {
+                throw new InvalidOperationException("Mô hình AI không sinh ra hành động hoặc câu trả lời nào cho tác vụ này.");
             }
 
             return finalSummary;
@@ -947,15 +952,8 @@ namespace StudentConnect.Models.Assistant
 
                 string postTitle = (string)verify["title"] ?? ("#" + delPostId);
 
-                // 2. Nếu người dùng đã nói rõ xác nhận:
-                if (isConfirmed)
-                {
-                    var delRes = await _tools.DeletePostAsync(db, delPostId, delItemType, userId);
-                    await _auditService.LogActionAsync(db, userId, toolName, targetType, targetId, "Succeeded", inputSummary, delRes.ToString(Formatting.None), null, runId, conversationId);
-                    return delRes;
-                }
-
-                // 3. Nếu chưa xác nhận: tạo Pending Confirmation
+                // 2. Bắt buộc kích hoạt Human-in-the-Loop: Mọi yêu cầu xóa bài đều tạo Thẻ xác nhận duyệt (Zero-Trust)
+                // Ngăn chặn triệt để rủi ro prompt injection hoặc ngộ nhận lời nói từ chối/đồng ý
                 var pendingConf = await _confirmService.CreatePendingConfirmationAsync(
                     db,
                     userId,

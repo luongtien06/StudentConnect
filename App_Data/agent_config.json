@@ -3,9 +3,7 @@
   "PrimaryModel": "gemini-3.5-flash-lite",
   "FallbackModels": [
     "gemini-flash-lite-latest",
-    "gemini-3.1-flash-lite",
-    "gemini-3.5-flash",
-    "gemini-3.8-flash"
+    "gemini-3.5-flash"
   ],
   "Temperature": 0.7,
   "MaxOutputTokens": 2048,
@@ -16,6 +14,22 @@
   "CustomSystemPrompt": "",
   "SchedulerEnabled": true,
   "SchedulerIntervalSeconds": 30,
+  "MaxActiveTasksPerUser": 5,
+  "MaxDailyTaskRunsPerUser": 10,
+  "MaxConcurrentRunsPerUser": 1,
+  "MinIntervalBetweenRunsMinutes": 5,
+  "MaxMutatingActionsPerRun": 5,
+  "MaxTaskRetryAttempts": 3,
+  "TaskTimeoutSeconds": 90,
+  "MaxDailyPostsPerUser": 50,
+  "MaxDailyCommentsPerUser": 20,
+  "MaxDailyReactionsPerUser": 30,
+  "MaxDailyFollowsPerUser": 10,
+  "DuplicateCheckWindowHours": 2,
+  "DuplicateSimilarityThreshold": 0.85,
+  "MaxDailyGeminiRequestsPerUser": 500,
+  "MaxDailyGeminiRequestsGlobal": 1000,
+  "MaxConcurrentGeminiRequestsGlobal": 5,
   "Tools": {
     "search_posts": {
       "ToolName": "search_posts",
@@ -122,22 +136,6 @@
       "IsSensitive": false
     }
   },
-  "LastUpdatedUtc": "2026-10-20T18:20:52.4078342Z",
-  "LastUpdatedBy": "Tien_Admin1",
-  "MaxActiveTasksPerUser": 5,
-  "MaxDailyTaskRunsPerUser": 10,
-  "MaxConcurrentRunsPerUser": 1,
-  "MinIntervalBetweenRunsMinutes": 5,
-  "MaxMutatingActionsPerRun": 5,
-  "MaxTaskRetryAttempts": 3,
-  "TaskTimeoutSeconds": 90,
-  "MaxDailyPostsPerUser": 5,
-  "MaxDailyCommentsPerUser": 20,
-  "MaxDailyReactionsPerUser": 30,
-  "MaxDailyFollowsPerUser": 10,
-  "DuplicateCheckWindowHours": 2,
-  "DuplicateSimilarityThreshold": 0.85,
-  "MaxDailyGeminiRequestsPerUser": 50,
-  "MaxDailyGeminiRequestsGlobal": 1000,
-  "MaxConcurrentGeminiRequestsGlobal": 5
+  "LastUpdatedUtc": "2026-10-28T08:17:57.3792337Z",
+  "LastUpdatedBy": "Tien_AdminS"
 }

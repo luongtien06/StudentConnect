@@ -81,7 +81,7 @@ namespace StudentConnect.Controllers
         public JsonResult GetUserStories(int userId)
         {
             int currentUserId = Session["UserID"] != null ? (int)Session["UserID"] : 0;
-            var now = DateTime.Now;
+            var now = DateTimeHelper.VietnamNow;
 
             var user = db.Users
                 .Include(u => u.UserProfiles)
@@ -215,7 +215,7 @@ namespace StudentConnect.Controllers
                     }
                 }
 
-                var now = DateTime.Now;
+                var now = DateTimeHelper.VietnamNow;
                 var story = new Story
                 {
                     UserID = currentUserId,
@@ -269,7 +269,7 @@ namespace StudentConnect.Controllers
             }
 
             int currentUserId = (int)Session["UserID"];
-            var now = DateTime.Now;
+            var now = DateTimeHelper.VietnamNow;
 
             var story = db.Stories.FirstOrDefault(s => s.StoryID == storyId && s.ExpiresAt > now);
             if (story == null)
@@ -523,7 +523,7 @@ namespace StudentConnect.Controllers
             }
 
             int currentUserId = (int)Session["UserID"];
-            var now = DateTime.Now;
+            var now = DateTimeHelper.VietnamNow;
 
             var stories = db.Stories
                 .Include(s => s.StoryViews)
@@ -602,7 +602,7 @@ namespace StudentConnect.Controllers
 
             int currentUserId = (int)Session["UserID"];
             var ids = storyIds.Distinct().ToList();
-            var now = DateTime.Now;
+            var now = DateTimeHelper.VietnamNow;
             var stories = db.Stories.Include(s => s.StoryViews)
                 .Where(s => s.UserID == currentUserId && ids.Contains(s.StoryID) && s.ExpiresAt <= now)
                 .ToList();
@@ -808,7 +808,7 @@ namespace StudentConnect.Controllers
             if (existingRoomId.HasValue && existingRoomId.Value > 0)
                 return existingRoomId.Value;
 
-            var newRoom = new ChatRoom { RoomType = "1vs1", CreatedAt = DateTime.Now, IsActive = true };
+            var newRoom = new ChatRoom { RoomType = "1vs1", CreatedAt = DateTimeHelper.VietnamNow, IsActive = true };
             db.ChatRooms.Add(newRoom);
             db.SaveChanges();
 
@@ -859,7 +859,7 @@ namespace StudentConnect.Controllers
 
         private List<UserStoryGroupViewModel> LoadActiveStoryGroups(int currentUserId)
         {
-            var now = DateTime.Now;
+            var now = DateTimeHelper.VietnamNow;
 
             // Lấy tất cả tin còn hiệu lực (< 24 giờ kể từ lúc tạo)
             var activeStories = db.Stories

@@ -1,8 +1,9 @@
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Configuration;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Text;
@@ -24,13 +25,32 @@ namespace StudentConnect.Models.Assistant
                             ?? Environment.GetEnvironmentVariable("GEMINI_API_KEY")
                             ?? "";
 
-            // Xử lý khoảng trắng thừa hoặc dấu ngoặc kép vô tình dán vào
             ApiKey = (rawKey ?? "").Trim().Trim('"', '\'');
-
             AgentName = ConfigurationManager.AppSettings["GeminiAgentName"] ?? "Trợ lý ảo Mr. T";
 
-            // Ưu tiên gemini-3.5-flash-lite hoạt động ổn định và dồi dào quota nhất
-            Model = ConfigurationManager.AppSettings["GeminiModel"] ?? "gemini-3.5-flash-lite";
+            // Ưu tiên đọc model từ cấu hình động trong agent_config.json, sau đó fallback sang Web.config
+            string configuredModel = null;
+            try
+            {
+                configuredModel = AgentConfigService.GetConfig()?.PrimaryModel;
+            }
+            catch { }
+
+            if (string.IsNullOrWhiteSpace(configuredModel))
+            {
+                configuredModel = ConfigurationManager.AppSettings["GeminiModel"];
+            }
+
+            // Xác minh model có thuộc danh sách chính thức được hỗ trợ hay không
+            if (!string.IsNullOrWhiteSpace(configuredModel) &&
+                Array.Exists(AgentConfigModel.SupportedModels, m => string.Equals(m, configuredModel.Trim(), StringComparison.OrdinalIgnoreCase)))
+            {
+                Model = configuredModel.Trim();
+            }
+            else
+            {
+                Model = "gemini-3.5-flash-lite";
+            }
         }
 
         private static HttpClient CreateClient()
@@ -43,22 +63,44 @@ namespace StudentConnect.Models.Assistant
         }
 
         /// <summary>
-        /// Gọi Google Gemini REST API generateContent.
-        /// Hỗ trợ cả khóa API dạng mới (AQ.) lẫn dạng cũ (AIza).
+        /// Gọi Google Gemini REST API v1beta generateContent.
+        /// Sử dụng các model chính thức (gemini-1.5-flash, gemini-2.0-flash, gemini-1.5-pro, gemini-2.5-flash).
+        /// Bảo vệ tuyệt đối thông tin khóa bí mật, không in key ra log hay exception.
         /// </summary>
         public async Task<JObject> GenerateContentAsync(JArray contents, JObject systemInstruction = null, JArray tools = null)
         {
             if (string.IsNullOrWhiteSpace(ApiKey))
-                throw new InvalidOperationException("Chưa cấu hình. Vui lòng cập nhật!");
+                throw new InvalidOperationException("Chưa cấu hình Google Gemini API Key. Vui lòng cập nhật API Key hợp lệ (Google AI Studio) trong trang Quản trị AI Agent.");
 
-            // Danh sách model fallback theo thứ tự ổn định
+            // Danh sách model candidate: model hiện tại -> danh sách fallback hợp lệ
             var candidateModels = new List<string>();
-            if (!string.IsNullOrWhiteSpace(Model)) candidateModels.Add(Model);
-
-            foreach (var fallback in new[] { "gemini-3.5-flash-lite", "gemini-flash-lite-latest", "gemini-3.1-flash-lite", "gemini-3.5-flash", "gemini-3.8-flash" })
+            if (!string.IsNullOrWhiteSpace(Model))
             {
-                if (!candidateModels.Contains(fallback))
-                    candidateModels.Add(fallback);
+                candidateModels.Add(Model);
+            }
+
+            try
+            {
+                var configuredFallbacks = AgentConfigService.GetConfig()?.FallbackModels;
+                if (configuredFallbacks != null)
+                {
+                    foreach (var fb in configuredFallbacks)
+                    {
+                        if (!string.IsNullOrWhiteSpace(fb) && !candidateModels.Contains(fb.Trim(), StringComparer.OrdinalIgnoreCase))
+                        {
+                            candidateModels.Add(fb.Trim());
+                        }
+                    }
+                }
+            }
+            catch { }
+
+            foreach (var supported in AgentConfigModel.SupportedModels)
+            {
+                if (!candidateModels.Contains(supported, StringComparer.OrdinalIgnoreCase))
+                {
+                    candidateModels.Add(supported);
+                }
             }
 
             string primaryError = null;
@@ -82,12 +124,11 @@ namespace StudentConnect.Models.Assistant
                         body["tools"] = tools;
                     }
 
-                    // Gọi Google Gemini API với query key hoặc header
-                    string endpoint = $"https://generativelanguage.googleapis.com/v1beta/models/{currentModel}:generateContent?key={Uri.EscapeDataString(ApiKey)}";
+                    // Endpoint REST chuẩn, truyền API Key qua HTTP Header x-goog-api-key thay vì query string
+                    string endpoint = $"https://generativelanguage.googleapis.com/v1beta/models/{currentModel}:generateContent";
 
                     using (var request = new HttpRequestMessage(HttpMethod.Post, endpoint))
                     {
-                        // Luôn gắn header x-goog-api-key để đảm bảo tương thích mọi loại khóa (AQ. và AIza)
                         request.Headers.TryAddWithoutValidation("x-goog-api-key", ApiKey);
 
                         request.Content = new StringContent(
@@ -104,44 +145,58 @@ namespace StudentConnect.Models.Assistant
                                 return JObject.Parse(json);
                             }
 
-                            var errObj = JObject.Parse(json);
-                            string errMsg = (string)errObj["error"]?["message"] ?? ("HTTP " + (int)response.StatusCode);
-                            string errReason = (string)errObj["error"]?["details"]?[0]?["reason"] ?? "";
-                            string errStatus = (string)errObj["error"]?["status"] ?? "";
+                            string errMsg = "HTTP " + (int)response.StatusCode;
+                            string errReason = "";
+                            string errStatus = "";
+
+                            try
+                            {
+                                var errObj = JObject.Parse(json);
+                                errMsg = (string)errObj["error"]?["message"] ?? errMsg;
+                                errReason = (string)errObj["error"]?["details"]?[0]?["reason"] ?? "";
+                                errStatus = (string)errObj["error"]?["status"] ?? "";
+                            }
+                            catch { }
 
                             if (primaryError == null)
                                 primaryError = errMsg;
 
-                            // 1. Lỗi xác thực khóa API (400 INVALID_ARGUMENT hoặc 401 UNAUTHENTICATED)
+                            // 1. Lỗi xác thực khóa API (401 UNAUTHENTICATED hoặc INVALID_ARGUMENT liên quan key) -> Dừng ngay, KHÔNG lặp fallback
                             if ((int)response.StatusCode == 401 ||
                                 errReason == "ACCESS_TOKEN_TYPE_UNSUPPORTED" ||
                                 errReason == "API_KEY_INVALID" ||
-                                errMsg.IndexOf("API key not valid", StringComparison.OrdinalIgnoreCase) >= 0)
+                                errMsg.IndexOf("API key not valid", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                                errMsg.IndexOf("UNAUTHENTICATED", StringComparison.OrdinalIgnoreCase) >= 0)
                             {
                                 throw new InvalidOperationException(
-                                    $"Key không hợp lệ hoặc chưa được cấp quyền.\n" +
-                                    "Vui lòng cập nhật Key mới!");
+                                    "Google Gemini API Key không hợp lệ hoặc chưa được cấp quyền (HTTP 401). " +
+                                    "Vui lòng cập nhật API Key hợp lệ (bắt đầu bằng AIzaSy...) trong trang Quản trị AI Agent.");
                             }
 
-                            // 2. Hết hạn mức tạm thời hoặc Rate limit theo phút (429) -> Thử chờ và retry với model khác
+                            // 2. Project bị chặn truy cập hoặc API chưa được enable (403 PERMISSION_DENIED) -> Dừng ngay, KHÔNG lặp fallback
+                            if ((int)response.StatusCode == 403)
+                            {
+                                throw new InvalidOperationException(
+                                    $"Google Cloud Project bị từ chối quyền truy cập Gemini API (HTTP 403: {errMsg}). " +
+                                    "Vui lòng kiểm tra quyền và hạn ngạch của dự án.");
+                            }
+
+                            // 3. Hạn mức tạm thời hoặc Rate limit theo phút (429 RESOURCE_EXHAUSTED) -> Delay và thử fallback tiếp theo
                             if ((int)response.StatusCode == 429 ||
                                 errMsg.IndexOf("Quota", StringComparison.OrdinalIgnoreCase) >= 0 ||
                                 errReason == "RESOURCE_EXHAUSTED")
                             {
-                                await Task.Delay(2000);
+                                int delayMs = 1500;
+                                if (response.Headers.RetryAfter != null && response.Headers.RetryAfter.Delta.HasValue)
+                                {
+                                    delayMs = (int)Math.Min(10000, Math.Max(1000, response.Headers.RetryAfter.Delta.Value.TotalMilliseconds));
+                                }
+                                await Task.Delay(delayMs);
                                 continue;
                             }
 
-                            // 3. Project bị chặn truy cập
-                            if ((int)response.StatusCode == 403)
-                            {
-                                throw new InvalidOperationException(
-                                    $"Google Cloud Project bị từ chối quyền truy cập Gemini API ({errMsg}). " +
-                                    "Vui lòng cập nhật Key mới.");
-                            }
-
-                            // 4. Nếu model bị quá tải (503) hoặc không tìm thấy (404) -> thử model fallback tiếp theo
-                            if ((int)response.StatusCode == 503 || (int)response.StatusCode == 404)
+                            // 4. Model không tìm thấy (404) hoặc dịch vụ tạm thời quá tải (503) -> thử model fallback tiếp theo
+                            if ((int)response.StatusCode == 404 || (int)response.StatusCode == 503 || (int)response.StatusCode == 500)
                             {
                                 continue;
                             }
@@ -150,7 +205,7 @@ namespace StudentConnect.Models.Assistant
                 }
                 catch (InvalidOperationException)
                 {
-                    throw; // Giữ nguyên thông báo lỗi nghiệp vụ rõ ràng
+                    throw; // Giữ nguyên lỗi nghiệp vụ xác thực/phân quyền rõ ràng
                 }
                 catch (Exception ex)
                 {
@@ -159,11 +214,12 @@ namespace StudentConnect.Models.Assistant
                 }
             }
 
-            throw new InvalidOperationException(primaryError ?? "Không thể kết nối API.");
+            throw new InvalidOperationException(primaryError ?? "Không thể kết nối đến Google Gemini API.");
         }
 
         /// <summary>
-        /// Kiểm tra thực tế kết nối tới Google Gemini API với thời gian trễ và trạng thái quota
+        /// Kiểm tra thực tế kết nối tới Google Gemini API với thời gian trễ và trạng thái quota.
+        /// Đảm bảo không bao giờ in hay trả về API Key thô.
         /// </summary>
         public async Task<ApiTestResult> TestConnectionAsync(string customKey = null, string customModel = null)
         {
@@ -173,12 +229,13 @@ namespace StudentConnect.Models.Assistant
                 return new ApiTestResult
                 {
                     Success = false,
-                    Message = "Chưa cấu hình API Key. Vui lòng nhập và lưu API Key trước khi kiểm tra.",
+                    Message = "Chưa cấu hình API Key. Vui lòng nhập và lưu API Key hợp lệ (Google AI Studio) trước khi kiểm tra.",
                     LatencyMs = 0,
                     ModelUsed = null
                 };
             }
 
+            // Sử dụng chính xác model được yêu cầu kiểm thử để trả về phản hồi thực tế từ Google API (không âm thầm ghi đè)
             string modelToUse = !string.IsNullOrWhiteSpace(customModel) ? customModel.Trim() : (Model ?? "gemini-3.5-flash-lite");
 
             var sw = System.Diagnostics.Stopwatch.StartNew();
@@ -203,10 +260,14 @@ namespace StudentConnect.Models.Assistant
                     }
                 };
 
-                string url = $"https://generativelanguage.googleapis.com/v1beta/models/{modelToUse}:generateContent?key={keyToUse}";
+                string url = $"https://generativelanguage.googleapis.com/v1beta/models/{modelToUse}:generateContent";
                 using (var content = new StringContent(requestBody.ToString(), Encoding.UTF8, "application/json"))
+                using (var request = new HttpRequestMessage(HttpMethod.Post, url))
                 {
-                    var response = await Http.PostAsync(url, content);
+                    request.Headers.TryAddWithoutValidation("x-goog-api-key", keyToUse);
+                    request.Content = content;
+
+                    var response = await Http.SendAsync(request);
                     sw.Stop();
 
                     string respText = await response.Content.ReadAsStringAsync();
@@ -215,24 +276,50 @@ namespace StudentConnect.Models.Assistant
                         return new ApiTestResult
                         {
                             Success = true,
-                            Message = $"Kết nối Google Gemini API thành công! Phản hồi trong {sw.ElapsedMilliseconds}ms.",
+                            Message = $"Kết nối Google Gemini API thành công! Model '{modelToUse}' phản hồi trong {sw.ElapsedMilliseconds}ms.",
                             LatencyMs = (int)sw.ElapsedMilliseconds,
                             ModelUsed = modelToUse
                         };
                     }
 
                     string errSnippet = respText;
+                    string errReason = "";
                     try
                     {
                         var jErr = JObject.Parse(respText);
                         errSnippet = jErr["error"]?["message"]?.ToString() ?? respText;
+                        errReason = jErr["error"]?["details"]?[0]?["reason"]?.ToString() ?? "";
                     }
                     catch { }
+
+                    int statusCode = (int)response.StatusCode;
+                    string friendlyMsg;
+
+                    if (statusCode == 401 || errReason == "ACCESS_TOKEN_TYPE_UNSUPPORTED" || errReason == "API_KEY_INVALID" || errSnippet.IndexOf("API key not valid", StringComparison.OrdinalIgnoreCase) >= 0)
+                    {
+                        friendlyMsg = $"Lỗi xác thực (HTTP 401): API Key không hợp lệ hoặc chưa được kích hoạt trên Google AI Studio. Chi tiết: {errSnippet}";
+                    }
+                    else if (statusCode == 403)
+                    {
+                        friendlyMsg = $"Lỗi phân quyền (HTTP 403): Dự án hoặc API Key bị từ chối truy cập. Chi tiết: {errSnippet}";
+                    }
+                    else if (statusCode == 404)
+                    {
+                        friendlyMsg = $"Mô hình không tồn tại (HTTP 404): Model '{modelToUse}' không khả dụng cho tài khoản API này.";
+                    }
+                    else if (statusCode == 429)
+                    {
+                        friendlyMsg = $"Hết hạn mức hoặc chạm giới hạn tần suất (HTTP 429): {errSnippet}";
+                    }
+                    else
+                    {
+                        friendlyMsg = $"Lỗi phản hồi từ Gemini API (HTTP {statusCode}): {errSnippet}";
+                    }
 
                     return new ApiTestResult
                     {
                         Success = false,
-                        Message = $"Lỗi phản hồi từ Gemini API (HTTP {(int)response.StatusCode}): {errSnippet}",
+                        Message = friendlyMsg,
                         LatencyMs = (int)sw.ElapsedMilliseconds,
                         ModelUsed = modelToUse
                     };
@@ -244,7 +331,7 @@ namespace StudentConnect.Models.Assistant
                 return new ApiTestResult
                 {
                     Success = false,
-                    Message = $"Lỗi kết nối mạng hoặc máy chủ: {ex.Message}",
+                    Message = $"Lỗi kết nối mạng hoặc timeout: {ex.Message}",
                     LatencyMs = (int)sw.ElapsedMilliseconds,
                     ModelUsed = modelToUse
                 };

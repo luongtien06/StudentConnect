@@ -1,9 +1,9 @@
 {
   "WorkerType": "WebBackgroundTimer",
   "MachineName": "ASUS",
-  "ProcessId": 26196,
-  "LastHeartbeatUtc": "2026-10-26T17:21:01.7927702Z",
-  "LastHeartbeatLocal": "27/10/2026 00:21:01",
+  "ProcessId": 24000,
+  "LastHeartbeatUtc": "2026-10-28T09:29:16.5659253Z",
+  "LastHeartbeatLocal": "28/10/2026 16:29:16",
   "ProcessedCount": 0,
   "Status": "Active",
   "IsAlive": true
